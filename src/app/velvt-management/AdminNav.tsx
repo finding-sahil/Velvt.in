@@ -7,6 +7,7 @@ import { adminPath } from "@/lib/admin-path";
 const navItems = [
   { href: adminPath(), label: "Overview" },
   { href: adminPath("/events"), label: "Events & Tickets" },
+  { href: adminPath("/tickets"), label: "Passes & QR Generator" },
   { href: adminPath("/volunteers"), label: "Volunteers" },
   { href: adminPath("/team"), label: "Core Team" },
   { href: adminPath("/gallery"), label: "Gallery" },

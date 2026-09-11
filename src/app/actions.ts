@@ -12,7 +12,10 @@ import {
   partnerSchema,
   pressMentionSchema,
   eventFaqSchema,
+  issueTicketSchema,
+  checkInTicketSchema,
 } from "@/lib/validations";
+import { generateTicketNumber, generateSecurityToken, generateTicketQRCode } from "@/lib/ticket-generator";
 import { generateVolunteerId } from "@/lib/volunteer-id";
 import { verifyPassword, hashPassword, createSession, destroySession, requireAdmin } from "@/lib/auth";
 import { checkRateLimit, RATE_LIMITS, getClientIdentifier } from "@/lib/rate-limit";
@@ -1600,5 +1603,357 @@ export async function deleteEventFAQ(id: string) {
     return { success: false, error: error?.message || "Failed to delete FAQ." };
   }
 }
+
+// ─── Ticket Generator & Gateman Operations ──────────────────────────────────
+
+function resolveSiteUrl(reqHeaders?: Headers): string {
+  if (process.env.NEXT_PUBLIC_SITE_URL && process.env.NEXT_PUBLIC_SITE_URL.startsWith("http")) {
+    return process.env.NEXT_PUBLIC_SITE_URL.replace(/\/$/, "");
+  }
+  if (process.env.VERCEL_URL) {
+    return `https://${process.env.VERCEL_URL}`;
+  }
+  if (reqHeaders) {
+    const host = reqHeaders.get("host");
+    if (host) {
+      const proto = reqHeaders.get("x-forwarded-proto") || (host.includes("localhost") ? "http" : "https");
+      return `${proto}://${host}`;
+    }
+  }
+  return "https://velvt.in";
+}
+
+export async function generateIssuedTicket(formData: FormData) {
+  const session = await requireAdmin();
+  const reqHeaders = await headers();
+  const baseUrl = resolveSiteUrl(reqHeaders);
+
+  const raw = {
+    attendeeName: (formData.get("attendeeName") as string || "").trim(),
+    attendeeEmail: (formData.get("attendeeEmail") as string || "").trim(),
+    attendeePhone: (formData.get("attendeePhone") as string || "").trim(),
+    tierName: (formData.get("tierName") as string || "VIP Pass").trim(),
+    priceInRupees: parseFloat(formData.get("priceInRupees") as string) || 0,
+    eventId: (formData.get("eventId") as string || "").trim(),
+    ticketTypeId: (formData.get("ticketTypeId") as string || "").trim() || undefined,
+    notes: (formData.get("notes") as string || "").trim() || undefined,
+  };
+
+  const parsed = issueTicketSchema.safeParse(raw);
+  if (!parsed.success) {
+    return {
+      success: false,
+      error: parsed.error.issues[0]?.message || "Invalid ticket details",
+    };
+  }
+
+  try {
+    // Generate unique serial ticket number (guaranteeing uniqueness with loop check)
+    let ticketNumber = "";
+    let isUnique = false;
+    let attempts = 0;
+    while (!isUnique && attempts < 10) {
+      attempts++;
+      ticketNumber = generateTicketNumber("VLT-2026");
+      const existing = await prisma.issuedTicket.findUnique({
+        where: { ticketNumber },
+        select: { id: true },
+      });
+      if (!existing) isUnique = true;
+    }
+
+    if (!isUnique) {
+      ticketNumber = `VLT-${Date.now().toString(36).toUpperCase()}`;
+    }
+
+    // High entropy verification security token
+    const securityToken = generateSecurityToken();
+    const verificationUrl = `${baseUrl}/verify/ticket/${securityToken}`;
+
+    // Pre-generate scannable high-res QR code
+    const qrCodeDataUrl = await generateTicketQRCode(verificationUrl);
+
+    // Save ticket to database
+    const ticket = await prisma.issuedTicket.create({
+      data: {
+        ticketNumber,
+        securityToken,
+        attendeeName: parsed.data.attendeeName,
+        attendeeEmail: parsed.data.attendeeEmail,
+        attendeePhone: parsed.data.attendeePhone || null,
+        tierName: parsed.data.tierName,
+        priceInPaise: Math.round(parsed.data.priceInRupees * 100),
+        status: "valid",
+        isCheckedIn: false,
+        notes: parsed.data.notes || null,
+        qrCodeDataUrl,
+        eventId: parsed.data.eventId,
+        ticketTypeId: parsed.data.ticketTypeId || null,
+      },
+      include: {
+        event: {
+          select: {
+            id: true,
+            name: true,
+            slug: true,
+            date: true,
+            time: true,
+          },
+        },
+      },
+    });
+
+    await logAuditEvent({
+      action: "ticket.issue",
+      targetType: "IssuedTicket",
+      targetId: ticket.id,
+      metadata: {
+        ticketNumber: ticket.ticketNumber,
+        attendeeName: ticket.attendeeName,
+        tierName: ticket.tierName,
+        eventId: ticket.eventId,
+      },
+      actor: { id: session.userId, email: session.user.email },
+    });
+
+    revalidatePath("/velvt-management/tickets");
+    return { success: true, ticket };
+  } catch (error: any) {
+    console.error("Failed to generate ticket:", error);
+    return { success: false, error: error?.message || "Failed to generate pass." };
+  }
+}
+
+/**
+ * Gateman check-in action (called either by gateman on verification page or by admin)
+ */
+export async function checkInIssuedTicket(
+  identifier: string,
+  gatekeeperName: string = "Gate Staff",
+  notes?: string
+) {
+  if (!identifier || identifier.trim().length === 0) {
+    return { success: false, status: "invalid", message: "Missing ticket identifier." };
+  }
+
+  const cleanIdentifier = identifier.trim();
+
+  try {
+    // Lookup by either securityToken (QR code scan) or ticketNumber (manual entry)
+    const ticket = await prisma.issuedTicket.findFirst({
+      where: {
+        OR: [
+          { securityToken: cleanIdentifier },
+          { ticketNumber: { equals: cleanIdentifier, mode: "insensitive" } },
+        ],
+      },
+      include: {
+        event: {
+          select: {
+            id: true,
+            name: true,
+            date: true,
+            time: true,
+          },
+        },
+      },
+    });
+
+    if (!ticket) {
+      return {
+        success: false,
+        status: "not_found",
+        message: "Pass not found. Invalid or counterfeit ticket QR.",
+      };
+    }
+
+    if (ticket.status === "cancelled" || ticket.status === "revoked") {
+      return {
+        success: false,
+        status: "revoked",
+        ticket,
+        message: "This pass has been CANCELLED or REVOKED. Deny entry.",
+      };
+    }
+
+    // Check if already checked in!
+    if (ticket.isCheckedIn) {
+      return {
+        success: false,
+        status: "already_checked_in",
+        ticket,
+        message: `Pass ALREADY SCANNED and admitted on ${ticket.checkedInAt ? new Date(ticket.checkedInAt).toLocaleTimeString("en-IN", { hour: "2-digit", minute: "2-digit", hour12: true }) : "earlier"}. Verify identity before admitting.`,
+      };
+    }
+
+    // Mark as checked in
+    const checkInTime = new Date();
+    const updated = await prisma.issuedTicket.update({
+      where: { id: ticket.id },
+      data: {
+        isCheckedIn: true,
+        checkedInAt: checkInTime,
+        checkedInBy: gatekeeperName,
+        status: "used",
+        ...(notes ? { notes: ticket.notes ? `${ticket.notes} | ${notes}` : notes } : {}),
+      },
+      include: {
+        event: {
+          select: {
+            id: true,
+            name: true,
+            date: true,
+            time: true,
+          },
+        },
+      },
+    });
+
+    await logAuditEvent({
+      action: "ticket.checkin",
+      targetType: "IssuedTicket",
+      targetId: updated.id,
+      metadata: {
+        ticketNumber: updated.ticketNumber,
+        attendeeName: updated.attendeeName,
+        checkedInBy: gatekeeperName,
+      },
+      actor: { id: "gatekeeper", email: gatekeeperName },
+    });
+
+    revalidatePath("/velvt-management/tickets");
+    revalidatePath(`/verify/ticket/${ticket.securityToken}`);
+
+    return {
+      success: true,
+      status: "admitted",
+      ticket: updated,
+      message: "Valid Pass! Attendee admitted and checked in successfully.",
+    };
+  } catch (error: any) {
+    console.error("Check-in error:", error);
+    return { success: false, status: "error", message: error?.message || "Failed to process check-in." };
+  }
+}
+
+/**
+ * Admin toggle check-in status (allows reverting or manually toggling)
+ */
+export async function toggleTicketCheckIn(ticketId: string, currentStatus: boolean) {
+  const session = await requireAdmin();
+
+  try {
+    const updated = await prisma.issuedTicket.update({
+      where: { id: ticketId },
+      data: {
+        isCheckedIn: !currentStatus,
+        checkedInAt: !currentStatus ? new Date() : null,
+        checkedInBy: !currentStatus ? `Admin (${session.user.name})` : null,
+        status: !currentStatus ? "used" : "valid",
+      },
+    });
+
+    await logAuditEvent({
+      action: !currentStatus ? "ticket.checkin.manual" : "ticket.checkin.revert",
+      targetType: "IssuedTicket",
+      targetId: updated.id,
+      metadata: { ticketNumber: updated.ticketNumber, isCheckedIn: updated.isCheckedIn },
+      actor: { id: session.userId, email: session.user.email },
+    });
+
+    revalidatePath("/velvt-management/tickets");
+    return { success: true, ticket: updated };
+  } catch (error: any) {
+    return { success: false, error: error?.message || "Failed to update check-in status." };
+  }
+}
+
+/**
+ * Admin delete/revoke ticket
+ */
+export async function deleteIssuedTicket(id: string) {
+  const session = await requireAdmin();
+
+  try {
+    const ticket = await prisma.issuedTicket.delete({
+      where: { id },
+    });
+
+    await logAuditEvent({
+      action: "ticket.delete",
+      targetType: "IssuedTicket",
+      targetId: id,
+      metadata: { ticketNumber: ticket.ticketNumber, attendeeName: ticket.attendeeName },
+      actor: { id: session.userId, email: session.user.email },
+    });
+
+    revalidatePath("/velvt-management/tickets");
+    return { success: true };
+  } catch (error: any) {
+    return { success: false, error: error?.message || "Failed to delete ticket." };
+  }
+}
+
+/**
+ * Public Gateman Verification query by security token or ticket number
+ */
+export async function getTicketVerificationData(identifier: string) {
+  if (!identifier) return null;
+  const clean = identifier.trim();
+
+  try {
+    const ticket = await prisma.issuedTicket.findFirst({
+      where: {
+        OR: [
+          { securityToken: clean },
+          { ticketNumber: { equals: clean, mode: "insensitive" } },
+        ],
+      },
+      include: {
+        event: {
+          select: {
+            id: true,
+            name: true,
+            slug: true,
+            date: true,
+            time: true,
+            status: true,
+          },
+        },
+      },
+    });
+
+    if (!ticket) return null;
+
+    // Return sanitized ticket data for verification view
+    return {
+      id: ticket.id,
+      ticketNumber: ticket.ticketNumber,
+      securityToken: ticket.securityToken,
+      attendeeName: ticket.attendeeName,
+      attendeeEmail: ticket.attendeeEmail,
+      attendeePhone: ticket.attendeePhone,
+      tierName: ticket.tierName,
+      priceInPaise: ticket.priceInPaise,
+      status: ticket.status,
+      isCheckedIn: ticket.isCheckedIn,
+      checkedInAt: ticket.checkedInAt ? ticket.checkedInAt.toISOString() : null,
+      checkedInBy: ticket.checkedInBy,
+      notes: ticket.notes,
+      createdAt: ticket.createdAt.toISOString(),
+      event: {
+        id: ticket.event.id,
+        name: ticket.event.name,
+        date: ticket.event.date.toISOString(),
+        time: ticket.event.time,
+        status: ticket.event.status,
+      },
+    };
+  } catch (error) {
+    console.error("Error fetching verification data:", error);
+    return null;
+  }
+}
+
 
 

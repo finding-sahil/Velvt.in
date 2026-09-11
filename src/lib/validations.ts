@@ -170,3 +170,27 @@ export const eventFaqSchema = z.object({
 
 export type EventFaqInput = z.infer<typeof eventFaqSchema>;
 
+// ─── Issued Tickets & Gateman Check-in ─────────────────────────────────────────
+
+export const issueTicketSchema = z.object({
+  attendeeName: z.string().min(2, "Attendee name is required (at least 2 characters)"),
+  attendeeEmail: z.string().email("Valid email address is required"),
+  attendeePhone: z.string().optional().or(z.literal("")),
+  tierName: z.string().min(1, "Ticket tier / pass name is required").default("VIP Pass"),
+  priceInRupees: z.number().min(0, "Price cannot be negative").default(0),
+  eventId: z.string().min(1, "Please select an event"),
+  ticketTypeId: z.string().optional().or(z.literal("")),
+  notes: z.string().optional().or(z.literal("")),
+});
+
+export type IssueTicketInput = z.infer<typeof issueTicketSchema>;
+
+export const checkInTicketSchema = z.object({
+  identifier: z.string().min(1, "Ticket number or verification token is required"),
+  gatekeeperName: z.string().optional().default("Gate Staff"),
+  notes: z.string().optional(),
+});
+
+export type CheckInTicketInput = z.infer<typeof checkInTicketSchema>;
+
+

@@ -45,6 +45,7 @@ model Event {
   // Relations
   venue          Venue?
   ticketTypes    TicketType[]
+  issuedTickets  IssuedTicket[]
   scheduleItems  EventScheduleItem[]
   announcements  EventAnnouncement[]
   faqs           EventFAQ[]
@@ -92,8 +93,42 @@ model TicketType {
 
   eventId String
   event   Event  @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  issuedTickets IssuedTicket[]
 
   @@index([eventId, isActive])
+}
+
+// ─── Issued Tickets ────────────────────────────────────────────────────────────
+
+model IssuedTicket {
+  id            String       @id @default(cuid())
+  ticketNumber  String       @unique // e.g. "VLT-2026-X8K9P2"
+  securityToken String       @unique @default(uuid()) // High-entropy verification token
+  attendeeName  String
+  attendeeEmail String
+  attendeePhone String?
+  tierName      String       @default("General Entry") // e.g. "VIP Pass", "General Entry", "Early Bird"
+  priceInPaise  Int          @default(0) // Price paid in paise (INR * 100)
+  status        String       @default("valid") // valid, used, cancelled, revoked
+  isCheckedIn   Boolean      @default(false)
+  checkedInAt   DateTime?
+  checkedInBy   String?      // Gatekeeper name or device ID
+  notes         String?      // Internal booking note
+  qrCodeDataUrl String?      // Pre-rendered base64 QR data URL for instant offline rendering/print
+  createdAt     DateTime     @default(now())
+  updatedAt     DateTime     @updatedAt
+
+  eventId       String
+  event         Event        @relation(fields: [eventId], references: [id], onDelete: Cascade)
+
+  ticketTypeId  String?
+  ticketType    TicketType?  @relation(fields: [ticketTypeId], references: [id], onDelete: SetNull)
+
+  @@index([eventId, isCheckedIn])
+  @@index([ticketNumber])
+  @@index([securityToken])
+  @@index([attendeeName])
+  @@index([attendeeEmail])
 }
 
 // ─── Event Schedule ────────────────────────────────────────────────────────────
