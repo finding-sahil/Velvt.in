@@ -48,15 +48,15 @@ export function Footer() {
 
           {/* Explore Links */}
           <div className="space-y-3">
-            <h4 className="text-[11px] font-display font-bold uppercase tracking-[0.18em] text-red">
+            <p className="text-[11px] font-display font-bold uppercase tracking-[0.18em] text-red">
               Explore
-            </h4>
-            <ul className="space-y-2">
+            </p>
+            <ul className="space-y-1">
               {footerLinks.explore.map((link) => (
                 <li key={link.href}>
                   <Link
                     href={link.href}
-                    className="text-xs text-g6 hover:text-white transition-colors duration-150"
+                    className="text-xs text-g6 hover:text-white transition-colors duration-150 py-1.5 block"
                   >
                     {link.label}
                   </Link>
@@ -67,15 +67,15 @@ export function Footer() {
 
           {/* Organization Links */}
           <div className="space-y-3">
-            <h4 className="text-[11px] font-display font-bold uppercase tracking-[0.18em] text-red">
+            <p className="text-[11px] font-display font-bold uppercase tracking-[0.18em] text-red">
               Organization
-            </h4>
-            <ul className="space-y-2">
+            </p>
+            <ul className="space-y-1">
               {footerLinks.organization.map((link) => (
                 <li key={link.href}>
                   <Link
                     href={link.href}
-                    className="text-xs text-g6 hover:text-white transition-colors duration-150"
+                    className="text-xs text-g6 hover:text-white transition-colors duration-150 py-1.5 block"
                   >
                     {link.label}
                   </Link>
@@ -86,15 +86,15 @@ export function Footer() {
 
           {/* Resources & Ops */}
           <div className="space-y-3">
-            <h4 className="text-[11px] font-display font-bold uppercase tracking-[0.18em] text-red">
+            <p className="text-[11px] font-display font-bold uppercase tracking-[0.18em] text-red">
               Verification &amp; Crew
-            </h4>
-            <ul className="space-y-2">
+            </p>
+            <ul className="space-y-1">
               {footerLinks.resources.map((link) => (
                 <li key={link.href}>
                   <Link
                     href={link.href}
-                    className="text-xs text-g6 hover:text-white transition-colors duration-150"
+                    className="text-xs text-g6 hover:text-white transition-colors duration-150 py-1.5 block"
                   >
                     {link.label}
                   </Link>
@@ -103,15 +103,15 @@ export function Footer() {
             </ul>
 
             <div className="pt-3 border-t border-white/[0.08] space-y-2">
-              <h5 className="text-[10px] font-mono font-bold uppercase tracking-[0.16em] text-g5">
+              <p className="text-[10px] font-mono font-bold uppercase tracking-[0.16em] text-g5">
                 Join Community
-              </h5>
-              <div className="flex flex-col gap-1.5 text-xs font-mono">
+              </p>
+              <div className="flex flex-col gap-1 text-xs font-mono">
                 <a
                   href="https://www.instagram.com/velvt.in"
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="text-g6 hover:text-red transition-colors flex items-center gap-1.5"
+                  className="text-g6 hover:text-red transition-colors flex items-center gap-1.5 py-1.5 min-h-[36px]"
                 >
                   <span>📷</span> Instagram @velvt.in
                 </a>
@@ -119,7 +119,7 @@ export function Footer() {
                   href="https://chat.whatsapp.com/E5F1PCTqmgU2ljE2rtuzl8"
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="text-g6 hover:text-emerald-400 transition-colors flex items-center gap-1.5"
+                  className="text-g6 hover:text-emerald-400 transition-colors flex items-center gap-1.5 py-1.5 min-h-[36px]"
                 >
                   <span>💬</span> WhatsApp Updates Group
                 </a>
@@ -138,7 +138,7 @@ export function Footer() {
               href="https://www.instagram.com/finding.sahil/"
               target="_blank"
               rel="noopener noreferrer"
-              className="text-[11px] font-mono text-g5 hover:text-white transition-colors tracking-wider flex items-center gap-1 group"
+              className="text-[11px] font-mono text-g5 hover:text-white transition-colors tracking-wider flex items-center gap-1 group py-2 px-1"
             >
               <span>Created with</span>
               <span className="text-red group-hover:scale-125 transition-transform inline-block">❤️</span>
@@ -146,12 +146,12 @@ export function Footer() {
               <span className="text-white group-hover:text-red transition-colors underline decoration-white/20 underline-offset-4 font-semibold">Sahil</span>
             </a>
           </div>
-          <div className="flex items-center gap-5">
+          <div className="flex items-center gap-6">
             <a
               href="https://www.instagram.com/velvt.in"
               target="_blank"
               rel="noopener noreferrer"
-              className="text-[11px] font-mono text-g5 hover:text-red transition-colors uppercase tracking-wider"
+              className="text-[11px] font-mono text-g5 hover:text-red transition-colors uppercase tracking-wider py-2 px-1 inline-block"
             >
               Instagram
             </a>
@@ -159,7 +159,7 @@ export function Footer() {
               href="https://chat.whatsapp.com/E5F1PCTqmgU2ljE2rtuzl8"
               target="_blank"
               rel="noopener noreferrer"
-              className="text-[11px] font-mono text-g5 hover:text-emerald-400 transition-colors uppercase tracking-wider"
+              className="text-[11px] font-mono text-g5 hover:text-emerald-400 transition-colors uppercase tracking-wider py-2 px-1 inline-block"
             >
               WhatsApp
             </a>

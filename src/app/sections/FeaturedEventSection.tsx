@@ -48,9 +48,9 @@ export function FeaturedEventSection({ event }: FeaturedEventSectionProps) {
                       <div className="w-12 h-12 mx-auto rounded-full border border-red/40 flex items-center justify-center shadow-[0_0_16px_rgba(200,16,46,0.25)]">
                         <span className="font-display font-black text-xl text-white">2.O</span>
                       </div>
-                      <h4 className="font-display font-black text-3xl sm:text-4xl text-white tracking-wider">
+                      <p className="font-display font-black text-3xl sm:text-4xl text-white tracking-wider">
                         VELVT CURSE
-                      </h4>
+                      </p>
                       <p className="text-[11px] font-mono tracking-[0.25em] text-red uppercase">
                         Halloween Edition
                       </p>

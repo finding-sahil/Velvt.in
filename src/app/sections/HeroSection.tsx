@@ -76,7 +76,7 @@ export function HeroSection({
             href="https://www.instagram.com/velvt.in"
             target="_blank"
             rel="noopener noreferrer"
-            className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-white/[0.04] border border-white/10 text-xs font-mono uppercase tracking-wider text-g6 hover:text-white hover:border-red/50 hover:bg-red-dim transition-all shadow-[0_0_15px_rgba(0,0,0,0.3)] group"
+            className="inline-flex items-center gap-2 px-4 py-2.5 min-h-[44px] rounded-full bg-white/[0.04] border border-white/10 text-xs font-mono uppercase tracking-wider text-g6 hover:text-white hover:border-red/50 hover:bg-red-dim transition-all shadow-[0_0_15px_rgba(0,0,0,0.3)] group"
           >
             <svg
               className="w-3.5 h-3.5 text-red group-hover:scale-110 transition-transform"
@@ -92,7 +92,7 @@ export function HeroSection({
             href="https://chat.whatsapp.com/E5F1PCTqmgU2ljE2rtuzl8"
             target="_blank"
             rel="noopener noreferrer"
-            className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-white/[0.04] border border-white/10 text-xs font-mono uppercase tracking-wider text-g6 hover:text-white hover:border-emerald-500/50 hover:bg-emerald-950/40 transition-all shadow-[0_0_15px_rgba(0,0,0,0.3)] group"
+            className="inline-flex items-center gap-2 px-4 py-2.5 min-h-[44px] rounded-full bg-white/[0.04] border border-white/10 text-xs font-mono uppercase tracking-wider text-g6 hover:text-white hover:border-emerald-500/50 hover:bg-emerald-950/40 transition-all shadow-[0_0_15px_rgba(0,0,0,0.3)] group"
           >
             <svg
               className="w-3.5 h-3.5 text-emerald-400 group-hover:scale-110 transition-transform"
