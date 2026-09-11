@@ -54,22 +54,27 @@ export function middleware(request: NextRequest) {
     const sessionCookie = request.cookies.get("velvt_admin_session");
 
     if (!sessionCookie?.value) {
-      // Return 404 — don't reveal that admin exists
-      return new NextResponse(null, { status: 404 });
+      // Redirect to admin login page
+      const loginUrl = new URL(`${ADMIN_PREFIX}/login`, request.url);
+      return NextResponse.redirect(loginUrl);
     }
 
     // Basic session format validation (token|userId|hash|timestamp)
     const parts = sessionCookie.value.split("|");
     if (parts.length !== 4) {
-      return new NextResponse(null, { status: 404 });
+      const loginUrl = new URL(`${ADMIN_PREFIX}/login`, request.url);
+      const res = NextResponse.redirect(loginUrl);
+      res.cookies.delete("velvt_admin_session");
+      return res;
     }
 
     // Check session timestamp hasn't expired (7 days)
     const timestamp = parseInt(parts[3], 10);
     const maxAge = 60 * 60 * 24 * 7 * 1000; // 7 days in ms
     if (isNaN(timestamp) || Date.now() - timestamp > maxAge) {
-      // Expired — clear cookie and return 404
-      const res = new NextResponse(null, { status: 404 });
+      // Expired — clear cookie and redirect to login
+      const loginUrl = new URL(`${ADMIN_PREFIX}/login`, request.url);
+      const res = NextResponse.redirect(loginUrl);
       res.cookies.delete("velvt_admin_session");
       return res;
     }
