@@ -1,0 +1,249 @@
+// VELVET — Database Schema
+// SQLite for development, easily switchable to PostgreSQL via datasource change
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
+}
+
+// ─── Admin Users ───────────────────────────────────────────────────────────────
+
+model AdminUser {
+  id           String   @id @default(cuid())
+  email        String   @unique
+  passwordHash String
+  name         String
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+}
+
+// ─── Events ────────────────────────────────────────────────────────────────────
+
+model Event {
+  id             String   @id @default(cuid())
+  name           String
+  slug           String   @unique
+  description    String   // Long text
+  theme          String?  // Event theme/concept
+  coverImage     String?  // URL or path to cover image
+  date           DateTime
+  time           String?  // Display time string e.g. "7:00 PM onwards"
+  status         String   @default("draft") // draft, upcoming, ongoing, completed, archived
+  ageRestriction String?
+  dressCode      String?
+  entryInfo      String?  // Entry information text
+  isFeatured     Boolean  @default(false)
+  displayOrder   Int      @default(0)
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  // Relations
+  venue          Venue?
+  ticketTypes    TicketType[]
+  scheduleItems  EventScheduleItem[]
+  announcements  EventAnnouncement[]
+  faqs           EventFAQ[]
+  volunteers     Volunteer[]
+  galleryItems   GalleryItem[]
+  partners       Partner[]
+  pressMentions  PressMention[]
+}
+
+// ─── Venues ────────────────────────────────────────────────────────────────────
+
+model Venue {
+  id          String  @id @default(cuid())
+  name        String
+  address     String
+  city        String
+  image       String? // Venue photo
+  mapLink     String? // Google Maps link
+  accessInfo  String? // Access/directions information
+  parkingInfo String? // Parking details
+
+  eventId String @unique
+  event   Event  @relation(fields: [eventId], references: [id], onDelete: Cascade)
+}
+
+// ─── Ticket Types ──────────────────────────────────────────────────────────────
+
+model TicketType {
+  id            String    @id @default(cuid())
+  name          String    // e.g. "Early Bird", "General Entry", "VIP"
+  description   String?
+  priceInPaise  Int       // Price in paise (INR * 100) for precision
+  totalQuantity Int       @default(0)
+  soldCount     Int       @default(0)
+  saleStart     DateTime?
+  saleEnd       DateTime?
+  bookingUrl    String?   // External booking link
+  isActive      Boolean   @default(true)
+  displayOrder  Int       @default(0)
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  eventId String
+  event   Event  @relation(fields: [eventId], references: [id], onDelete: Cascade)
+}
+
+// ─── Event Schedule ────────────────────────────────────────────────────────────
+
+model EventScheduleItem {
+  id           String @id @default(cuid())
+  time         String // Display time e.g. "7:00 PM"
+  title        String
+  description  String?
+  displayOrder Int    @default(0)
+
+  eventId String
+  event   Event  @relation(fields: [eventId], references: [id], onDelete: Cascade)
+}
+
+// ─── Event Announcements ───────────────────────────────────────────────────────
+
+model EventAnnouncement {
+  id          String   @id @default(cuid())
+  title       String
+  content     String
+  isPublished Boolean  @default(false)
+  publishedAt DateTime @default(now())
+  createdAt   DateTime @default(now())
+
+  eventId String
+  event   Event  @relation(fields: [eventId], references: [id], onDelete: Cascade)
+}
+
+// ─── Event FAQs ────────────────────────────────────────────────────────────────
+
+model EventFAQ {
+  id           String @id @default(cuid())
+  question     String
+  answer       String
+  displayOrder Int    @default(0)
+
+  eventId String
+  event   Event  @relation(fields: [eventId], references: [id], onDelete: Cascade)
+}
+
+// ─── Volunteers ────────────────────────────────────────────────────────────────
+
+model Volunteer {
+  id            String   @id @default(cuid())
+  volunteerId   String?  @unique // Generated ID e.g. VEL-2026-00047
+  fullName      String
+  email         String
+  phone         String
+  city          String
+  preferredRole String
+  experience    String?  // Relevant experience text
+  socialLink    String?  // Social profile / portfolio
+  photo         String?  // Headshot / Badge ID Photo
+  consentGiven  Boolean  @default(false)
+
+  // Admin-managed fields
+  status        String   @default("pending") // pending, approved, verified, revoked, rejected
+  assignedRole  String?  // Role assigned by admin (may differ from preferred)
+  adminNotes    String?  // Internal notes — NEVER exposed publicly
+  appliedAt     DateTime @default(now())
+  approvedAt    DateTime?
+  revokedAt     DateTime?
+
+  eventId String
+  event   Event  @relation(fields: [eventId], references: [id], onDelete: Cascade)
+}
+
+// ─── Team Members ──────────────────────────────────────────────────────────────
+
+model TeamMember {
+  id           String  @id @default(cuid())
+  name         String
+  role         String
+  category     String  @default("Core Team") // Founders, Core Team, Creative & Design, Operations, Marketing & Media
+  bio          String?
+  portrait     String? // Portrait image URL/path
+  socialLinks  String? // JSON string of social links
+  portfolioUrl String?
+  displayOrder Int     @default(0)
+  isPublished  Boolean @default(true)
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+}
+
+// ─── Gallery Items ─────────────────────────────────────────────────────────────
+
+model GalleryItem {
+  id           String  @id @default(cuid())
+  url          String  // Image/video URL
+  caption      String?
+  type         String  @default("image") // image, video
+  year         Int?
+  displayOrder Int     @default(0)
+  isPublished  Boolean @default(true)
+  createdAt    DateTime @default(now())
+
+  eventId String?
+  event   Event?  @relation(fields: [eventId], references: [id], onDelete: SetNull)
+}
+
+// ─── Partners / Sponsors ───────────────────────────────────────────────────────
+
+model Partner {
+  id           String  @id @default(cuid())
+  name         String
+  logo         String? // Logo image URL/path
+  website      String?
+  description  String?
+  type         String  @default("partner") // sponsor, partner, media
+  displayOrder Int     @default(0)
+  isActive     Boolean @default(true)
+  createdAt    DateTime @default(now())
+
+  eventId String?
+  event   Event?  @relation(fields: [eventId], references: [id], onDelete: SetNull)
+}
+
+// ─── Press Mentions ────────────────────────────────────────────────────────────
+
+model PressMention {
+  id           String    @id @default(cuid())
+  title        String
+  publication  String
+  url          String?
+  logo         String?   // Publication logo
+  excerpt      String?
+  publishDate  DateTime?
+  isPublished  Boolean   @default(true)
+  displayOrder Int       @default(0)
+  createdAt    DateTime  @default(now())
+
+  eventId String?
+  event   Event?  @relation(fields: [eventId], references: [id], onDelete: SetNull)
+}
+
+// ─── Contact Inquiries ─────────────────────────────────────────────────────────
+
+model ContactInquiry {
+  id         String   @id @default(cuid())
+  name       String
+  email      String
+  phone      String?
+  category   String   // general, collaboration, sponsorship, media, volunteer, venue
+  message    String
+  status     String   @default("new") // new, read, resolved
+  adminNotes String?  // Internal notes — never exposed
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+}
+
+// ─── Site Settings ─────────────────────────────────────────────────────────────
+
+model SiteSetting {
+  id    String @id @default(cuid())
+  key   String @unique
+  value String
+}

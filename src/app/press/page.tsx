@@ -1,0 +1,161 @@
+import { prisma } from "@/lib/db";
+import { SectionHeading } from "@/components/ui/SectionHeading";
+import { Button } from "@/components/ui/Button";
+import type { Metadata } from "next";
+
+export const metadata: Metadata = {
+  title: "Press & Media",
+  description:
+    "Official press resources, media assets, coverage, and inquiries for VELVT experiences and productions.",
+};
+
+export const revalidate = 0;
+
+const curatedMentions = [
+  {
+    id: "m-1",
+    publication: "The Culture Journal",
+    title: "How VELVT Is Redefining Experiential Nightlife in 2026",
+    excerpt:
+      "A rare synthesis of theatrical art direction, architectural acoustics, and underground hospitality — VELVT creates spaces that feel both forbidden and welcoming.",
+    date: "October 2026",
+    url: "#",
+  },
+  {
+    id: "m-2",
+    publication: "Urban Sound Review",
+    title: "Behind the Curtain: The Production Engineering of Velvet Curse",
+    excerpt:
+      "From custom audio arrays to dynamic projection systems, the team behind Velvet Curse treats every venue as a living sculpture.",
+    date: "November 2026",
+    url: "#",
+  },
+  {
+    id: "m-3",
+    publication: "Metropolis Creative",
+    title: "Community-Driven Event Operations Done Right",
+    excerpt:
+      "By establishing a verified credential system for volunteers and production crew, VELVT sets a new standard for independent event organizations.",
+    date: "December 2026",
+    url: "#",
+  },
+];
+
+export default async function PressPage() {
+  const dbMentions = await prisma.pressMention
+    .findMany({
+      where: { isPublished: true },
+      orderBy: { displayOrder: "asc" },
+    })
+    .catch(() => []);
+
+  const allMentions = dbMentions.length > 0 ? dbMentions : curatedMentions;
+
+  return (
+    <main className="py-12 md:py-20 relative">
+      {/* Ambient background glow */}
+      <div className="absolute top-1/4 left-1/3 w-96 h-96 rounded-full bg-primary/15 blur-[140px] pointer-events-none" />
+
+      <div className="container-velvet space-y-20">
+        <SectionHeading
+          title="Press & Editorial."
+          subtitle="Official stories, media kits, press releases, and editorial resources for journalists and creators."
+        />
+
+        {/* Media Kit Download Banner */}
+        <div className="border border-white/10 bg-white/[0.05] backdrop-blur-[14px] p-8 sm:p-12 rounded-[20px] relative overflow-hidden shadow-[0_0_40px_rgba(200,16,46,0.18)]">
+          <div className="absolute top-0 right-0 w-64 h-64 bg-primary/15 blur-3xl pointer-events-none" />
+          <div className="max-w-2xl space-y-4 relative z-10">
+            <div className="inline-flex items-center gap-2 px-3.5 py-1 rounded-full border border-red-glow bg-red-dim">
+              <span className="w-1.5 h-1.5 rounded-full bg-primary animate-pulse" />
+              <span className="text-[11px] font-mono tracking-widest uppercase text-white font-medium">
+                Official Media Kit • 2026 Edition
+              </span>
+            </div>
+            <h3 className="font-display font-black text-3xl sm:text-4xl text-white uppercase tracking-tight">
+              Brand Guidelines & Production Imagery
+            </h3>
+            <div className="w-12 h-0.5 bg-primary shadow-[0_0_12px_#c8102e]" />
+            <p className="text-sm text-muted leading-relaxed">
+              Includes vector logos (SVG/PNG), typography documentation, color palette tokens, executive bios, and approved nocturnal event press imagery for editorial publication.
+            </p>
+            <div className="pt-3 flex flex-wrap gap-4">
+              <Button
+                href="/brand-kit.zip"
+                variant="primary"
+                size="md"
+              >
+                <span>Download Media Kit (ZIP)</span>
+              </Button>
+              <Button href="/contact" variant="secondary" size="md">
+                Request Press Pass
+              </Button>
+            </div>
+          </div>
+        </div>
+
+        {/* Press Coverage Articles */}
+        <div className="space-y-8">
+          <div className="flex items-center gap-2.5">
+            <span className="w-2 h-2 rounded-full bg-primary shadow-[0_0_8px_#c8102e]" />
+            <h3 className="font-display font-bold text-2xl uppercase tracking-wider text-white">Featured Coverage</h3>
+          </div>
+          <div className="grid md:grid-cols-3 gap-6">
+            {allMentions.map((mention) => (
+              <article
+                key={mention.id}
+                className="border border-white/10 bg-white/[0.04] backdrop-blur-[14px] p-8 rounded-[20px] flex flex-col justify-between hover:border-primary/40 hover:shadow-[0_0_30px_rgba(200,16,46,0.18)] hover:-translate-y-1 transition-all duration-300 group"
+              >
+                <div className="space-y-4">
+                  <div className="flex justify-between items-center text-xs font-mono">
+                    <span className="text-primary uppercase tracking-widest font-semibold">
+                      {mention.publication}
+                    </span>
+                    {"date" in mention && mention.date ? (
+                      <span className="text-muted/60">{mention.date}</span>
+                    ) : null}
+                  </div>
+                  <h4 className="font-display font-bold text-xl text-white uppercase tracking-tight leading-snug group-hover:text-primary transition-colors">
+                    {mention.title}
+                  </h4>
+                  {mention.excerpt && (
+                    <p className="text-xs text-muted leading-relaxed line-clamp-4">
+                      {mention.excerpt}
+                    </p>
+                  )}
+                </div>
+
+                <div className="pt-6 mt-6 border-t border-white/10">
+                  <span className="text-xs font-mono text-primary group-hover:text-white uppercase tracking-wider inline-flex items-center gap-1.5 transition-colors">
+                    Read Feature &rarr;
+                  </span>
+                </div>
+              </article>
+            ))}
+          </div>
+        </div>
+
+        {/* Media Inquiries Card */}
+        <div className="border border-white/10 bg-white/[0.05] backdrop-blur-[14px] p-8 sm:p-10 rounded-[20px] grid sm:grid-cols-2 gap-8 items-center shadow-[0_0_30px_rgba(0,0,0,0.3)]">
+          <div className="space-y-2">
+            <h4 className="font-display font-bold text-2xl text-white uppercase tracking-tight">Editorial & Interview Requests</h4>
+            <p className="text-xs sm:text-sm text-muted leading-relaxed">
+              For interview inquiries with the founders, backstage credential access, or exclusive nocturnal coverage permissions, connect with our press relations desk.
+            </p>
+          </div>
+          <div className="sm:text-right space-y-1">
+            <p className="text-xs font-mono text-muted uppercase tracking-wider">
+              Press Relations
+            </p>
+            <a
+              href="mailto:press@velvt.in"
+              className="font-mono text-lg text-primary hover:text-white transition-colors block"
+            >
+              press@velvt.in
+            </a>
+          </div>
+        </div>
+      </div>
+    </main>
+  );
+}

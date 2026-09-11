@@ -1,0 +1,944 @@
+"use client";
+
+import { useState } from "react";
+import Link from "next/link";
+import { useRouter } from "next/navigation";
+import {
+  createEvent,
+  updateEvent,
+  archiveEvent,
+  deleteEvent,
+  createTicketType,
+  toggleTicketType,
+  deleteTicketType,
+} from "@/app/actions";
+import { StatusBadge } from "@/components/ui/StatusBadge";
+import { formatDateShort, formatPrice } from "@/lib/utils";
+import { ImageUploader } from "@/components/ui/ImageUploader";
+
+interface EventManagerProps {
+  events: any[];
+}
+
+export function EventManager({ events }: EventManagerProps) {
+  const router = useRouter();
+  const [showCreateModal, setShowCreateModal] = useState(false);
+  const [editingEvent, setEditingEvent] = useState<any | null>(null);
+  const [managingTicketsFor, setManagingTicketsFor] = useState<any | null>(null);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  // Form states for creating event
+  const [formData, setFormData] = useState({
+    name: "",
+    slug: "",
+    description: "",
+    theme: "",
+    coverImage: "",
+    dressCode: "",
+    ageRestriction: "18+ only. Valid ID required at entry.",
+    entryInfo: "Entry is by ticket only. No re-entry allowed.",
+    date: "",
+    time: "7:00 PM onwards",
+    status: "upcoming",
+    venueName: "",
+    venueCity: "Kolkata",
+    venueAddress: "Kolkata, India",
+    isFeatured: false,
+  });
+
+  // Form states for adding ticket tier
+  const [ticketForm, setTicketForm] = useState({
+    name: "",
+    priceInRupees: 499,
+    totalQuantity: 100,
+    bookingUrl: "",
+    isActive: true,
+  });
+
+  async function handleCreateEvent(e: React.FormEvent) {
+    e.preventDefault();
+    setLoading(true);
+    setError(null);
+
+    const fd = new FormData();
+    fd.append("name", formData.name);
+    fd.append(
+      "slug",
+      formData.slug ||
+        formData.name
+          .toLowerCase()
+          .replace(/[^a-z0-9]+/g, "-")
+          .replace(/(^-|-$)/g, "")
+    );
+    fd.append("description", formData.description);
+    fd.append("theme", formData.theme);
+    fd.append("coverImage", formData.coverImage);
+    fd.append("dressCode", formData.dressCode);
+    fd.append("ageRestriction", formData.ageRestriction);
+    fd.append("entryInfo", formData.entryInfo);
+    fd.append("date", formData.date);
+    fd.append("time", formData.time);
+    fd.append("status", formData.status);
+    fd.append("venueName", formData.venueName);
+    fd.append("venueCity", formData.venueCity);
+    fd.append("venueAddress", formData.venueAddress);
+    fd.append("isFeatured", String(formData.isFeatured));
+
+    const res = await createEvent(fd);
+    setLoading(false);
+
+    if (res.success) {
+      setShowCreateModal(false);
+      setFormData({
+        name: "",
+        slug: "",
+        description: "",
+        theme: "",
+        coverImage: "",
+        dressCode: "",
+        ageRestriction: "18+ only. Valid ID required at entry.",
+        entryInfo: "Entry is by ticket only. No re-entry allowed.",
+        date: "",
+        time: "7:00 PM onwards",
+        status: "upcoming",
+        venueName: "",
+        venueCity: "Kolkata",
+        venueAddress: "Kolkata, India",
+        isFeatured: false,
+      });
+      router.refresh();
+    } else {
+      setError(res.error || "Failed to create event");
+    }
+  }
+
+  async function handleUpdateEvent(e: React.FormEvent) {
+    e.preventDefault();
+    if (!editingEvent) return;
+    setLoading(true);
+    setError(null);
+
+    const fd = new FormData();
+    fd.append("name", editingEvent.name);
+    fd.append("description", editingEvent.description);
+    fd.append("theme", editingEvent.theme || "");
+    fd.append("coverImage", editingEvent.coverImage || "");
+    fd.append("dressCode", editingEvent.dressCode || "");
+    fd.append("ageRestriction", editingEvent.ageRestriction || "");
+    fd.append("entryInfo", editingEvent.entryInfo || "");
+    fd.append(
+      "date",
+      editingEvent.date
+        ? new Date(editingEvent.date).toISOString().split("T")[0]
+        : ""
+    );
+    fd.append("time", editingEvent.time || "");
+    fd.append("status", editingEvent.status);
+    fd.append("venueName", editingEvent.venue?.name || "");
+    fd.append("venueCity", editingEvent.venue?.city || "Kolkata");
+    fd.append("venueAddress", editingEvent.venue?.address || "");
+    fd.append("isFeatured", String(editingEvent.isFeatured));
+
+    const res = await updateEvent(editingEvent.id, fd);
+    setLoading(false);
+
+    if (res.success) {
+      setEditingEvent(null);
+      router.refresh();
+    } else {
+      setError(res.error || "Failed to update event");
+    }
+  }
+
+  async function handleArchive(eventId: string) {
+    if (!confirm("Are you sure you want to archive this event?")) return;
+    setLoading(true);
+    await archiveEvent(eventId);
+    setLoading(false);
+    router.refresh();
+  }
+
+  async function handleDelete(eventId: string) {
+    if (!confirm("Permanently delete this event and its ticket tiers?")) return;
+    setLoading(true);
+    await deleteEvent(eventId);
+    setLoading(false);
+    router.refresh();
+  }
+
+  async function handleAddTicket(e: React.FormEvent) {
+    e.preventDefault();
+    if (!managingTicketsFor) return;
+    setLoading(true);
+
+    const fd = new FormData();
+    fd.append("name", ticketForm.name);
+    fd.append("eventId", managingTicketsFor.id);
+    fd.append("priceInPaise", String(Math.round(ticketForm.priceInRupees * 100)));
+    fd.append("totalQuantity", String(ticketForm.totalQuantity));
+    fd.append("bookingUrl", ticketForm.bookingUrl);
+    fd.append("isActive", String(ticketForm.isActive));
+
+    const res = await createTicketType(fd);
+    setLoading(false);
+
+    if (res.success) {
+      setTicketForm({
+        name: "",
+        priceInRupees: 499,
+        totalQuantity: 100,
+        bookingUrl: "",
+        isActive: true,
+      });
+      router.refresh();
+    } else {
+      alert(res.error || "Failed to add ticket tier");
+    }
+  }
+
+  async function handleToggleTicket(ticketId: string, current: boolean) {
+    setLoading(true);
+    await toggleTicketType(ticketId, !current);
+    setLoading(false);
+    router.refresh();
+  }
+
+  async function handleDeleteTicket(ticketId: string) {
+    if (!confirm("Delete this ticket tier?")) return;
+    setLoading(true);
+    await deleteTicketType(ticketId);
+    setLoading(false);
+    router.refresh();
+  }
+
+  return (
+    <div className="space-y-6">
+      {/* Top Header */}
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-white/[0.08] pb-6">
+        <div>
+          <span className="text-[11px] font-mono uppercase tracking-widest text-red">
+            Production Management
+          </span>
+          <h1 className="font-display text-3xl font-bold uppercase tracking-wider text-white">
+            Events &amp; Ticket Tiers
+          </h1>
+          <p className="text-xs text-g5 mt-1">
+            Create nocturnal experiences, upload event poster art, manage ticket tiers, and set event statuses.
+          </p>
+        </div>
+
+        <button
+          onClick={() => setShowCreateModal(true)}
+          className="px-5 py-2.5 text-xs font-mono uppercase tracking-wider rounded-full bg-red text-white font-bold hover:bg-red/80 transition-all cursor-pointer self-start sm:self-auto shadow-[0_0_20px_rgba(200,16,46,0.4)]"
+        >
+          + Create New Event
+        </button>
+      </div>
+
+      {/* Events List */}
+      <div className="grid gap-5">
+        {events.length === 0 ? (
+          <div className="p-12 text-center border border-white/10 bg-white/[0.02] rounded-2xl">
+            <p className="text-g5 text-sm font-mono">
+              No events found. Click &quot;+ Create New Event&quot; to begin.
+            </p>
+          </div>
+        ) : (
+          events.map((event) => (
+            <div
+              key={event.id}
+              className="border border-white/10 bg-white/[0.03] p-5 sm:p-6 rounded-2xl space-y-5 hover:border-white/20 transition-all"
+            >
+              <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-5">
+                <div className="flex items-start gap-4">
+                  {/* Event Poster Thumbnail with Quick Upload/Change */}
+                  {event.coverImage ? (
+                    <div className="relative w-16 sm:w-20 aspect-[3/4] rounded-xl overflow-hidden border border-white/15 bg-black flex-shrink-0 group shadow-lg">
+                      <img
+                        src={event.coverImage}
+                        alt={event.name}
+                        className="w-full h-full object-cover"
+                      />
+                      <button
+                        type="button"
+                        onClick={() => setEditingEvent(event)}
+                        className="absolute inset-0 bg-black/70 opacity-0 group-hover:opacity-100 flex items-center justify-center text-[9px] font-mono text-white transition-opacity uppercase tracking-wider cursor-pointer"
+                      >
+                        Change
+                      </button>
+                    </div>
+                  ) : (
+                    <button
+                      type="button"
+                      onClick={() => setEditingEvent(event)}
+                      className="w-16 sm:w-20 aspect-[3/4] rounded-xl border-2 border-dashed border-white/15 hover:border-red/60 bg-white/[0.02] hover:bg-white/[0.05] flex flex-col items-center justify-center text-center p-1.5 transition-all flex-shrink-0 cursor-pointer group"
+                      title="Upload Event Poster"
+                    >
+                      <span className="text-base group-hover:scale-110 transition-transform">
+                        📸
+                      </span>
+                      <span className="text-[8px] font-mono text-g5 group-hover:text-red mt-1 uppercase tracking-tight">
+                        + Poster
+                      </span>
+                    </button>
+                  )}
+
+                  <div className="space-y-2">
+                    <div className="flex flex-wrap items-center gap-2">
+                      <StatusBadge status={event.status} />
+                      {event.isFeatured && (
+                        <span className="text-[10px] font-mono uppercase tracking-widest px-2 py-0.5 rounded-full bg-red-dim text-red border border-red-glow">
+                          Featured
+                        </span>
+                      )}
+                      {event.theme && (
+                        <span className="text-[10px] font-mono text-g5 uppercase tracking-wider">
+                          • {event.theme}
+                        </span>
+                      )}
+                    </div>
+                    <h2 className="font-display font-black text-xl sm:text-2xl text-white uppercase tracking-wide">
+                      {event.name}
+                    </h2>
+                    <p className="text-xs text-g5 max-w-2xl leading-relaxed line-clamp-2">
+                      {event.description}
+                    </p>
+                  </div>
+                </div>
+
+                <div className="flex flex-wrap items-center gap-2 shrink-0">
+                  <Link
+                    href={`/events/${event.slug}`}
+                    target="_blank"
+                    className="px-3 py-1.5 text-xs font-mono uppercase tracking-wider rounded-full border border-white/15 bg-white/[0.04] text-g5 hover:text-white transition-colors"
+                  >
+                    View Live &nearr;
+                  </Link>
+                  <button
+                    onClick={() => setManagingTicketsFor(event)}
+                    className="px-3 py-1.5 text-xs font-mono uppercase tracking-wider rounded-full border border-red-glow bg-red-dim text-white hover:bg-red/20 transition-colors cursor-pointer"
+                  >
+                    Tickets ({event.ticketTypes?.length || 0})
+                  </button>
+                  <button
+                    onClick={() => setEditingEvent(event)}
+                    className="px-3 py-1.5 text-xs font-mono uppercase tracking-wider rounded-full border border-white/15 bg-white/[0.05] text-white hover:bg-white/10 transition-colors cursor-pointer"
+                  >
+                    Edit / Poster
+                  </button>
+                  {event.status !== "archived" && (
+                    <button
+                      onClick={() => handleArchive(event.id)}
+                      className="px-3 py-1.5 text-xs font-mono uppercase tracking-wider rounded-full border border-amber-500/30 bg-amber-500/10 text-amber-400 hover:bg-amber-500/20 transition-colors cursor-pointer"
+                    >
+                      Archive
+                    </button>
+                  )}
+                  <button
+                    onClick={() => handleDelete(event.id)}
+                    className="px-3 py-1.5 text-xs font-mono uppercase tracking-wider rounded-full border border-red-500/30 bg-red-500/10 text-red-400 hover:bg-red-500/20 transition-colors cursor-pointer"
+                  >
+                    Delete
+                  </button>
+                </div>
+              </div>
+
+              {/* Event Details Grid */}
+              <div className="grid sm:grid-cols-4 gap-4 pt-4 border-t border-white/[0.06] text-xs font-mono">
+                <div>
+                  <span className="text-g5 block text-[10px] uppercase">
+                    Date &amp; Time
+                  </span>
+                  <p className="text-white mt-0.5">
+                    {formatDateShort(event.date)} • {event.time || "TBA"}
+                  </p>
+                </div>
+                <div>
+                  <span className="text-g5 block text-[10px] uppercase">
+                    Venue
+                  </span>
+                  <p className="text-white mt-0.5">
+                    {event.venue?.name || "TBA"} ({event.venue?.city || "Kolkata"})
+                  </p>
+                </div>
+                <div>
+                  <span className="text-g5 block text-[10px] uppercase">
+                    Ticket Tiers
+                  </span>
+                  <p className="text-white mt-0.5">
+                    {event.ticketTypes?.length || 0} active tiers
+                  </p>
+                </div>
+                <div>
+                  <span className="text-g5 block text-[10px] uppercase">
+                    Poster Art
+                  </span>
+                  <p className="text-white mt-0.5">
+                    {event.coverImage ? "✓ Uploaded" : "No image (using fallback)"}
+                  </p>
+                </div>
+              </div>
+            </div>
+          ))
+        )}
+      </div>
+
+      {/* Create Event Modal */}
+      {showCreateModal && (
+        <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-md flex items-center justify-center p-4 overflow-y-auto">
+          <div className="bg-[#0e0e0e] border border-white/15 rounded-2xl max-w-xl w-full p-6 space-y-4 max-h-[90vh] overflow-y-auto shadow-2xl">
+            <div className="flex justify-between items-center pb-2 border-b border-white/10">
+              <h3 className="font-display font-bold text-xl text-white uppercase tracking-wide">
+                Create New Event
+              </h3>
+              <button
+                onClick={() => setShowCreateModal(false)}
+                className="text-g5 hover:text-white cursor-pointer text-lg"
+              >
+                ✕
+              </button>
+            </div>
+
+            {error && (
+              <p className="text-xs text-red font-mono bg-red-dim border border-red-glow p-2.5 rounded-lg">
+                ✕ {error}
+              </p>
+            )}
+
+            <form onSubmit={handleCreateEvent} className="space-y-4 text-xs font-mono">
+              {/* Event Poster Upload Component */}
+              <div className="p-3.5 rounded-xl border border-white/10 bg-white/[0.02]">
+                <ImageUploader
+                  value={formData.coverImage}
+                  onChange={(url) => setFormData({ ...formData, coverImage: url })}
+                  label="Event Poster / Cover Artwork"
+                  recommendedText="Upload portrait artwork (PNG, JPG, WebP up to 8MB)"
+                  aspectRatio="poster"
+                />
+              </div>
+
+              <div>
+                <label className="block text-g5 mb-1 uppercase">Event Name *</label>
+                <input
+                  type="text"
+                  required
+                  value={formData.name}
+                  onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                  placeholder="e.g. VELVT CURSE 3.O"
+                  className="w-full bg-black/50 border border-white/10 rounded-lg p-2.5 text-white"
+                />
+              </div>
+
+              <div>
+                <label className="block text-g5 mb-1 uppercase">Slug (URL identifier)</label>
+                <input
+                  type="text"
+                  value={formData.slug}
+                  onChange={(e) => setFormData({ ...formData, slug: e.target.value })}
+                  placeholder="e.g. velvt-curse-3-o (auto-generated if blank)"
+                  className="w-full bg-black/50 border border-white/10 rounded-lg p-2.5 text-white"
+                />
+              </div>
+
+              <div>
+                <label className="block text-g5 mb-1 uppercase">Description *</label>
+                <textarea
+                  required
+                  rows={3}
+                  value={formData.description}
+                  onChange={(e) => setFormData({ ...formData, description: e.target.value })}
+                  placeholder="Detailed description of the experience..."
+                  className="w-full bg-black/50 border border-white/10 rounded-lg p-2.5 text-white"
+                />
+              </div>
+
+              <div>
+                <label className="block text-g5 mb-1 uppercase">Theme / Concept</label>
+                <input
+                  type="text"
+                  value={formData.theme}
+                  onChange={(e) => setFormData({ ...formData, theme: e.target.value })}
+                  placeholder="e.g. Gothic Masquerade"
+                  className="w-full bg-black/50 border border-white/10 rounded-lg p-2.5 text-white"
+                />
+              </div>
+
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-g5 mb-1 uppercase">Date *</label>
+                  <input
+                    type="date"
+                    required
+                    value={formData.date}
+                    onChange={(e) => setFormData({ ...formData, date: e.target.value })}
+                    className="w-full bg-black/50 border border-white/10 rounded-lg p-2.5 text-white"
+                  />
+                </div>
+                <div>
+                  <label className="block text-g5 mb-1 uppercase">Time</label>
+                  <input
+                    type="text"
+                    value={formData.time}
+                    onChange={(e) => setFormData({ ...formData, time: e.target.value })}
+                    className="w-full bg-black/50 border border-white/10 rounded-lg p-2.5 text-white"
+                  />
+                </div>
+              </div>
+
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-g5 mb-1 uppercase">Venue Name</label>
+                  <input
+                    type="text"
+                    value={formData.venueName}
+                    onChange={(e) => setFormData({ ...formData, venueName: e.target.value })}
+                    placeholder="e.g. Nocturne Club"
+                    className="w-full bg-black/50 border border-white/10 rounded-lg p-2.5 text-white"
+                  />
+                </div>
+                <div>
+                  <label className="block text-g5 mb-1 uppercase">City</label>
+                  <input
+                    type="text"
+                    value={formData.venueCity}
+                    onChange={(e) => setFormData({ ...formData, venueCity: e.target.value })}
+                    placeholder="Kolkata"
+                    className="w-full bg-black/50 border border-white/10 rounded-lg p-2.5 text-white"
+                  />
+                </div>
+              </div>
+
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-g5 mb-1 uppercase">Dress Code</label>
+                  <input
+                    type="text"
+                    value={formData.dressCode}
+                    onChange={(e) => setFormData({ ...formData, dressCode: e.target.value })}
+                    placeholder="e.g. Dark tailoring, crushed velvet"
+                    className="w-full bg-black/50 border border-white/10 rounded-lg p-2.5 text-white"
+                  />
+                </div>
+                <div>
+                  <label className="block text-g5 mb-1 uppercase">Age Restriction</label>
+                  <input
+                    type="text"
+                    value={formData.ageRestriction}
+                    onChange={(e) => setFormData({ ...formData, ageRestriction: e.target.value })}
+                    placeholder="18+ only"
+                    className="w-full bg-black/50 border border-white/10 rounded-lg p-2.5 text-white"
+                  />
+                </div>
+              </div>
+
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-g5 mb-1 uppercase">Status</label>
+                  <select
+                    value={formData.status}
+                    onChange={(e) => setFormData({ ...formData, status: e.target.value })}
+                    className="w-full bg-black/50 border border-white/10 rounded-lg p-2.5 text-white"
+                  >
+                    <option value="draft">Draft</option>
+                    <option value="upcoming">Upcoming</option>
+                    <option value="ongoing">Ongoing</option>
+                    <option value="completed">Completed</option>
+                    <option value="archived">Archived</option>
+                  </select>
+                </div>
+
+                <div className="flex items-center pt-5">
+                  <label className="flex items-center gap-2 cursor-pointer text-white">
+                    <input
+                      type="checkbox"
+                      checked={formData.isFeatured}
+                      onChange={(e) => setFormData({ ...formData, isFeatured: e.target.checked })}
+                      className="rounded border-white/10 bg-black/50"
+                    />
+                    Feature on Homepage
+                  </label>
+                </div>
+              </div>
+
+              <div className="flex justify-end gap-3 pt-3 border-t border-white/10">
+                <button
+                  type="button"
+                  onClick={() => setShowCreateModal(false)}
+                  className="px-4 py-2 text-xs rounded bg-white/[0.05] text-white hover:bg-white/10 cursor-pointer"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  disabled={loading}
+                  className="px-5 py-2 text-xs font-bold rounded-full bg-red text-white hover:bg-red/80 transition-all cursor-pointer shadow-[0_0_15px_rgba(200,16,46,0.4)]"
+                >
+                  {loading ? "Creating..." : "Create Event"}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* Edit Event Modal with Image Upload */}
+      {editingEvent && (
+        <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-md flex items-center justify-center p-4 overflow-y-auto">
+          <div className="bg-[#0e0e0e] border border-white/15 rounded-2xl max-w-xl w-full p-6 space-y-4 max-h-[90vh] overflow-y-auto shadow-2xl">
+            <div className="flex justify-between items-center pb-2 border-b border-white/10">
+              <h3 className="font-display font-bold text-xl text-white uppercase tracking-wide">
+                Edit Event &amp; Artwork
+              </h3>
+              <button
+                onClick={() => setEditingEvent(null)}
+                className="text-g5 hover:text-white cursor-pointer text-lg"
+              >
+                ✕
+              </button>
+            </div>
+
+            {error && (
+              <p className="text-xs text-red font-mono bg-red-dim border border-red-glow p-2.5 rounded-lg">
+                ✕ {error}
+              </p>
+            )}
+
+            <form onSubmit={handleUpdateEvent} className="space-y-4 text-xs font-mono">
+              {/* Event Poster Upload */}
+              <div className="p-3.5 rounded-xl border border-white/10 bg-white/[0.02]">
+                <ImageUploader
+                  value={editingEvent.coverImage || ""}
+                  onChange={(url) => setEditingEvent({ ...editingEvent, coverImage: url })}
+                  label="Event Poster / Cover Artwork"
+                  recommendedText="Upload portrait artwork (PNG, JPG, WebP up to 8MB)"
+                  aspectRatio="poster"
+                />
+              </div>
+
+              <div>
+                <label className="block text-g5 mb-1 uppercase">Event Name *</label>
+                <input
+                  type="text"
+                  required
+                  value={editingEvent.name}
+                  onChange={(e) => setEditingEvent({ ...editingEvent, name: e.target.value })}
+                  className="w-full bg-black/50 border border-white/10 rounded-lg p-2.5 text-white"
+                />
+              </div>
+
+              <div>
+                <label className="block text-g5 mb-1 uppercase">Description *</label>
+                <textarea
+                  required
+                  rows={3}
+                  value={editingEvent.description}
+                  onChange={(e) => setEditingEvent({ ...editingEvent, description: e.target.value })}
+                  className="w-full bg-black/50 border border-white/10 rounded-lg p-2.5 text-white"
+                />
+              </div>
+
+              <div>
+                <label className="block text-g5 mb-1 uppercase">Theme / Concept</label>
+                <input
+                  type="text"
+                  value={editingEvent.theme || ""}
+                  onChange={(e) => setEditingEvent({ ...editingEvent, theme: e.target.value })}
+                  placeholder="e.g. Gothic Masquerade"
+                  className="w-full bg-black/50 border border-white/10 rounded-lg p-2.5 text-white"
+                />
+              </div>
+
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-g5 mb-1 uppercase">Date *</label>
+                  <input
+                    type="date"
+                    required
+                    value={
+                      editingEvent.date
+                        ? new Date(editingEvent.date).toISOString().split("T")[0]
+                        : ""
+                    }
+                    onChange={(e) => setEditingEvent({ ...editingEvent, date: e.target.value })}
+                    className="w-full bg-black/50 border border-white/10 rounded-lg p-2.5 text-white"
+                  />
+                </div>
+                <div>
+                  <label className="block text-g5 mb-1 uppercase">Time</label>
+                  <input
+                    type="text"
+                    value={editingEvent.time || ""}
+                    onChange={(e) => setEditingEvent({ ...editingEvent, time: e.target.value })}
+                    placeholder="7:00 PM onwards"
+                    className="w-full bg-black/50 border border-white/10 rounded-lg p-2.5 text-white"
+                  />
+                </div>
+              </div>
+
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-g5 mb-1 uppercase">Venue Name</label>
+                  <input
+                    type="text"
+                    value={editingEvent.venue?.name || ""}
+                    onChange={(e) =>
+                      setEditingEvent({
+                        ...editingEvent,
+                        venue: { ...editingEvent.venue, name: e.target.value },
+                      })
+                    }
+                    className="w-full bg-black/50 border border-white/10 rounded-lg p-2.5 text-white"
+                  />
+                </div>
+                <div>
+                  <label className="block text-g5 mb-1 uppercase">Venue City</label>
+                  <input
+                    type="text"
+                    value={editingEvent.venue?.city || ""}
+                    onChange={(e) =>
+                      setEditingEvent({
+                        ...editingEvent,
+                        venue: { ...editingEvent.venue, city: e.target.value },
+                      })
+                    }
+                    className="w-full bg-black/50 border border-white/10 rounded-lg p-2.5 text-white"
+                  />
+                </div>
+              </div>
+
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-g5 mb-1 uppercase">Dress Code</label>
+                  <input
+                    type="text"
+                    value={editingEvent.dressCode || ""}
+                    onChange={(e) => setEditingEvent({ ...editingEvent, dressCode: e.target.value })}
+                    placeholder="e.g. Dark formal, masquerade"
+                    className="w-full bg-black/50 border border-white/10 rounded-lg p-2.5 text-white"
+                  />
+                </div>
+                <div>
+                  <label className="block text-g5 mb-1 uppercase">Age Restriction</label>
+                  <input
+                    type="text"
+                    value={editingEvent.ageRestriction || ""}
+                    onChange={(e) =>
+                      setEditingEvent({ ...editingEvent, ageRestriction: e.target.value })
+                    }
+                    placeholder="18+ only"
+                    className="w-full bg-black/50 border border-white/10 rounded-lg p-2.5 text-white"
+                  />
+                </div>
+              </div>
+
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-g5 mb-1 uppercase">Status</label>
+                  <select
+                    value={editingEvent.status}
+                    onChange={(e) => setEditingEvent({ ...editingEvent, status: e.target.value })}
+                    className="w-full bg-black/50 border border-white/10 rounded-lg p-2.5 text-white"
+                  >
+                    <option value="draft">Draft</option>
+                    <option value="upcoming">Upcoming</option>
+                    <option value="ongoing">Ongoing</option>
+                    <option value="completed">Completed</option>
+                    <option value="archived">Archived</option>
+                  </select>
+                </div>
+
+                <div className="flex items-center pt-5">
+                  <label className="flex items-center gap-2 cursor-pointer text-white">
+                    <input
+                      type="checkbox"
+                      checked={editingEvent.isFeatured}
+                      onChange={(e) =>
+                        setEditingEvent({ ...editingEvent, isFeatured: e.target.checked })
+                      }
+                      className="rounded border-white/10 bg-black/50"
+                    />
+                    Feature on Homepage
+                  </label>
+                </div>
+              </div>
+
+              <div className="flex justify-end gap-3 pt-3 border-t border-white/10">
+                <button
+                  type="button"
+                  onClick={() => setEditingEvent(null)}
+                  className="px-4 py-2 text-xs rounded bg-white/[0.05] text-white hover:bg-white/10 cursor-pointer"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  disabled={loading}
+                  className="px-5 py-2 text-xs font-bold rounded-full bg-red text-white hover:bg-red/80 transition-all cursor-pointer shadow-[0_0_15px_rgba(200,16,46,0.4)]"
+                >
+                  {loading ? "Saving..." : "Save Changes"}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* Ticket Management Drawer / Modal */}
+      {managingTicketsFor && (
+        <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-md flex items-center justify-center p-4 overflow-y-auto">
+          <div className="bg-[#0e0e0e] border border-white/15 rounded-2xl max-w-xl w-full p-6 space-y-6 max-h-[90vh] overflow-y-auto shadow-2xl">
+            <div className="flex justify-between items-center pb-2 border-b border-white/10">
+              <div>
+                <h3 className="font-display font-bold text-xl text-white uppercase tracking-wide">
+                  Ticket Tiers — {managingTicketsFor.name}
+                </h3>
+                <p className="text-[11px] font-mono text-g5 mt-0.5">
+                  Manage admission passes, prices, and booking links.
+                </p>
+              </div>
+              <button
+                onClick={() => setManagingTicketsFor(null)}
+                className="text-g5 hover:text-white cursor-pointer text-lg"
+              >
+                ✕
+              </button>
+            </div>
+
+            {/* Current Ticket Tiers List */}
+            <div className="space-y-3">
+              <h4 className="text-xs font-mono uppercase tracking-wider text-white font-bold">
+                Configured Tiers
+              </h4>
+              {managingTicketsFor.ticketTypes?.length === 0 ? (
+                <p className="text-xs text-g5 font-mono italic">
+                  No ticket tiers created for this event yet.
+                </p>
+              ) : (
+                managingTicketsFor.ticketTypes?.map((t: any) => (
+                  <div
+                    key={t.id}
+                    className="flex items-center justify-between p-3 rounded-xl border border-white/10 bg-white/[0.02] text-xs font-mono"
+                  >
+                    <div>
+                      <p className="text-white font-bold">{t.name}</p>
+                      <p className="text-g5 text-[11px]">
+                        {formatPrice(t.priceInPaise)} • {t.totalQuantity} total qty
+                      </p>
+                      {t.bookingUrl && (
+                        <span className="text-[10px] text-emerald-400">
+                          External Booking Configured ✓
+                        </span>
+                      )}
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <button
+                        onClick={() => handleToggleTicket(t.id, t.isActive)}
+                        className={`px-2.5 py-1 rounded text-[10px] uppercase font-bold cursor-pointer ${
+                          t.isActive
+                            ? "bg-emerald-950/60 text-emerald-400 border border-emerald-800/60"
+                            : "bg-white/[0.05] text-g5"
+                        }`}
+                      >
+                        {t.isActive ? "Active" : "Disabled"}
+                      </button>
+                      <button
+                        onClick={() => handleDeleteTicket(t.id)}
+                        className="p-1 text-red hover:underline text-[11px] cursor-pointer"
+                      >
+                        Delete
+                      </button>
+                    </div>
+                  </div>
+                ))
+              )}
+            </div>
+
+            {/* Add New Tier Form */}
+            <div className="pt-4 border-t border-white/10 space-y-4">
+              <h4 className="text-xs font-mono uppercase tracking-wider text-white font-bold">
+                + Add Ticket Tier
+              </h4>
+              <form onSubmit={handleAddTicket} className="space-y-3 text-xs font-mono">
+                <div>
+                  <label className="block text-g5 mb-1 uppercase">Tier Name *</label>
+                  <input
+                    type="text"
+                    required
+                    placeholder="e.g. VIP Backstage All Hallows Pass"
+                    value={ticketForm.name}
+                    onChange={(e) => setTicketForm({ ...ticketForm, name: e.target.value })}
+                    className="w-full bg-black/50 border border-white/10 rounded-lg p-2.5 text-white"
+                  />
+                </div>
+
+                <div className="grid grid-cols-2 gap-3">
+                  <div>
+                    <label className="block text-g5 mb-1 uppercase">Price (₹ INR) *</label>
+                    <input
+                      type="number"
+                      required
+                      min={0}
+                      value={ticketForm.priceInRupees}
+                      onChange={(e) =>
+                        setTicketForm({
+                          ...ticketForm,
+                          priceInRupees: parseFloat(e.target.value) || 0,
+                        })
+                      }
+                      className="w-full bg-black/50 border border-white/10 rounded-lg p-2.5 text-white"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-g5 mb-1 uppercase">Total Quantity *</label>
+                    <input
+                      type="number"
+                      required
+                      min={1}
+                      value={ticketForm.totalQuantity}
+                      onChange={(e) =>
+                        setTicketForm({
+                          ...ticketForm,
+                          totalQuantity: parseInt(e.target.value, 10) || 1,
+                        })
+                      }
+                      className="w-full bg-black/50 border border-white/10 rounded-lg p-2.5 text-white"
+                    />
+                  </div>
+                </div>
+
+                <div>
+                  <label className="block text-g5 mb-1 uppercase">
+                    Direct Booking URL (Optional / External Gateway)
+                  </label>
+                  <input
+                    type="url"
+                    placeholder="https://insider.in/event/... or https://bookmyshow.com/..."
+                    value={ticketForm.bookingUrl}
+                    onChange={(e) =>
+                      setTicketForm({ ...ticketForm, bookingUrl: e.target.value })
+                    }
+                    className="w-full bg-black/50 border border-white/10 rounded-lg p-2.5 text-white"
+                  />
+                  <p className="text-[10px] text-g5 mt-1">
+                    If blank, the public card renders an &quot;Opens Soon&quot; notice safely.
+                  </p>
+                </div>
+
+                <div className="flex justify-end gap-2 pt-2">
+                  <button
+                    type="submit"
+                    disabled={loading}
+                    className="px-5 py-2 text-xs font-bold rounded-full bg-red text-white hover:bg-red/80 cursor-pointer shadow-[0_0_15px_rgba(200,16,46,0.4)]"
+                  >
+                    {loading ? "Adding..." : "Add Tier"}
+                  </button>
+                </div>
+              </form>
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}

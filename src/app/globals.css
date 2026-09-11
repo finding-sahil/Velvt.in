@@ -1,0 +1,434 @@
+@import "tailwindcss";
+
+/* ═══════════════════════════════════════════════════════════════════════════════
+   VELVT — UNTOLDSURI Theme Edition
+   Palette: #000000 bg · #ffffff text · #c8102e crimson red · glass overlays
+   Fonts:   Barlow Condensed (display/heading) · Inter (body/UI)
+   Aesthetic: Cinematic Glassmorphism, Floating Bubbles, Ambient Red Glows, Film Grain
+   ═══════════════════════════════════════════════════════════════════════════════ */
+
+@theme inline {
+  /* Colors */
+  --color-black: #000000;
+  --color-white: #ffffff;
+  --color-red: #c8102e;
+  --color-red-dim: rgba(200, 16, 46, 0.15);
+  --color-red-glow: rgba(200, 16, 46, 0.35);
+
+  --color-ember: #E05A2B;
+  --color-candle: #E5A93C;
+
+  /* Legacy & Admin UI Color Compatibility Tokens */
+  --color-rich-charcoal: #0c0c0c;
+  --color-obsidian: #000000;
+  --color-bone: #f2f2f2;
+  --color-crimson: #c8102e;
+  --color-crimson-light: #e02444;
+  --color-crimson-dark: #8b0018;
+  --color-gold: #e5a93c;
+  --color-primary: #c8102e;
+
+  /* Glass tokens */
+  --color-glass-bg: rgba(255, 255, 255, 0.05);
+  --color-glass-md: rgba(255, 255, 255, 0.08);
+  --color-glass-hv: rgba(255, 255, 255, 0.11);
+  --color-glass-border: rgba(255, 255, 255, 0.1);
+
+  /* Grays */
+  --color-g1: #111111;
+  --color-g2: #1a1a1a;
+  --color-g3: rgba(255, 255, 255, 0.08);
+  --color-g4: #444444;
+  --color-g5: #888888;
+  --color-g6: #cccccc;
+
+  /* Typography */
+  --font-display: var(--font-barlow), "Barlow Condensed", "Arial Narrow", sans-serif;
+  --font-heading: var(--font-barlow), "Barlow Condensed", "Arial Narrow", sans-serif;
+  --font-body: var(--font-inter), "Inter", Arial, sans-serif;
+  --font-ui: var(--font-inter), "Inter", Arial, sans-serif;
+
+  /* Border Radii */
+  --radius-card: 20px;
+  --radius-pill: 999px;
+
+  /* Spacing */
+  --spacing-section: 4.5rem;
+  --spacing-section-sm: 2.75rem;
+
+  /* Transitions */
+  --ease-smooth: cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+:root {
+  --black: #000000;
+  --white: #ffffff;
+  --red: #c8102e;
+  --red-dim: rgba(200, 16, 46, 0.15);
+  --red-glow: rgba(200, 16, 46, 0.35);
+
+  --glass-bg: rgba(255, 255, 255, 0.05);
+  --glass-bg-md: rgba(255, 255, 255, 0.08);
+  --glass-bg-hv: rgba(255, 255, 255, 0.11);
+  --glass-border: rgba(255, 255, 255, 0.1);
+  --glass-blur: 14px;
+
+  --g1: #111111;
+  --g2: #1a1a1a;
+  --g3: rgba(255, 255, 255, 0.08);
+  --g4: #444444;
+  --g5: #888888;
+  --g6: #cccccc;
+
+  --radius-card: 20px;
+  --radius-pill: 999px;
+}
+
+/* ─── Reset & Base ───────────────────────────────────────────────────────────── */
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+html {
+  scroll-behavior: smooth;
+  font-size: 16px;
+}
+
+body {
+  background: var(--black);
+  color: var(--white);
+  font-family: var(--font-body);
+  font-size: 0.95rem;
+  line-height: 1.7;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  overflow-x: hidden;
+  
+  /* ─ UNTOLDSURI Rich Dot-Grid + Deep Red Ambient Halos over Pure Black ─ */
+  background-image:
+    radial-gradient(circle at 70% 15%, rgba(200, 16, 46, 0.09) 0%, transparent 55%),
+    radial-gradient(circle at 15% 80%, rgba(200, 16, 46, 0.07) 0%, transparent 45%),
+    radial-gradient(circle at 50% 50%, rgba(130, 20, 35, 0.12) 0%, transparent 70%),
+    radial-gradient(rgba(255, 255, 255, 0.08) 1px, transparent 1px);
+  background-size: 100% 100%, 100% 100%, 100% 100%, 28px 28px;
+  background-attachment: fixed, fixed, fixed, fixed;
+}
+
+/* ─── UNTOLDSURI Texture Layers ────────────────────────────────────────────── */
+.film-grain {
+  position: fixed;
+  inset: 0;
+  z-index: 99990;
+  pointer-events: none;
+  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noiseFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.65' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noiseFilter)'/%3E%3C/svg%3E");
+  opacity: 0.045;
+  mix-blend-mode: overlay;
+}
+
+.scanlines {
+  position: fixed;
+  inset: 0;
+  z-index: 99989;
+  pointer-events: none;
+  background: linear-gradient(rgba(18, 16, 16, 0) 50%, rgba(0, 0, 0, 0.12) 50%),
+    linear-gradient(90deg, rgba(200, 16, 46, 0.02), rgba(0, 0, 0, 0.01), rgba(200, 16, 46, 0.02));
+  background-size: 100% 3px, 3px 100%;
+}
+
+/* ─── UNTOLDSURI Custom Cursor ──────────────────────────────────────────────── */
+@media (pointer: fine) {
+  body.has-custom-cursor,
+  body.has-custom-cursor a,
+  body.has-custom-cursor button,
+  body.has-custom-cursor [role="button"] {
+    cursor: none;
+  }
+}
+
+#cursor-dot {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--red);
+  box-shadow: 0 0 10px var(--red), 0 0 20px rgba(200, 16, 46, 0.5);
+  pointer-events: none;
+  z-index: 99999;
+  transition: width 0.2s, height 0.2s, opacity 0.3s;
+  will-change: transform;
+  opacity: 0;
+}
+
+#cursor-ring {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  background: rgba(200, 16, 46, 0.06);
+  backdrop-filter: blur(4px);
+  -webkit-backdrop-filter: blur(4px);
+  border: 1px solid rgba(200, 16, 46, 0.4);
+  box-shadow: 0 0 14px rgba(200, 16, 46, 0.15), inset 0 0 10px rgba(255, 255, 255, 0.03);
+  pointer-events: none;
+  z-index: 99998;
+  transition: width 0.25s ease, height 0.25s ease, border-color 0.2s, box-shadow 0.2s, opacity 0.3s;
+  will-change: transform;
+  opacity: 0;
+}
+
+body.cursor-hover #cursor-ring {
+  width: 52px;
+  height: 52px;
+  border-color: var(--red);
+  box-shadow: 0 0 24px rgba(200, 16, 46, 0.35), inset 0 0 14px rgba(255, 255, 255, 0.04);
+}
+
+body.cursor-hover #cursor-dot {
+  width: 5px;
+  height: 5px;
+  box-shadow: 0 0 16px var(--red), 0 0 30px rgba(200, 16, 46, 0.6);
+}
+
+/* ─── Scrollbar ─────────────────────────────────────────────────────────────── */
+::-webkit-scrollbar {
+  width: 6px;
+}
+
+::-webkit-scrollbar-track {
+  background: var(--black);
+}
+
+::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.15);
+  border-radius: 3px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: var(--red);
+}
+
+/* ─── Selection ─────────────────────────────────────────────────────────────── */
+::selection {
+  background-color: var(--red);
+  color: var(--white);
+}
+
+/* ─── Focus States ──────────────────────────────────────────────────────────── */
+:focus-visible {
+  outline: 2px solid var(--red);
+  outline-offset: 3px;
+}
+
+/* ─── UNTOLDSURI Typography Helpers ─────────────────────────────────────────── */
+.text-display {
+  font-family: var(--font-display);
+  font-weight: 900;
+  letter-spacing: 0.04em;
+  line-height: 1.05;
+  text-transform: uppercase;
+}
+
+.text-heading {
+  font-family: var(--font-heading);
+  font-weight: 700;
+  letter-spacing: 0.03em;
+  text-transform: uppercase;
+}
+
+.hero-title {
+  font-family: var(--font-display);
+  font-weight: 900;
+  font-size: clamp(3.75rem, 12vw, 9.5rem);
+  line-height: 0.92;
+  letter-spacing: -0.03em;
+  text-transform: uppercase;
+}
+
+.hero-tagline {
+  font-family: var(--font-display);
+  font-size: clamp(1.1rem, 2.8vw, 1.85rem);
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  font-weight: 700;
+  color: #ffffff;
+}
+
+.section-title {
+  font-family: var(--font-display);
+  font-size: clamp(2.2rem, 5vw, 3.4rem);
+  font-weight: 900;
+  letter-spacing: 0.03em;
+  text-transform: uppercase;
+  line-height: 1.05;
+  color: var(--white);
+}
+
+.section-intro {
+  font-size: 0.95rem;
+  color: var(--g6);
+  line-height: 1.8;
+}
+
+/* Glowing Crimson Divider Line */
+.red-rule {
+  width: 60px;
+  height: 2px;
+  background: var(--red);
+  box-shadow: 0 0 14px var(--red);
+  margin: 1.25rem 0;
+  border-radius: 2px;
+}
+
+.red-rule.center {
+  margin-left: auto;
+  margin-right: auto;
+}
+
+/* ─── UNTOLDSURI Glassmorphic Card Utilities ────────────────────────────────── */
+.glass-card {
+  background: var(--glass-bg);
+  backdrop-filter: blur(var(--glass-blur));
+  -webkit-backdrop-filter: blur(var(--glass-blur));
+  border: 1px solid var(--glass-border);
+  border-radius: var(--radius-card);
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4);
+  transition: transform 0.25s ease, box-shadow 0.25s ease, border-color 0.25s ease, background 0.25s ease;
+}
+
+.glass-card:hover {
+  background: var(--glass-bg-hv);
+  border-color: rgba(200, 16, 46, 0.35);
+  box-shadow: 0 0 32px rgba(200, 16, 46, 0.18), 0 12px 40px rgba(0, 0, 0, 0.5);
+  transform: translateY(-4px);
+}
+
+.glass-pill {
+  background: var(--glass-bg);
+  backdrop-filter: blur(var(--glass-blur));
+  -webkit-backdrop-filter: blur(var(--glass-blur));
+  border: 1px solid var(--glass-border);
+  border-radius: var(--radius-pill);
+}
+
+/* ─── Container ─────────────────────────────────────────────────────────────── */
+.container-velvet {
+  width: 100%;
+  max-width: 1120px;
+  margin-left: auto;
+  margin-right: auto;
+  padding-left: 1.5rem;
+  padding-right: 1.5rem;
+}
+
+.container-narrow {
+  width: 100%;
+  max-width: 780px;
+  margin-left: auto;
+  margin-right: auto;
+  padding-left: 1.5rem;
+  padding-right: 1.5rem;
+}
+
+/* ─── Subtle Section Separator ──────────────────────────────────────────────── */
+.section-separator {
+  width: 100%;
+  height: 1px;
+  background: linear-gradient(
+    90deg,
+    transparent 0%,
+    rgba(255, 255, 255, 0.08) 25%,
+    rgba(200, 16, 46, 0.4) 50%,
+    rgba(255, 255, 255, 0.08) 75%,
+    transparent 100%
+  );
+}
+
+/* ─── Floating Subtle Ambient Lighting Halos ────────────────────────────────── */
+.hero-bubbles {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  overflow: hidden;
+  z-index: 0;
+}
+
+.hero-bubbles span {
+  position: absolute;
+  border-radius: 50%;
+  background: radial-gradient(circle, rgba(200, 16, 46, 0.08) 0%, transparent 70%);
+  filter: blur(40px);
+}
+
+/* ─── Smooth Entrance Animation ─────────────────────────────────────────────── */
+@keyframes fadeInUp {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.animate-fade-in-up {
+  animation: fadeInUp 0.6s var(--ease-smooth) both;
+}
+
+.animate-delay-100 { animation-delay: 100ms; }
+.animation-delay-200 { animation-delay: 200ms; }
+.animation-delay-300 { animation-delay: 300ms; }
+.animation-delay-400 { animation-delay: 400ms; }
+
+/* ─── Interactive Custom Cursor Styling ─────────────────────────────────────── */
+#cursor-dot {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 6px;
+  height: 6px;
+  background-color: var(--color-red, #c8102e);
+  border-radius: 50%;
+  pointer-events: none;
+  z-index: 9999;
+  opacity: 0;
+  will-change: transform, opacity;
+  box-shadow: 0 0 10px #c8102e;
+}
+
+#cursor-ring {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 36px;
+  height: 36px;
+  border: 1px solid rgba(200, 16, 46, 0.4);
+  background: rgba(200, 16, 46, 0.05);
+  border-radius: 50%;
+  pointer-events: none;
+  z-index: 9998;
+  opacity: 0;
+  will-change: transform, opacity;
+  transition: width 0.2s, height 0.2s, border-color 0.2s, background-color 0.2s;
+}
+
+body.cursor-hover #cursor-ring {
+  width: 52px;
+  height: 52px;
+  border-color: rgba(200, 16, 46, 0.8);
+  background: rgba(200, 16, 46, 0.12);
+  box-shadow: 0 0 20px rgba(200, 16, 46, 0.3);
+}
+
+/* ─── Shell Containment & Anti-Overflow ───────────────────────────────────────── */
+html, body {
+  max-width: 100vw;
+  overflow-x: clip;
+}
+
