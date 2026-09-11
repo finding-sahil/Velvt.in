@@ -40,6 +40,7 @@ interface HalloweenExperienceSectionProps {
   dossierHref?: string;
   dossierLabel?: string;
   highlights?: ExperienceHighlightItem[];
+  eventDressCode?: string | null;
 }
 
 export function HalloweenExperienceSection({
@@ -47,8 +48,19 @@ export function HalloweenExperienceSection({
   dossierHref = "/events/velvt-curse-2-o",
   dossierLabel = "Production Dossier",
   highlights,
+  eventDressCode,
 }: HalloweenExperienceSectionProps) {
-  const items = highlights && highlights.length > 0 ? highlights : defaultPillars;
+  const baseItems = highlights && highlights.length > 0 ? highlights : defaultPillars;
+  const items = baseItems.map((pillar) => {
+    if (eventDressCode && pillar.tag.toLowerCase().includes("dress")) {
+      return {
+        ...pillar,
+        title: eventDressCode,
+        description: `Official dress code: ${eventDressCode}. Attendees are encouraged to dress in alignment with the nocturnal aesthetic.`,
+      };
+    }
+    return pillar;
+  });
 
   return (
     <section className="py-10 md:py-14 relative overflow-hidden">

@@ -104,7 +104,7 @@ export function FeaturedEventSection({ event }: FeaturedEventSectionProps) {
                 </div>
                 <div className="space-y-0.5">
                   <span className="text-[10px] font-mono text-g5 uppercase">Dress Code</span>
-                  <p className="font-semibold text-red">Gothic Masquerade</p>
+                  <p className="font-semibold text-red">{event.dressCode || "Gothic Masquerade"}</p>
                 </div>
               </div>
 

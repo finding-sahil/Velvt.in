@@ -94,6 +94,7 @@ export default async function HomePage() {
             dossierHref={`/events/${featuredEvent.slug}`}
             dossierLabel={settings.experience_highlights_cta_label}
             highlights={experienceHighlights}
+            eventDressCode={featuredEvent.dressCode}
           />
           <div className="section-separator" />
         </>

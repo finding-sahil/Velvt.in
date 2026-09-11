@@ -115,22 +115,16 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    // Ensure uploads directory exists
-    const uploadsDir = path.join(process.cwd(), "public", "uploads");
-    if (!existsSync(uploadsDir)) {
-      await mkdir(uploadsDir, { recursive: true });
-    }
-
     // ─── WebP Conversion & Compression Pipeline ───────────────────────────
-    // Downscale oversized images while preserving retina clarity (1920px max for admin, 1000px for badge)
-    const maxDimension = isVolunteerBadge ? 1000 : 1920;
+    // Downscale oversized images while preserving retina clarity (1600px max for admin, 800px for badge)
+    const maxDimension = isVolunteerBadge ? 800 : 1600;
     const webpBuffer = await sharp(buffer)
       .rotate() // Auto-orient phone camera photos via EXIF
       .resize(maxDimension, maxDimension, {
         fit: "inside",
         withoutEnlargement: true,
       })
-      .webp({ quality: 82, effort: 4 })
+      .webp({ quality: 80, effort: 4 })
       .toBuffer();
 
     // Generate clean unique filename with .webp extension
@@ -142,18 +136,26 @@ export async function POST(req: NextRequest) {
     const uniqueSuffix = `${Date.now()}-${crypto.randomUUID().slice(0, 8)}`;
     const filename = `${cleanBase}-${uniqueSuffix}.webp`;
 
-    // Path traversal protection — ensure final path is within uploads dir
-    const filePath = path.resolve(uploadsDir, filename);
-    if (!filePath.startsWith(path.resolve(uploadsDir))) {
-      return NextResponse.json(
-        { success: false, error: "Invalid filename." },
-        { status: 400 }
-      );
+    // Attempt local disk storage (works in dev/containerized environments)
+    let publicUrl: string | null = null;
+    try {
+      const uploadsDir = path.join(process.cwd(), "public", "uploads");
+      if (!existsSync(uploadsDir)) {
+        await mkdir(uploadsDir, { recursive: true });
+      }
+      const filePath = path.resolve(uploadsDir, filename);
+      if (filePath.startsWith(path.resolve(uploadsDir))) {
+        await writeFile(filePath, webpBuffer);
+        publicUrl = `/uploads/${filename}`;
+      }
+    } catch {
+      // Local filesystem is read-only (standard Vercel AWS Lambda environment)
+      // Gracefully fall back to optimized self-contained WebP Data URL
     }
 
-    await writeFile(filePath, webpBuffer);
-
-    const publicUrl = `/uploads/${filename}`;
+    if (!publicUrl) {
+      publicUrl = `data:image/webp;base64,${webpBuffer.toString("base64")}`;
+    }
 
     return NextResponse.json({
       success: true,
