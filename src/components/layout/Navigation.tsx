@@ -19,7 +19,7 @@ export function Navigation() {
   const [mobileOpen, setMobileOpen] = useState(false);
 
   // Don't render on management pages
-  if (pathname?.startsWith("/velvet-management")) return null;
+  if (pathname?.startsWith("/velvt-management")) return null;
 
   return (
     <header className="fixed top-4 left-1/2 -translate-x-1/2 w-[calc(100%-2rem)] max-w-[980px] z-50">
@@ -61,7 +61,7 @@ export function Navigation() {
         {/* Featured Halloween Event Pill & Socials */}
         <div className="hidden sm:flex items-center gap-3">
           <Link
-            href="/events/velvet-curse-2-o"
+            href="/events/velvt-curse-2-o"
             className="px-3 py-1 rounded-full text-[10px] font-mono tracking-wider uppercase text-red bg-red-dim border border-red-glow hover:bg-red/20 transition-all flex items-center gap-1.5"
           >
             <span className="w-1.5 h-1.5 rounded-full bg-red animate-pulse" />
@@ -143,18 +143,18 @@ export function Navigation() {
                 <span className="text-red">📷</span> Instagram
               </a>
               <a
-                href="https://chat.whatsapp.com/invite/velvt-community"
+                href="https://chat.whatsapp.com/E5F1PCTqmgU2ljE2rtuzl8"
                 target="_blank"
                 rel="noopener noreferrer"
                 className="flex-1 flex items-center justify-center gap-2 py-2 rounded-xl bg-white/[0.05] border border-white/10 text-xs font-mono text-white"
               >
-                <span className="text-emerald-400">💬</span> WhatsApp
+                <span className="text-emerald-400">💬</span> WhatsApp Updates
               </a>
             </div>
 
             <div className="flex justify-between items-center pt-2">
               <Link
-                href="/events/velvet-curse-2-o"
+                href="/events/velvt-curse-2-o"
                 onClick={() => setMobileOpen(false)}
                 className="text-xs font-mono text-red uppercase tracking-wider"
               >

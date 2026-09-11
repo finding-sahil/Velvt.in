@@ -63,7 +63,7 @@ export default function ContactPage() {
       {/* Ambient background glow */}
       <div className="absolute top-1/4 left-1/4 w-96 h-96 rounded-full bg-primary/15 blur-[140px] pointer-events-none" />
 
-      <div className="container-velvet">
+      <div className="container-velvt">
         <div className="grid lg:grid-cols-2 gap-12 lg:gap-20 items-start">
           {/* Form */}
           <div className="space-y-8">
@@ -79,6 +79,8 @@ export default function ContactPage() {
 
             <div className="rounded-[20px] bg-white/[0.05] border border-white/10 backdrop-blur-[14px] p-6 sm:p-10 shadow-[0_0_40px_rgba(0,0,0,0.4)]">
               <form onSubmit={handleSubmit} className="space-y-6">
+                {/* Anti-spam honeypot */}
+                <input type="text" name="_gotcha" className="hidden" tabIndex={-1} autoComplete="off" aria-hidden="true" />
                 <div>
                   <label className="block text-xs font-mono font-medium uppercase tracking-[0.15em] text-muted mb-2">
                     Name <span className="text-primary">*</span>

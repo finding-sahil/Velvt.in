@@ -2,7 +2,7 @@ import { Skeleton, EventCardSkeleton } from "@/components/ui/Skeleton";
 
 export default function EventsLoading() {
   return (
-    <div className="py-section-sm md:py-section container-velvet animate-fade-in space-y-16">
+    <div className="py-section-sm md:py-section container-velvt animate-fade-in space-y-16">
       {/* Header Skeleton */}
       <div className="text-center max-w-2xl mx-auto space-y-4">
         <Skeleton className="h-4 w-24 mx-auto" />

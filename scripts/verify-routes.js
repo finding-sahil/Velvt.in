@@ -2,7 +2,7 @@
 const routes = [
   '/',
   '/events',
-  '/events/velvet-curse-2-o',
+  '/events/velvt-curse-2-o',
   '/tickets',
   '/volunteers',
   '/volunteers/register',

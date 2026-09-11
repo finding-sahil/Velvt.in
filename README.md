@@ -8,7 +8,7 @@ A luxury Gothic Halloween nightlife experience platform built with Next.js 16 (A
 - **Event Experience Showcase**: Dynamic featured events with ticket tiers, schedules, and venue guides.
 - **Visual Archive & Gallery**: High-resolution event photography and media gallery.
 - **Volunteer Management**: Volunteer registration with automated ID badge generation, QR code verification, and check-in status.
-- **Hardened Admin Control**: Obfuscated management portal (`/velvet-management`), PBKDF2 authenticated sessions, and rate-limited endpoints.
+- **Hardened Admin Control**: Obfuscated management portal (`/velvt-management`), PBKDF2 authenticated sessions, and rate-limited endpoints.
 - **Supabase PostgreSQL**: Persistent cloud database with connection pooling and Prisma schema migrations.
 
 ## Getting Started

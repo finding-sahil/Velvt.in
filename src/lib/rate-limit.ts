@@ -1,4 +1,4 @@
-// VELVET — Server-Side Rate Limiter
+// VELVT — Server-Side Rate Limiter
 // In-memory sliding window rate limiter
 // For production with multiple instances, replace with Redis (e.g. Upstash)
 

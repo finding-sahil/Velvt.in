@@ -15,6 +15,7 @@ import {
 import { generateVolunteerId } from "@/lib/volunteer-id";
 import { verifyPassword, createSession, destroySession, requireAdmin } from "@/lib/auth";
 import { checkRateLimit, RATE_LIMITS, getClientIdentifier } from "@/lib/rate-limit";
+import { logAuditEvent } from "@/lib/audit";
 import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
 import { headers } from "next/headers";
@@ -22,6 +23,12 @@ import { headers } from "next/headers";
 // ─── Volunteer Registration ────────────────────────────────────────────────────
 
 export async function submitVolunteerApplication(formData: FormData) {
+  // Anti-spam Honeypot Check (silent drop for automated bots)
+  const honeypot = formData.get("_gotcha") || formData.get("website");
+  if (honeypot && String(honeypot).trim().length > 0) {
+    return { success: true }; // Fake success for bots
+  }
+
   // Rate limiting
   const hdrs = await headers();
   const clientIp = getClientIdentifier(hdrs);
@@ -82,6 +89,12 @@ export async function submitVolunteerApplication(formData: FormData) {
 // ─── Contact Form ──────────────────────────────────────────────────────────────
 
 export async function submitContactInquiry(formData: FormData) {
+  // Anti-spam Honeypot Check (silent drop for automated bots)
+  const honeypot = formData.get("_gotcha") || formData.get("website");
+  if (honeypot && String(honeypot).trim().length > 0) {
+    return { success: true }; // Fake success for bots
+  }
+
   // Rate limiting
   const hdrs = await headers();
   const clientIp = getClientIdentifier(hdrs);
@@ -137,6 +150,10 @@ export async function adminLogin(formData: FormData) {
   const clientIp = getClientIdentifier(hdrs);
   const rl = checkRateLimit(`login:${clientIp}`, RATE_LIMITS.adminLogin);
   if (!rl.success) {
+    await logAuditEvent({
+      action: "admin.login.rate_limited",
+      ipAddress: clientIp,
+    });
     return { success: false, error: "Too many login attempts. Please try again later." };
   }
 
@@ -157,6 +174,11 @@ export async function adminLogin(formData: FormData) {
     });
 
     if (!admin) {
+      await logAuditEvent({
+        action: "admin.login.failed",
+        metadata: { attemptedEmail: result.data.email },
+        ipAddress: clientIp,
+      });
       return { success: false, error: "Invalid email or password." };
     }
 
@@ -166,10 +188,22 @@ export async function adminLogin(formData: FormData) {
     );
 
     if (!isValid) {
+      await logAuditEvent({
+        action: "admin.login.failed",
+        metadata: { attemptedEmail: result.data.email },
+        ipAddress: clientIp,
+      });
       return { success: false, error: "Invalid email or password." };
     }
 
     await createSession(admin.id);
+
+    await logAuditEvent({
+      action: "admin.login.success",
+      actor: { id: admin.id, email: admin.email },
+      ipAddress: clientIp,
+    });
+
     return { success: true };
   } catch (error) {
     console.error("Login error:", error);
@@ -178,14 +212,15 @@ export async function adminLogin(formData: FormData) {
 }
 
 export async function adminLogout() {
+  await logAuditEvent({ action: "admin.logout" });
   await destroySession();
-  redirect("/velvet-management/login");
+  redirect("/velvt-management/login");
 }
 
 // ─── Admin: Approve Volunteer ──────────────────────────────────────────────────
 
 export async function approveVolunteer(volunteerId: string, assignedRole?: string) {
-  await requireAdmin();
+  const session = await requireAdmin();
 
   const volunteer = await prisma.volunteer.findUnique({
     where: { id: volunteerId },
@@ -207,13 +242,21 @@ export async function approveVolunteer(volunteerId: string, assignedRole?: strin
     },
   });
 
+  await logAuditEvent({
+    action: "volunteer.approve",
+    targetType: "Volunteer",
+    targetId: volunteerId,
+    metadata: { generatedVolunteerId: generatedId, assignedRole },
+    actor: { id: session.userId, email: session.user.email },
+  });
+
   return { success: true, volunteerId: generatedId };
 }
 
 // ─── Admin: Revoke Volunteer ───────────────────────────────────────────────────
 
 export async function revokeVolunteer(volunteerId: string) {
-  await requireAdmin();
+  const session = await requireAdmin();
 
   await prisma.volunteer.update({
     where: { id: volunteerId },
@@ -223,19 +266,33 @@ export async function revokeVolunteer(volunteerId: string) {
     },
   });
 
+  await logAuditEvent({
+    action: "volunteer.revoke",
+    targetType: "Volunteer",
+    targetId: volunteerId,
+    actor: { id: session.userId, email: session.user.email },
+  });
+
   return { success: true };
 }
 
 // ─── Admin: Mark Volunteer Verified ────────────────────────────────────────────
 
 export async function verifyVolunteer(volunteerId: string) {
-  await requireAdmin();
+  const session = await requireAdmin();
 
   await prisma.volunteer.update({
     where: { id: volunteerId },
     data: {
       status: "verified",
     },
+  });
+
+  await logAuditEvent({
+    action: "volunteer.verify",
+    targetType: "Volunteer",
+    targetId: volunteerId,
+    actor: { id: session.userId, email: session.user.email },
   });
 
   return { success: true };
@@ -251,7 +308,7 @@ export async function updateVolunteerPhoto(volunteerId: string, photo: string) {
     },
   });
 
-  revalidatePath("/velvet-management/volunteers");
+  revalidatePath("/velvt-management/volunteers");
   revalidatePath("/volunteers");
   return { success: true };
 }
@@ -266,7 +323,7 @@ export async function updateVolunteerSocials(volunteerId: string, socialLink: st
     },
   });
 
-  revalidatePath("/velvet-management/volunteers");
+  revalidatePath("/velvt-management/volunteers");
   revalidatePath("/volunteers");
   return { success: true };
 }
@@ -278,7 +335,7 @@ export async function updateInquiryStatus(
   status: string,
   adminNotes?: string
 ) {
-  await requireAdmin();
+  const session = await requireAdmin();
 
   await prisma.contactInquiry.update({
     where: { id: inquiryId },
@@ -288,7 +345,15 @@ export async function updateInquiryStatus(
     },
   });
 
-  revalidatePath("/velvet-management/inquiries");
+  await logAuditEvent({
+    action: "inquiry.update_status",
+    targetType: "ContactInquiry",
+    targetId: inquiryId,
+    metadata: { status },
+    actor: { id: session.userId, email: session.user.email },
+  });
+
+  revalidatePath("/velvt-management/inquiries");
   return { success: true };
 }
 
@@ -347,7 +412,7 @@ export async function createEvent(formData: FormData) {
     revalidatePath("/");
     revalidatePath("/events");
     revalidatePath(`/events/${event.slug}`);
-    revalidatePath("/velvet-management/events");
+    revalidatePath("/velvt-management/events");
     return { success: true, event };
   } catch (error: any) {
     console.error("Create event error:", error);
@@ -410,7 +475,7 @@ export async function updateEvent(eventId: string, formData: FormData) {
     revalidatePath("/");
     revalidatePath("/events");
     revalidatePath(`/events/${event.slug}`);
-    revalidatePath("/velvet-management/events");
+    revalidatePath("/velvt-management/events");
     return { success: true, event };
   } catch (error: any) {
     console.error("Update event error:", error);
@@ -429,7 +494,7 @@ export async function archiveEvent(eventId: string) {
   revalidatePath("/");
   revalidatePath("/events");
   revalidatePath(`/events/${event.slug}`);
-  revalidatePath("/velvet-management/events");
+  revalidatePath("/velvt-management/events");
   return { success: true };
 }
 
@@ -440,7 +505,7 @@ export async function deleteEvent(eventId: string) {
 
   revalidatePath("/");
   revalidatePath("/events");
-  revalidatePath("/velvet-management/events");
+  revalidatePath("/velvt-management/events");
   return { success: true };
 }
 
@@ -475,7 +540,7 @@ export async function createTicketType(formData: FormData) {
     });
 
     revalidatePath("/tickets");
-    revalidatePath("/velvet-management/events");
+    revalidatePath("/velvt-management/events");
     return { success: true, ticket };
   } catch (error: any) {
     console.error("Create ticket error:", error);
@@ -507,7 +572,7 @@ export async function updateTicketType(ticketId: string, formData: FormData) {
     });
 
     revalidatePath("/tickets");
-    revalidatePath("/velvet-management/events");
+    revalidatePath("/velvt-management/events");
     return { success: true, ticket };
   } catch (error: any) {
     return { success: false, error: error?.message || "Failed to update ticket." };
@@ -523,7 +588,7 @@ export async function toggleTicketType(ticketId: string, isActive: boolean) {
   });
 
   revalidatePath("/tickets");
-  revalidatePath("/velvet-management/events");
+  revalidatePath("/velvt-management/events");
   return { success: true, ticket };
 }
 
@@ -533,7 +598,7 @@ export async function deleteTicketType(ticketId: string) {
   await prisma.ticketType.delete({ where: { id: ticketId } });
 
   revalidatePath("/tickets");
-  revalidatePath("/velvet-management/events");
+  revalidatePath("/velvt-management/events");
   return { success: true };
 }
 
@@ -571,7 +636,7 @@ export async function createTeamMember(formData: FormData) {
 
     revalidatePath("/");
     revalidatePath("/team");
-    revalidatePath("/velvet-management/team");
+    revalidatePath("/velvt-management/team");
     return { success: true, member };
   } catch (error: any) {
     return { success: false, error: error?.message || "Failed to create team member." };
@@ -607,7 +672,7 @@ export async function updateTeamMember(id: string, formData: FormData) {
 
     revalidatePath("/");
     revalidatePath("/team");
-    revalidatePath("/velvet-management/team");
+    revalidatePath("/velvt-management/team");
     return { success: true, member };
   } catch (error: any) {
     return { success: false, error: error?.message || "Failed to update team member." };
@@ -624,7 +689,7 @@ export async function toggleTeamMemberPublish(id: string, isPublished: boolean) 
 
   revalidatePath("/");
   revalidatePath("/team");
-  revalidatePath("/velvet-management/team");
+  revalidatePath("/velvt-management/team");
   return { success: true, member };
 }
 
@@ -635,7 +700,7 @@ export async function deleteTeamMember(id: string) {
 
   revalidatePath("/");
   revalidatePath("/team");
-  revalidatePath("/velvet-management/team");
+  revalidatePath("/velvt-management/team");
   return { success: true };
 }
 
@@ -671,7 +736,7 @@ export async function createGalleryItem(formData: FormData) {
 
     revalidatePath("/");
     revalidatePath("/gallery");
-    revalidatePath("/velvet-management/gallery");
+    revalidatePath("/velvt-management/gallery");
     return { success: true, item };
   } catch (error: any) {
     return { success: false, error: error?.message || "Failed to add gallery item." };
@@ -688,7 +753,7 @@ export async function toggleGalleryPublish(id: string, isPublished: boolean) {
 
   revalidatePath("/");
   revalidatePath("/gallery");
-  revalidatePath("/velvet-management/gallery");
+  revalidatePath("/velvt-management/gallery");
   return { success: true, item };
 }
 
@@ -699,7 +764,7 @@ export async function deleteGalleryItem(id: string) {
 
   revalidatePath("/");
   revalidatePath("/gallery");
-  revalidatePath("/velvet-management/gallery");
+  revalidatePath("/velvt-management/gallery");
   return { success: true };
 }
 
@@ -732,7 +797,7 @@ export async function createPartner(formData: FormData) {
     });
 
     revalidatePath("/");
-    revalidatePath("/velvet-management/partners");
+    revalidatePath("/velvt-management/partners");
     return { success: true, partner };
   } catch (error: any) {
     return { success: false, error: error?.message || "Failed to create partner." };
@@ -748,7 +813,7 @@ export async function togglePartnerActive(id: string, isActive: boolean) {
   });
 
   revalidatePath("/");
-  revalidatePath("/velvet-management/partners");
+  revalidatePath("/velvt-management/partners");
   return { success: true, partner };
 }
 
@@ -758,7 +823,7 @@ export async function deletePartner(id: string) {
   await prisma.partner.delete({ where: { id } });
 
   revalidatePath("/");
-  revalidatePath("/velvet-management/partners");
+  revalidatePath("/velvt-management/partners");
   return { success: true };
 }
 
@@ -789,7 +854,7 @@ export async function createPressMention(formData: FormData) {
     });
 
     revalidatePath("/press");
-    revalidatePath("/velvet-management/partners");
+    revalidatePath("/velvt-management/partners");
     return { success: true, mention };
   } catch (error: any) {
     return { success: false, error: error?.message || "Failed to create press mention." };
@@ -805,7 +870,7 @@ export async function togglePressPublish(id: string, isPublished: boolean) {
   });
 
   revalidatePath("/press");
-  revalidatePath("/velvet-management/partners");
+  revalidatePath("/velvt-management/partners");
   return { success: true, mention };
 }
 
@@ -815,14 +880,14 @@ export async function deletePressMention(id: string) {
   await prisma.pressMention.delete({ where: { id } });
 
   revalidatePath("/press");
-  revalidatePath("/velvet-management/partners");
+  revalidatePath("/velvt-management/partners");
   return { success: true };
 }
 
 // ─── Admin: Site Settings / CMS ────────────────────────────────────────────────
 
 export async function updateSiteSettings(settings: Record<string, string>) {
-  await requireAdmin();
+  const session = await requireAdmin();
 
   try {
     for (const [key, value] of Object.entries(settings)) {
@@ -833,9 +898,16 @@ export async function updateSiteSettings(settings: Record<string, string>) {
       });
     }
 
+    await logAuditEvent({
+      action: "settings.update",
+      targetType: "SiteSetting",
+      metadata: { updatedKeys: Object.keys(settings) },
+      actor: { id: session.userId, email: session.user.email },
+    });
+
     revalidatePath("/");
     revalidatePath("/about");
-    revalidatePath("/velvet-management/settings");
+    revalidatePath("/velvt-management/settings");
     return { success: true };
   } catch (error: any) {
     return { success: false, error: error?.message || "Failed to update settings." };

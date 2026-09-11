@@ -1,17 +1,17 @@
-// VELVET — Admin Path Configuration
+// VELVT — Admin Path Configuration
 // Centralized helper for the non-obvious admin route prefix
 
-const ADMIN_PREFIX = process.env.ADMIN_ROUTE_PREFIX || "/velvet-management";
+const ADMIN_PREFIX = process.env.ADMIN_ROUTE_PREFIX || "/velvt-management";
 
 /**
- * Get the admin route prefix (e.g. "/velvet-management")
+ * Get the admin route prefix (e.g. "/velvt-management")
  */
 export function getAdminPrefix(): string {
   return ADMIN_PREFIX;
 }
 
 /**
- * Build a full admin path, e.g. adminPath("/events") => "/velvet-management/events"
+ * Build a full admin path, e.g. adminPath("/events") => "/velvt-management/events"
  */
 export function adminPath(subPath: string = ""): string {
   if (!subPath || subPath === "/") return ADMIN_PREFIX;

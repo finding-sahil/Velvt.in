@@ -9,7 +9,7 @@ interface TeamPreviewSectionProps {
 export function TeamPreviewSection({ members }: TeamPreviewSectionProps) {
   return (
     <section className="py-12 md:py-16 relative">
-      <div className="container-velvet space-y-8">
+      <div className="container-velvt space-y-8">
         <SectionHeading
           title="Core Team."
           subtitle="The founders, curators, and production leads crafting every experience."

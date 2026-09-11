@@ -8,7 +8,7 @@ import { InquiryActions } from "./InquiryActions";
 export default async function AdminInquiriesPage() {
   const session = await getSession();
   if (!session) {
-    redirect("/velvet-management/login");
+    redirect("/velvt-management/login");
   }
 
   const inquiries = await prisma.contactInquiry.findMany({

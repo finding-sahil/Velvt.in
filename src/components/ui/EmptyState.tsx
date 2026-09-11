@@ -1,4 +1,4 @@
-// VELVET — Empty State Component
+// VELVT — Empty State Component
 
 interface EmptyStateProps {
   icon?: React.ReactNode;

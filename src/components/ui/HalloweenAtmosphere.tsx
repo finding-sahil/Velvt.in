@@ -46,7 +46,7 @@ export function HalloweenAtmosphere() {
     const colors = [
       "rgba(255, 107, 53,",   // Burnt pumpkin
       "rgba(229, 169, 60,",   // Candleglow amber
-      "rgba(184, 29, 46,",    // Blood velvet
+      "rgba(184, 29, 46,",    // Blood velvt
       "rgba(255, 140, 66,",   // Jack-o'-lantern flare
     ];
 

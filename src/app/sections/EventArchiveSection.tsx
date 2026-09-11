@@ -10,7 +10,7 @@ interface EventArchiveSectionProps {
 export function EventArchiveSection({ events }: EventArchiveSectionProps) {
   return (
     <section className="py-12 md:py-16 relative">
-      <div className="container-velvet space-y-8">
+      <div className="container-velvt space-y-8">
         <SectionHeading
           title="Past Events &amp; Archive."
           subtitle="A curated historical archive of past events and memorable experiences."

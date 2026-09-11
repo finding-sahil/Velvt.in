@@ -44,7 +44,7 @@ export function ServicesSection({
 }: ServicesSectionProps = {}) {
   return (
     <section className="py-10 md:py-14 relative">
-      <div className="container-velvet space-y-6">
+      <div className="container-velvt space-y-6">
         <SectionHeading
           title={title}
           subtitle={subtitle}

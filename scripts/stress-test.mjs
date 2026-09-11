@@ -29,7 +29,7 @@ async function fetchHtml(path, options = {}) {
 
 async function runAllWorkflows() {
   console.log("================================================================================");
-  console.log("             VELVET — FINAL PRODUCTION READINESS STRESS TEST AUDIT               ");
+  console.log("             VELVT — FINAL PRODUCTION READINESS STRESS TEST AUDIT               ");
   console.log("================================================================================\n");
 
   try {
@@ -125,7 +125,7 @@ async function runAllWorkflows() {
       data: {
         eventId: ticketEvent.id,
         name: "Shadow Crypt VIP Pass",
-        description: "Includes private crypt access, open bar, and velvet gift bag.",
+        description: "Includes private crypt access, open bar, and velvt gift bag.",
         priceInPaise: 249900, // ₹2,499
         totalQuantity: 50,
         soldCount: 0,
@@ -168,7 +168,7 @@ async function runAllWorkflows() {
     const volunteer = await prisma.volunteer.create({
       data: {
         fullName: "Aarav 'Hex' Mukherjee",
-        email: "hex.aarav@stress-test.velvet.in",
+        email: "hex.aarav@stress-test.velvt.in",
         phone: "+91 9830099999",
         city: "Kolkata",
         preferredRole: "Stage Management & Crowd Flow",
@@ -208,7 +208,7 @@ async function runAllWorkflows() {
     assert(verifyPage.text.includes("<svg") && verifyPage.text.includes(testVolunteerId), "Public verification page embeds scannable SVG QR code");
 
     // 5. CRITICAL DATA PRIVACY CHECK: ensure confidential fields are never leaked
-    assert(!verifyPage.text.includes("hex.aarav@stress-test.velvet.in"), "STRICT PRIVACY: Applicant email is NEVER leaked in public verification");
+    assert(!verifyPage.text.includes("hex.aarav@stress-test.velvt.in"), "STRICT PRIVACY: Applicant email is NEVER leaked in public verification");
     assert(!verifyPage.text.includes("+91 9830099999"), "STRICT PRIVACY: Applicant phone number is NEVER leaked in public verification");
     assert(!verifyPage.text.includes("CONFIDENTIAL AUDIT NOTE"), "STRICT PRIVACY: Internal admin notes are NEVER leaked in public verification");
 
@@ -310,8 +310,8 @@ async function runAllWorkflows() {
     const press = await prisma.pressMention.create({
       data: {
         publication: "The Gothic Gazette Kolkata",
-        title: "Inside VELVET: Bengal's Darkest Nightclub Transformation",
-        url: "https://gothicgazette.test/velvet-exclusive",
+        title: "Inside VELVT: Bengal's Darkest Nightclub Transformation",
+        url: "https://gothicgazette.test/velvt-exclusive",
         isPublished: true,
         displayOrder: 1,
       }
@@ -321,7 +321,7 @@ async function runAllWorkflows() {
     assert(homePartnerPage.text.includes("Nocturne Audio Engineering"), "Active brand partner displays on homepage partner preview");
 
     const pressPage = await fetchHtml("/press");
-    assert(pressPage.status === 200 && pressPage.text.includes("Inside VELVET: Bengal&#x27;s Darkest Nightclub") || pressPage.text.includes("Inside VELVET"), "Press mention displays in public /press archive");
+    assert(pressPage.status === 200 && pressPage.text.includes("Inside VELVT: Bengal&#x27;s Darkest Nightclub") || pressPage.text.includes("Inside VELVT"), "Press mention displays in public /press archive");
 
     // Unpublish
     await prisma.partner.update({ where: { id: partner.id }, data: { isActive: false } });
@@ -331,7 +331,7 @@ async function runAllWorkflows() {
     assert(!unpubHomePartner.text.includes("Nocturne Audio Engineering"), "Inactive partner cleanly removed from homepage");
 
     const unpubPress = await fetchHtml("/press");
-    assert(!unpubPress.text.includes("Inside VELVET: Bengal's Darkest Nightclub"), "Unpublished press mention removed from public /press");
+    assert(!unpubPress.text.includes("Inside VELVT: Bengal's Darkest Nightclub"), "Unpublished press mention removed from public /press");
 
     // Cleanup
     await prisma.partner.delete({ where: { id: partner.id } });
@@ -343,7 +343,7 @@ async function runAllWorkflows() {
     // ─────────────────────────────────────────────────────────────────────────
     console.log("▶ [TEST 7/9] WORKFLOW: Homepage CMS (Live Headline, Tagline, & CTA Customization)");
     // Update site settings in DB
-    const testTitle = "VELVET STRESS TEST 2026";
+    const testTitle = "VELVT STRESS TEST 2026";
     const testTagline = "Audited and verified for live launch.";
     const testPrimaryCta = "Audit Pass Vault";
     const testFinalTitle = "The Shadows Are Ready. Are You?";
@@ -404,7 +404,7 @@ async function runAllWorkflows() {
     const coreRoutes = [
       "/",
       "/events",
-      "/events/velvet-curse-2-o",
+      "/events/velvt-curse-2-o",
       "/tickets",
       "/volunteers",
       "/volunteers/register",
@@ -434,7 +434,7 @@ async function runAllWorkflows() {
   console.log("================================================================================");
   console.log(`AUDIT SUMMARY: ${passedTests}/${totalTests} Tests Passed (${failedTests} Failures)`);
   if (failedTests === 0) {
-    console.log("VERDICT: 100% PASS — VELVET SYSTEM FULLY PRODUCTION READY");
+    console.log("VERDICT: 100% PASS — VELVT SYSTEM FULLY PRODUCTION READY");
   } else {
     console.log("VERDICT: FAILED — ISSUES REMAIN TO BE RESOLVED");
   }

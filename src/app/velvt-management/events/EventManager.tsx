@@ -516,7 +516,7 @@ export function EventManager({ events }: EventManagerProps) {
                     type="text"
                     value={formData.dressCode}
                     onChange={(e) => setFormData({ ...formData, dressCode: e.target.value })}
-                    placeholder="e.g. Dark tailoring, crushed velvet"
+                    placeholder="e.g. Dark tailoring, crushed velvt"
                     className="w-full bg-black/50 border border-white/10 rounded-lg p-2.5 text-white"
                   />
                 </div>

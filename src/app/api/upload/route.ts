@@ -1,4 +1,4 @@
-// VELVET — Secure File Upload Endpoint
+// VELVT — Secure File Upload Endpoint
 // Auth-protected, rate-limited, with file validation
 
 import { NextRequest, NextResponse } from "next/server";
@@ -30,20 +30,26 @@ function validateMagicBytes(buffer: Buffer, mimeType: string): boolean {
 
 export async function POST(req: NextRequest) {
   try {
-    // ─── Auth Check ──────────────────────────────────────────────────────
-    const cookieStore = await cookies();
-    const sessionCookie = cookieStore.get("velvet_admin_session");
+    const formData = await req.formData();
+    const file = formData.get("file") as File | null;
+    const purpose = formData.get("purpose") as string | null;
 
-    if (!sessionCookie?.value) {
+    if (!file) {
       return NextResponse.json(
-        { success: false, error: "Unauthorized" },
-        { status: 401 }
+        { success: false, error: "No file uploaded" },
+        { status: 400 }
       );
     }
 
-    // Basic session format check
-    const sessionParts = sessionCookie.value.split("|");
-    if (sessionParts.length !== 4) {
+    // ─── Auth Check ──────────────────────────────────────────────────────
+    const cookieStore = await cookies();
+    const sessionCookie = cookieStore.get("velvt_admin_session");
+    const isAdmin = Boolean(sessionCookie?.value && sessionCookie.value.split("|").length === 4);
+
+    // If not admin, the only permitted upload is a volunteer badge photo
+    const isVolunteerBadge = purpose === "volunteer-badge";
+
+    if (!isAdmin && !isVolunteerBadge) {
       return NextResponse.json(
         { success: false, error: "Unauthorized" },
         { status: 401 }
@@ -56,7 +62,12 @@ export async function POST(req: NextRequest) {
       req.headers.get("x-real-ip") ||
       "unknown";
 
-    const rateLimitResult = checkRateLimit(`upload:${ip}`, RATE_LIMITS.upload);
+    const rateKey = isAdmin ? `upload:admin:${ip}` : `upload:volunteer:${ip}`;
+    const rateConfig = isAdmin
+      ? RATE_LIMITS.upload
+      : { maxRequests: 3, windowSeconds: 10 * 60 }; // 3 per 10 mins for applicants
+
+    const rateLimitResult = checkRateLimit(rateKey, rateConfig);
     if (!rateLimitResult.success) {
       return NextResponse.json(
         { success: false, error: "Too many uploads. Please try again later." },
@@ -69,31 +80,25 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    // ─── File Processing ──────────────────────────────────────────────────
-    const formData = await req.formData();
-    const file = formData.get("file") as File | null;
+    // ─── File Validation ──────────────────────────────────────────────────
+    // Validate mime type (SVG strictly forbidden — XSS vector)
+    const validMimes = isAdmin
+      ? ["image/jpeg", "image/png", "image/webp", "image/gif"]
+      : ["image/jpeg", "image/png", "image/webp"]; // No GIF for badge photos
 
-    if (!file) {
-      return NextResponse.json(
-        { success: false, error: "No file uploaded" },
-        { status: 400 }
-      );
-    }
-
-    // Validate mime type (SVG removed — XSS vector)
-    const validMimes = ["image/jpeg", "image/png", "image/webp", "image/gif"];
     if (!validMimes.includes(file.type)) {
       return NextResponse.json(
-        { success: false, error: "Invalid file type. Allowed: JPEG, PNG, WebP, GIF." },
+        { success: false, error: "Invalid file type. Allowed: JPEG, PNG, WebP." },
         { status: 400 }
       );
     }
 
-    // Validate size (max 5MB)
-    const MAX_SIZE = 5 * 1024 * 1024;
+    // Validate size: 5MB for admin, 2MB for volunteer badge
+    const MAX_SIZE = isAdmin ? 5 * 1024 * 1024 : 2 * 1024 * 1024;
     if (file.size > MAX_SIZE) {
+      const maxMb = isAdmin ? "5MB" : "2MB";
       return NextResponse.json(
-        { success: false, error: "File size exceeds 5MB limit." },
+        { success: false, error: `File size exceeds ${maxMb} limit.` },
         { status: 400 }
       );
     }

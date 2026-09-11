@@ -6,7 +6,7 @@ import { PartnersManager } from "./PartnersManager";
 export default async function AdminPartnersPage() {
   const session = await getSession();
   if (!session) {
-    redirect("/velvet-management/login");
+    redirect("/velvt-management/login");
   }
 
   const [partners, pressMentions, events] = await Promise.all([

@@ -2,7 +2,7 @@ import { Skeleton, EventCardSkeleton } from "@/components/ui/Skeleton";
 
 export default function Loading() {
   return (
-    <div className="min-h-screen py-12 space-y-24 container-velvet animate-fade-in">
+    <div className="min-h-screen py-12 space-y-24 container-velvt animate-fade-in">
       {/* Hero Skeleton */}
       <div className="min-h-[75vh] flex flex-col items-center justify-center text-center space-y-6 max-w-3xl mx-auto pt-16">
         <Skeleton className="h-6 w-36 rounded-full" />

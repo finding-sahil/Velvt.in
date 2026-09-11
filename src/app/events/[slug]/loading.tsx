@@ -5,7 +5,7 @@ export default function EventDetailLoading() {
     <div className="min-h-screen pb-24 animate-fade-in">
       {/* Event Hero Skeleton */}
       <div className="relative h-[65vh] min-h-[480px] bg-rich-charcoal/40 flex items-end">
-        <div className="container-velvet pb-12 space-y-4 w-full">
+        <div className="container-velvt pb-12 space-y-4 w-full">
           <Skeleton className="h-6 w-28 rounded-full" />
           <Skeleton className="h-14 sm:h-20 w-3/4 max-w-2xl" />
           <div className="flex flex-wrap gap-4 pt-2">
@@ -18,7 +18,7 @@ export default function EventDetailLoading() {
 
       {/* Countdown & Quick Action Strip */}
       <div className="border-y border-white/[0.08] bg-obsidian/80 backdrop-blur-md py-6">
-        <div className="container-velvet flex flex-col md:flex-row items-center justify-between gap-6">
+        <div className="container-velvt flex flex-col md:flex-row items-center justify-between gap-6">
           <div className="flex items-center gap-4">
             <Skeleton className="h-4 w-28" />
             <div className="flex gap-2">
@@ -35,7 +35,7 @@ export default function EventDetailLoading() {
       </div>
 
       {/* Main Content Layout */}
-      <div className="container-velvet py-16 grid lg:grid-cols-3 gap-12">
+      <div className="container-velvt py-16 grid lg:grid-cols-3 gap-12">
         {/* Left 2 Cols: Details, Schedule, FAQs */}
         <div className="lg:col-span-2 space-y-16">
           <div className="space-y-4">

@@ -1,4 +1,4 @@
-// VELVET — Volunteer ID Generation
+// VELVT — Volunteer ID Generation
 // Format: VEL-{YEAR}-{SEQUENCE} e.g. VEL-2026-00047
 
 import { prisma } from "./db";

@@ -6,7 +6,7 @@ import { SettingsManager } from "./SettingsManager";
 export default async function AdminSettingsPage() {
   const session = await getSession();
   if (!session) {
-    redirect("/velvet-management/login");
+    redirect("/velvt-management/login");
   }
 
   const [settingsList, events] = await Promise.all([

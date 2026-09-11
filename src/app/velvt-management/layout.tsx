@@ -21,7 +21,7 @@ export default async function AdminLayout({
     <div className="min-h-screen bg-black text-white flex flex-col font-sans">
       {/* Admin Top Header Bar */}
       <header className="border-b border-white/10 bg-black/80 backdrop-blur-xl sticky top-0 z-50">
-        <div className="container-velvet py-3 flex items-center justify-between gap-4">
+        <div className="container-velvt py-3 flex items-center justify-between gap-4">
           <div className="flex items-center gap-4">
             <Link href={adminPath()} className="flex items-center gap-2">
               <span className="font-display font-black text-xl tracking-wider text-white">
@@ -76,7 +76,7 @@ export default async function AdminLayout({
       </header>
 
       {/* Main Admin Content Body */}
-      <main className="flex-1 container-velvet py-6 sm:py-8">{children}</main>
+      <main className="flex-1 container-velvt py-6 sm:py-8">{children}</main>
     </div>
   );
 }

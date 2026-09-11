@@ -1,10 +1,10 @@
-// VELVET — Edge Middleware
+// VELVT — Edge Middleware
 // Route protection, security headers, and admin path obfuscation
 
 import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
 
-const ADMIN_PREFIX = process.env.ADMIN_ROUTE_PREFIX || "/velvet-management";
+const ADMIN_PREFIX = process.env.ADMIN_ROUTE_PREFIX || "/velvt-management";
 
 export function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
@@ -51,7 +51,7 @@ export function middleware(request: NextRequest) {
     }
 
     // Check for session cookie
-    const sessionCookie = request.cookies.get("velvet_admin_session");
+    const sessionCookie = request.cookies.get("velvt_admin_session");
 
     if (!sessionCookie?.value) {
       // Return 404 — don't reveal that admin exists
@@ -70,7 +70,7 @@ export function middleware(request: NextRequest) {
     if (isNaN(timestamp) || Date.now() - timestamp > maxAge) {
       // Expired — clear cookie and return 404
       const res = new NextResponse(null, { status: 404 });
-      res.cookies.delete("velvet_admin_session");
+      res.cookies.delete("velvt_admin_session");
       return res;
     }
 

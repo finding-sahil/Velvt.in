@@ -181,7 +181,7 @@ export function GalleryManager({ items, events }: GalleryManagerProps) {
                   type="text"
                   value={formData.caption}
                   onChange={(e) => setFormData({ ...formData, caption: e.target.value })}
-                  placeholder="e.g. Stage lighting installation at Velvet Curse"
+                  placeholder="e.g. Stage lighting installation at Velvt Curse"
                   className="w-full bg-black/50 border border-white/10 rounded p-2 text-white"
                 />
               </div>

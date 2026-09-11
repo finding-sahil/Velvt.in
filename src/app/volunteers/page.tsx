@@ -44,7 +44,7 @@ export default async function VolunteersPage() {
   return (
     <div className="py-12 md:py-16">
       {/* Hero */}
-      <section className="container-velvet space-y-12">
+      <section className="container-velvt space-y-12">
         <SectionHeading
           title="Volunteer Directory."
           subtitle="A verified directory of the volunteers and crew members who help bring our events and experiences to life."
@@ -94,7 +94,7 @@ export default async function VolunteersPage() {
 
       {/* Verified Volunteer Cards Grid */}
       <section className="py-16">
-        <div className="container-velvet space-y-8">
+        <div className="container-velvt space-y-8">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-3">
               <span className="w-2 h-2 rounded-full bg-primary shadow-[0_0_8px_#c8102e]" />

@@ -6,7 +6,7 @@ import { TeamManager } from "./TeamManager";
 export default async function AdminTeamPage() {
   const session = await getSession();
   if (!session) {
-    redirect("/velvet-management/login");
+    redirect("/velvt-management/login");
   }
 
   const members = await prisma.teamMember.findMany({

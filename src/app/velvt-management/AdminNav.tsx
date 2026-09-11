@@ -21,7 +21,7 @@ export function AdminNav() {
 
   return (
     <div className="border-t border-white/[0.06] bg-white/[0.01]">
-      <div className="container-velvet overflow-x-auto no-scrollbar py-2">
+      <div className="container-velvt overflow-x-auto no-scrollbar py-2">
         <nav className="flex items-center gap-1.5 text-xs font-mono whitespace-nowrap min-w-max">
           {navItems.map((item) => {
             const isActive =

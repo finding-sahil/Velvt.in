@@ -5,7 +5,7 @@ async function testVolunteerFlow() {
   console.log("Testing Volunteer Lifecycle Pipeline...\n");
 
   // 1. Fetch event
-  const event = await prisma.event.findUnique({ where: { slug: "velvet-curse-2-o" } });
+  const event = await prisma.event.findUnique({ where: { slug: "velvt-curse-2-o" } });
   if (!event) throw new Error("Event not found");
 
   // 2. Create sample applicant

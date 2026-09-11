@@ -12,7 +12,7 @@ export default function AboutPage() {
       <div className="absolute top-1/4 left-1/3 w-96 h-96 rounded-full bg-primary/15 blur-[140px] pointer-events-none" />
 
       {/* Hero */}
-      <section className="container-velvet mb-16">
+      <section className="container-velvt mb-16">
         <div className="max-w-3xl space-y-6">
           <h1 className="font-display font-black text-4xl sm:text-6xl lg:text-7xl uppercase text-white tracking-tight leading-[0.95]">
             An Idea, A Feeling, An Experience.
@@ -27,7 +27,7 @@ export default function AboutPage() {
       </section>
 
       {/* Brand Story */}
-      <section className="container-velvet mb-16">
+      <section className="container-velvt mb-16">
         <div className="rounded-[20px] bg-white/[0.05] border border-white/10 backdrop-blur-[14px] p-8 sm:p-12 shadow-[0_0_40px_rgba(0,0,0,0.3)] space-y-6 max-w-4xl">
           <div className="flex items-center gap-2.5">
             <span className="w-2 h-2 rounded-full bg-primary shadow-[0_0_8px_#c8102e]" />
@@ -45,7 +45,7 @@ export default function AboutPage() {
       </section>
 
       {/* Mission & Vision */}
-      <section className="container-velvet mb-16">
+      <section className="container-velvt mb-16">
         <div className="grid md:grid-cols-2 gap-8 max-w-4xl">
           <div className="rounded-[20px] bg-white/[0.05] border border-white/10 backdrop-blur-[14px] p-8 space-y-4 hover:border-primary/40 hover:shadow-[0_0_30px_rgba(200,16,46,0.18)] transition-all duration-300">
             <div className="flex items-center gap-2">
@@ -74,7 +74,7 @@ export default function AboutPage() {
       </section>
 
       {/* Philosophy */}
-      <section className="container-velvet">
+      <section className="container-velvt">
         <div className="rounded-[20px] bg-white/[0.05] border border-white/10 backdrop-blur-[14px] p-8 sm:p-12 shadow-[0_0_40px_rgba(0,0,0,0.3)] space-y-6 max-w-4xl">
           <div className="flex items-center gap-2.5">
             <span className="w-2 h-2 rounded-full bg-primary shadow-[0_0_8px_#c8102e]" />

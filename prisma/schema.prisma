@@ -1,4 +1,4 @@
-// VELVET — Database Schema
+// VELVT — Database Schema
 // SQLite for development, easily switchable to PostgreSQL via datasource change
 
 generator client {
@@ -52,6 +52,9 @@ model Event {
   galleryItems   GalleryItem[]
   partners       Partner[]
   pressMentions  PressMention[]
+
+  @@index([status, date])
+  @@index([isFeatured])
 }
 
 // ─── Venues ────────────────────────────────────────────────────────────────────
@@ -89,6 +92,8 @@ model TicketType {
 
   eventId String
   event   Event  @relation(fields: [eventId], references: [id], onDelete: Cascade)
+
+  @@index([eventId, isActive])
 }
 
 // ─── Event Schedule ────────────────────────────────────────────────────────────
@@ -152,9 +157,13 @@ model Volunteer {
   appliedAt     DateTime @default(now())
   approvedAt    DateTime?
   revokedAt     DateTime?
+  updatedAt     DateTime @default(now()) @updatedAt
 
   eventId String
   event   Event  @relation(fields: [eventId], references: [id], onDelete: Cascade)
+
+  @@index([status, eventId])
+  @@index([volunteerId])
 }
 
 // ─── Team Members ──────────────────────────────────────────────────────────────
@@ -172,6 +181,8 @@ model TeamMember {
   isPublished  Boolean @default(true)
   createdAt    DateTime @default(now())
   updatedAt    DateTime @updatedAt
+
+  @@index([isPublished, displayOrder])
 }
 
 // ─── Gallery Items ─────────────────────────────────────────────────────────────
@@ -188,6 +199,8 @@ model GalleryItem {
 
   eventId String?
   event   Event?  @relation(fields: [eventId], references: [id], onDelete: SetNull)
+
+  @@index([isPublished, displayOrder])
 }
 
 // ─── Partners / Sponsors ───────────────────────────────────────────────────────
@@ -205,6 +218,8 @@ model Partner {
 
   eventId String?
   event   Event?  @relation(fields: [eventId], references: [id], onDelete: SetNull)
+
+  @@index([isActive, displayOrder])
 }
 
 // ─── Press Mentions ────────────────────────────────────────────────────────────
@@ -223,6 +238,8 @@ model PressMention {
 
   eventId String?
   event   Event?  @relation(fields: [eventId], references: [id], onDelete: SetNull)
+
+  @@index([isPublished, displayOrder])
 }
 
 // ─── Contact Inquiries ─────────────────────────────────────────────────────────
@@ -238,12 +255,33 @@ model ContactInquiry {
   adminNotes String?  // Internal notes — never exposed
   createdAt  DateTime @default(now())
   updatedAt  DateTime @updatedAt
+
+  @@index([status, createdAt])
 }
 
 // ─── Site Settings ─────────────────────────────────────────────────────────────
 
 model SiteSetting {
-  id    String @id @default(cuid())
-  key   String @unique
-  value String
+  id        String   @id @default(cuid())
+  key       String   @unique
+  value     String
+  updatedAt DateTime @default(now()) @updatedAt
 }
+
+// ─── Audit Logs ───────────────────────────────────────────────────────────────
+
+model AuditLog {
+  id         String   @id @default(cuid())
+  actorId    String?  // Admin ID or null for public/system
+  actorEmail String?  // Admin email or "system"
+  action     String   // e.g. "admin.login", "volunteer.approve", "event.update"
+  targetType String?  // "Volunteer", "Event", "SiteSetting", etc.
+  targetId   String?  // ID of the target record
+  metadata   String?  // JSON string with extra details (sanitized)
+  ipAddress  String?
+  createdAt  DateTime @default(now())
+
+  @@index([action, createdAt])
+  @@index([targetType, targetId])
+}
+

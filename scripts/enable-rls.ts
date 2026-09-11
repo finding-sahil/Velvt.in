@@ -17,6 +17,7 @@ const tables = [
   "PressMention",
   "ContactInquiry",
   "SiteSetting",
+  "AuditLog",
 ];
 
 // Tables that can be safely read publicly via Supabase anon API if needed

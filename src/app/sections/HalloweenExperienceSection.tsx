@@ -19,7 +19,7 @@ export const defaultPillars: ExperienceHighlightItem[] = [
     icon: "🎭",
     tag: "Dress Code",
     title: "Gothic Masquerade",
-    description: "Dark tailoring, crushed velvet, and Venetian masquerade masks.",
+    description: "Dark tailoring, crushed velvt, and Venetian masquerade masks.",
   },
   {
     icon: "🔮",
@@ -44,7 +44,7 @@ interface HalloweenExperienceSectionProps {
 
 export function HalloweenExperienceSection({
   title = "Experience Highlights.",
-  dossierHref = "/events/velvet-curse-2-o",
+  dossierHref = "/events/velvt-curse-2-o",
   dossierLabel = "Production Dossier",
   highlights,
 }: HalloweenExperienceSectionProps) {
@@ -52,7 +52,7 @@ export function HalloweenExperienceSection({
 
   return (
     <section className="py-10 md:py-14 relative overflow-hidden">
-      <div className="container-velvet relative space-y-6">
+      <div className="container-velvt relative space-y-6">
         <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-4">
           <div>
             <h2 className="section-title">

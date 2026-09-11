@@ -35,6 +35,7 @@ export default function VolunteerRegisterPage() {
     try {
       const fd = new FormData();
       fd.append("file", file);
+      fd.append("purpose", "volunteer-badge");
       const res = await fetch("/api/upload", {
         method: "POST",
         body: fd,
@@ -130,6 +131,8 @@ export default function VolunteerRegisterPage() {
 
         <div className="max-w-xl mx-auto rounded-[20px] bg-white/[0.05] border border-white/10 backdrop-blur-[14px] p-6 sm:p-10 shadow-[0_0_40px_rgba(0,0,0,0.4)]">
           <form onSubmit={handleSubmit} className="space-y-6">
+            {/* Anti-spam honeypot */}
+            <input type="text" name="_gotcha" className="hidden" tabIndex={-1} autoComplete="off" aria-hidden="true" />
             <FormField
               label="Full Name"
               name="fullName"

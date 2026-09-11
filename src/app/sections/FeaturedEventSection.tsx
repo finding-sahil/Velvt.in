@@ -17,7 +17,7 @@ export function FeaturedEventSection({ event }: FeaturedEventSectionProps) {
       {/* Subtle Ambient Red Glow */}
       <div className="absolute top-1/2 -right-20 w-[380px] h-[380px] rounded-full bg-red filter blur-[120px] opacity-[0.12] pointer-events-none" />
 
-      <div className="container-velvet relative">
+      <div className="container-velvt relative">
         {/* Section Header */}
         <div className="mb-6">
           <h2 className="section-title">

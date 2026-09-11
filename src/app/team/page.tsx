@@ -30,7 +30,7 @@ export default async function TeamPage() {
       {/* Ambient glow */}
       <div className="absolute top-1/4 right-1/4 w-96 h-96 rounded-full bg-primary/15 blur-[140px] pointer-events-none" />
 
-      <div className="container-velvet space-y-16">
+      <div className="container-velvt space-y-16">
         <SectionHeading
           title="Core Team."
           subtitle="The directors, creators, and operators shaping the vision and bringing each nocturnal experience to life."

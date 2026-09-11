@@ -85,7 +85,7 @@ export default async function EventDetailPage({ params }: EventPageProps) {
         {/* Ambient Red Glow */}
         <div className="absolute top-1/3 left-1/4 w-96 h-96 rounded-full bg-primary/20 blur-[130px] pointer-events-none" />
 
-        <div className="container-velvet relative pb-12 pt-28">
+        <div className="container-velvt relative pb-12 pt-28">
           <div className="max-w-3xl">
             <div className="flex items-center gap-3 mb-5">
               <StatusBadge
@@ -140,7 +140,7 @@ export default async function EventDetailPage({ params }: EventPageProps) {
       {/* ─── Countdown ──────────────────────────────────────────────────────── */}
       {isUpcoming && (
         <section className="py-8 border-b border-white/[0.08] bg-white/[0.02]">
-          <div className="container-velvet text-center space-y-3">
+          <div className="container-velvt text-center space-y-3">
             <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full border border-red-glow bg-red-dim">
               <span className="w-1.5 h-1.5 rounded-full bg-primary animate-pulse" />
               <span className="text-[10px] font-mono uppercase tracking-[0.2em] text-white">
@@ -154,7 +154,7 @@ export default async function EventDetailPage({ params }: EventPageProps) {
 
       {/* ─── Event Overview ─────────────────────────────────────────────────── */}
       <section id="details" className="py-12 md:py-16">
-        <div className="container-velvet">
+        <div className="container-velvt">
           <div className="grid lg:grid-cols-3 gap-8">
             {/* Main Content */}
             <div className="lg:col-span-2 space-y-6">
@@ -248,7 +248,7 @@ export default async function EventDetailPage({ params }: EventPageProps) {
       {/* ─── Schedule ───────────────────────────────────────────────────────── */}
       {event.scheduleItems.length > 0 && (
         <section className="py-12 md:py-16 border-t border-white/[0.08]">
-          <div className="container-velvet">
+          <div className="container-velvt">
             <SectionHeading
               title="Event Schedule"
               subtitle="What to expect through the evening."
@@ -295,7 +295,7 @@ export default async function EventDetailPage({ params }: EventPageProps) {
           id="tickets"
           className="py-12 md:py-16 border-t border-white/[0.08]"
         >
-          <div className="container-velvet">
+          <div className="container-velvt">
             <SectionHeading
               title="Tickets & Passes"
               subtitle="Secure your spot for the experience."
@@ -381,7 +381,7 @@ export default async function EventDetailPage({ params }: EventPageProps) {
       {/* ─── Announcements ──────────────────────────────────────────────────── */}
       {event.announcements.length > 0 && (
         <section className="py-12 md:py-16 border-t border-white/[0.08]">
-          <div className="container-velvet">
+          <div className="container-velvt">
             <SectionHeading title="Announcements" />
 
             <div className="max-w-2xl space-y-4">
@@ -409,7 +409,7 @@ export default async function EventDetailPage({ params }: EventPageProps) {
       {/* ─── FAQs ───────────────────────────────────────────────────────────── */}
       {event.faqs.length > 0 && (
         <section className="py-12 md:py-16 border-t border-white/[0.08]">
-          <div className="container-velvet">
+          <div className="container-velvt">
             <SectionHeading title="Frequently Asked Questions" subtitle="Everything you need to know about attending." />
 
             <div className="max-w-2xl space-y-4">
@@ -437,7 +437,7 @@ export default async function EventDetailPage({ params }: EventPageProps) {
       {/* ─── Partners ───────────────────────────────────────────────────────── */}
       {event.partners.length > 0 && (
         <section className="py-12 md:py-16 border-t border-white/[0.08]">
-          <div className="container-velvet">
+          <div className="container-velvt">
             <SectionHeading title="Partners & Sponsors" />
             <div className="flex flex-wrap items-center gap-8">
               {event.partners.map((partner) => (

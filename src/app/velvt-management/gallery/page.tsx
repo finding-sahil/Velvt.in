@@ -6,7 +6,7 @@ import { GalleryManager } from "./GalleryManager";
 export default async function AdminGalleryPage() {
   const session = await getSession();
   if (!session) {
-    redirect("/velvet-management/login");
+    redirect("/velvt-management/login");
   }
 
   const [items, events] = await Promise.all([

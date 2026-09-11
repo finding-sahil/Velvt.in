@@ -15,7 +15,7 @@ export default function TicketsPage() {
       <div className="absolute top-1/3 left-1/2 -translate-x-1/2 w-[500px] h-[500px] rounded-full bg-primary/20 blur-[180px] pointer-events-none" />
       <div className="absolute bottom-1/4 right-1/4 w-72 h-72 rounded-full bg-amber-500/10 blur-[120px] pointer-events-none" />
 
-      <div className="container-velvet space-y-12 text-center relative z-10">
+      <div className="container-velvt space-y-12 text-center relative z-10">
         <SectionHeading
           title="Tickets & Passes."
           subtitle="Direct entry and passes for upcoming VELVT events and experiences."

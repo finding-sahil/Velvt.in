@@ -60,7 +60,7 @@ export function SettingsManager({ settings, events }: SettingsManagerProps) {
     contact_email: settings.contact_email || "contact@velvt.in",
     press_email: settings.press_email || "press@velvt.in",
     social_instagram: settings.social_instagram || "https://www.instagram.com/velvt.in",
-    social_whatsapp: settings.social_whatsapp || "https://chat.whatsapp.com/invite/velvt-community",
+    social_whatsapp: settings.social_whatsapp || "https://chat.whatsapp.com/E5F1PCTqmgU2ljE2rtuzl8",
     phone: settings.phone || "+91 98300 00000",
 
     // Featured Event & Final CTA
@@ -572,12 +572,12 @@ export function SettingsManager({ settings, events }: SettingsManagerProps) {
                   />
                 </div>
                 <div>
-                  <label className="block text-g5 mb-1 uppercase">WhatsApp VIP Invite URL</label>
+                  <label className="block text-g5 mb-1 uppercase">WhatsApp Updates Invite URL</label>
                   <input
                     type="url"
                     value={form.social_whatsapp}
                     onChange={(e) => setForm({ ...form, social_whatsapp: e.target.value })}
-                    placeholder="https://chat.whatsapp.com/invite/..."
+                    placeholder="https://chat.whatsapp.com/E5F1PCTqmgU2ljE2rtuzl8"
                     className="w-full bg-black/50 border border-white/10 rounded-lg p-2.5 text-white"
                   />
                 </div>

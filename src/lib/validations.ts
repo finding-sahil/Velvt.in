@@ -1,4 +1,4 @@
-// VELVET — Validation Schemas
+// VELVT — Validation Schemas
 import { z } from "zod";
 
 // ─── Volunteer Registration ────────────────────────────────────────────────────

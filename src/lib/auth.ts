@@ -1,11 +1,11 @@
-// VELVET — Authentication Utilities
+// VELVT — Authentication Utilities
 // Session-based auth using PBKDF2 password hashing + signed cookies
 
 import { cookies } from "next/headers";
 import { prisma } from "./db";
 
-const SESSION_COOKIE = "velvet_admin_session";
-const SESSION_SECRET = process.env.NEXTAUTH_SECRET || "velvet-dev-secret";
+const SESSION_COOKIE = "velvt_admin_session";
+const SESSION_SECRET = process.env.NEXTAUTH_SECRET || "velvt-dev-secret";
 const SESSION_MAX_AGE = 60 * 60 * 24 * 7; // 7 days in seconds
 
 // ─── PBKDF2 Password Hashing ──────────────────────────────────────────────────

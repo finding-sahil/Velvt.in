@@ -10,7 +10,7 @@ const footerLinks = {
   organization: [
     { href: "/about", label: "About" },
     { href: "/team", label: "Core Team" },
-    { href: "/press", label: "Press & Media" },
+    { href: "/press", label: "Press & Sponsors" },
     { href: "/contact", label: "Contact" },
   ],
   resources: [
@@ -24,7 +24,7 @@ export function Footer() {
 
   return (
     <footer className="border-t border-white/10 bg-black/80 backdrop-blur-xl mt-16">
-      <div className="container-velvet py-14 space-y-12">
+      <div className="container-velvt py-14 space-y-12">
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
           {/* Brand */}
           <div className="space-y-3">
@@ -116,12 +116,12 @@ export function Footer() {
                   <span>📷</span> Instagram @velvt.in
                 </a>
                 <a
-                  href="https://chat.whatsapp.com/invite/velvt-community"
+                  href="https://chat.whatsapp.com/E5F1PCTqmgU2ljE2rtuzl8"
                   target="_blank"
                   rel="noopener noreferrer"
                   className="text-g6 hover:text-emerald-400 transition-colors flex items-center gap-1.5"
                 >
-                  <span>💬</span> WhatsApp VIP Group
+                  <span>💬</span> WhatsApp Updates Group
                 </a>
               </div>
             </div>
@@ -130,9 +130,22 @@ export function Footer() {
 
         {/* Bottom Bar */}
         <div className="pt-8 border-t border-white/[0.08] flex flex-col sm:flex-row items-center justify-between gap-4 text-center sm:text-left">
-          <p className="text-[11px] font-mono text-g5 uppercase tracking-wider">
-            © {year} VELVT. Experiential Events &amp; Creative Productions.
-          </p>
+          <div className="flex flex-col sm:flex-row items-center gap-2 sm:gap-4">
+            <p className="text-[11px] font-mono text-g5 uppercase tracking-wider">
+              © {year} VELVT.
+            </p>
+            <a
+              href="https://www.instagram.com/finding.sahil/"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="text-[11px] font-mono text-g5 hover:text-white transition-colors tracking-wider flex items-center gap-1 group"
+            >
+              <span>Created with</span>
+              <span className="text-red group-hover:scale-125 transition-transform inline-block">❤️</span>
+              <span>by</span>
+              <span className="text-white group-hover:text-red transition-colors underline decoration-white/20 underline-offset-4 font-semibold">Sahil</span>
+            </a>
+          </div>
           <div className="flex items-center gap-5">
             <a
               href="https://www.instagram.com/velvt.in"
@@ -143,7 +156,7 @@ export function Footer() {
               Instagram
             </a>
             <a
-              href="https://chat.whatsapp.com/invite/velvt-community"
+              href="https://chat.whatsapp.com/E5F1PCTqmgU2ljE2rtuzl8"
               target="_blank"
               rel="noopener noreferrer"
               className="text-[11px] font-mono text-g5 hover:text-emerald-400 transition-colors uppercase tracking-wider"

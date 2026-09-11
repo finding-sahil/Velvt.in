@@ -1,4 +1,4 @@
-// VELVET — Database Seed Script
+// VELVT — Database Seed Script
 // Run: npx tsx prisma/seed.ts
 
 import { PrismaClient } from "@prisma/client";
@@ -40,11 +40,11 @@ async function hashPassword(password: string): Promise<string> {
 }
 
 async function main() {
-  console.log("🌑 Seeding VELVET database...\n");
+  console.log("🌑 Seeding VELVT database...\n");
 
   // ─── Admin User ──────────────────────────────────────────────────────────────
-  const adminEmail = process.env.ADMIN_EMAIL || "admin@velvet.in";
-  const adminPassword = process.env.ADMIN_PASSWORD || "VelvetAdmin2026!";
+  const adminEmail = process.env.ADMIN_EMAIL || "admin@velvt.in";
+  const adminPassword = process.env.ADMIN_PASSWORD || "VelvtAdmin2026!";
 
   const existingAdmin = await prisma.adminUser.findUnique({
     where: { email: adminEmail },
@@ -56,7 +56,7 @@ async function main() {
       data: {
         email: adminEmail,
         passwordHash,
-        name: "VELVET Admin",
+        name: "VELVT Admin",
       },
     });
     console.log(`✓ Admin user created: ${adminEmail}`);
@@ -64,18 +64,18 @@ async function main() {
     console.log(`→ Admin user already exists: ${adminEmail}`);
   }
 
-  // ─── VELVET CURSE 2.O Event ──────────────────────────────────────────────────
+  // ─── VELVT CURSE 2.O Event ──────────────────────────────────────────────────
   const existingEvent = await prisma.event.findUnique({
-    where: { slug: "velvet-curse-2-o" },
+    where: { slug: "velvt-curse-2-o" },
   });
 
   if (!existingEvent) {
     const event = await prisma.event.create({
       data: {
-        name: "VELVET CURSE 2.O",
-        slug: "velvet-curse-2-o",
+        name: "VELVT CURSE 2.O",
+        slug: "velvt-curse-2-o",
         description:
-          "Step into the darkness. VELVET CURSE 2.O is an immersive Halloween experience that blends cinematic atmosphere, live performances, interactive installations, and curated entertainment into one unforgettable night. This is not just a party — it's an experience crafted to haunt your memory long after the night ends.",
+          "Step into the darkness. VELVT CURSE 2.O is an immersive Halloween experience that blends cinematic atmosphere, live performances, interactive installations, and curated entertainment into one unforgettable night. This is not just a party — it's an experience crafted to haunt your memory long after the night ends.",
         theme:
           "A cinematic Halloween experience — dark, immersive, and unforgettable. Expect atmospheric lighting, curated music, themed installations, and a night designed to be remembered.",
         date: new Date("2026-10-31T19:00:00+05:30"),
@@ -134,7 +134,7 @@ async function main() {
         {
           name: "VIP Experience",
           description:
-            "Premium access with priority entry, exclusive areas, complimentary refreshments, and a VELVET merchandise pack.",
+            "Premium access with priority entry, exclusive areas, complimentary refreshments, and a VELVT merchandise pack.",
           priceInPaise: 149900,
           totalQuantity: 50,
           soldCount: 0,
@@ -152,7 +152,7 @@ async function main() {
         {
           time: "7:00 PM",
           title: "Gates Open",
-          description: "Welcome to VELVET CURSE 2.O. Entry begins.",
+          description: "Welcome to VELVT CURSE 2.O. Entry begins.",
           displayOrder: 1,
           eventId: event.id,
         },
@@ -193,9 +193,9 @@ async function main() {
     await prisma.eventFAQ.createMany({
       data: [
         {
-          question: "What is VELVET CURSE 2.O?",
+          question: "What is VELVT CURSE 2.O?",
           answer:
-            "VELVET CURSE 2.O is an immersive Halloween-themed event by VELVET. It combines atmospheric design, live entertainment, interactive installations, and curated music into one premium experience.",
+            "VELVT CURSE 2.O is an immersive Halloween-themed event by VELVT. It combines atmospheric design, live entertainment, interactive installations, and curated music into one premium experience.",
           displayOrder: 1,
           eventId: event.id,
         },
@@ -234,9 +234,9 @@ async function main() {
     // Announcements
     await prisma.eventAnnouncement.create({
       data: {
-        title: "VELVET CURSE 2.O Announced",
+        title: "VELVT CURSE 2.O Announced",
         content:
-          "We're excited to announce VELVET CURSE 2.O — our biggest Halloween experience yet. Stay tuned for ticket sales, venue details, and more.",
+          "We're excited to announce VELVT CURSE 2.O — our biggest Halloween experience yet. Stay tuned for ticket sales, venue details, and more.",
         isPublished: true,
         eventId: event.id,
       },
@@ -292,7 +292,123 @@ async function main() {
       await prisma.siteSetting.create({ data: setting });
     }
   }
-  console.log("✓ Site settings configured");
+  // ─── Gallery Items (Archive) ────────────────────────────────────────────────
+  const galleryCount = await prisma.galleryItem.count();
+  if (galleryCount === 0) {
+    const galleryItems = [
+      {
+        url: "/gallery/velvt.in_0a1a5f8e120e4995bd181e9fe32fa75d.jpg",
+        caption: "The Obsidian Stage • Light Sculptures",
+        type: "image",
+        year: 2026,
+        displayOrder: 1,
+        isPublished: true,
+      },
+      {
+        url: "/gallery/bhumicoree_d771374cdb47419ca9c5b4a04c851761.jpg",
+        caption: "Midnight Descent • Crowd Cadence",
+        type: "image",
+        year: 2026,
+        displayOrder: 2,
+        isPublished: true,
+      },
+      {
+        url: "/gallery/velvt.in_6737fe3cefc340b6b19188090e18877f.jpg",
+        caption: "Curse 2.O Teaser Set • Crimson Wash",
+        type: "image",
+        year: 2026,
+        displayOrder: 3,
+        isPublished: true,
+      },
+      {
+        url: "/gallery/bhumicoree_6a1cce4fd02f45389436de63f664d219.jpg",
+        caption: "Behind The Scenes • Crew Moments",
+        type: "image",
+        year: 2026,
+        displayOrder: 4,
+        isPublished: true,
+      },
+      {
+        url: "/gallery/velvt.in_5af6dea848094553ac360dcf9ceca279.jpg",
+        caption: "Gilded Corridor • Interactive Installations",
+        type: "image",
+        year: 2026,
+        displayOrder: 5,
+        isPublished: true,
+      },
+      {
+        url: "/gallery/Dia de los Muertos vibes. (2).jpg",
+        caption: "Dia de los Muertos • Face Art",
+        type: "image",
+        year: 2026,
+        displayOrder: 6,
+        isPublished: true,
+      },
+      {
+        url: "/gallery/bhumicoree_0fd7e50029d24a0db163db145ed07934.jpg",
+        caption: "The Finale • Ephemeral Moments",
+        type: "image",
+        year: 2026,
+        displayOrder: 7,
+        isPublished: true,
+      },
+      {
+        url: "/gallery/velvt.in_93c7e8ba417a41ad9e961368c44e35ff.jpg",
+        caption: "Velvt Nights • Atmosphere & Energy",
+        type: "image",
+        year: 2026,
+        displayOrder: 8,
+        isPublished: true,
+      },
+    ];
+
+    for (const item of galleryItems) {
+      await prisma.galleryItem.create({ data: item });
+    }
+    console.log("✓ Gallery items seeded to Supabase");
+  }
+
+  // ─── Press Mentions ──────────────────────────────────────────────────────────
+  const pressCount = await prisma.pressMention.count();
+  if (pressCount === 0) {
+    const pressMentions = [
+      {
+        title: "How VELVT Is Redefining Experiential Nightlife in 2026",
+        publication: "The Culture Journal",
+        url: "https://velvt.in",
+        excerpt:
+          "A rare synthesis of theatrical art direction, architectural acoustics, and underground hospitality — VELVT creates spaces that feel both forbidden and welcoming.",
+        publishDate: new Date("2026-10-15"),
+        isPublished: true,
+        displayOrder: 1,
+      },
+      {
+        title: "Behind the Curtain: The Production Engineering of Velvt Curse",
+        publication: "Urban Sound Review",
+        url: "https://velvt.in",
+        excerpt:
+          "From custom audio arrays to dynamic projection systems, the team behind Velvt Curse treats every venue as a living sculpture.",
+        publishDate: new Date("2026-11-01"),
+        isPublished: true,
+        displayOrder: 2,
+      },
+      {
+        title: "Community-Driven Event Operations Done Right",
+        publication: "Metropolis Creative",
+        url: "https://velvt.in",
+        excerpt:
+          "By establishing a verified credential system for volunteers and production crew, VELVT sets a new standard for independent event organizations.",
+        publishDate: new Date("2026-12-05"),
+        isPublished: true,
+        displayOrder: 3,
+      },
+    ];
+
+    for (const p of pressMentions) {
+      await prisma.pressMention.create({ data: p });
+    }
+    console.log("✓ Press mentions seeded to Supabase");
+  }
 
   console.log("\n🌕 Seed complete!");
 }

@@ -8,7 +8,7 @@ interface PartnersPreviewSectionProps {
 export function PartnersPreviewSection({ partners }: PartnersPreviewSectionProps) {
   return (
     <section className="py-12 md:py-16 relative">
-      <div className="container-velvet space-y-8">
+      <div className="container-velvt space-y-8">
         <SectionHeading
           title="Partners &amp; Collaborators."
           subtitle="Creative partners, sponsors, and institutions collaborating on VELVT events."
