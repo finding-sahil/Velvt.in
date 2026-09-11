@@ -12,10 +12,16 @@ export default async function AdminVolunteersPage() {
     redirect("/velvt-management/login");
   }
 
-  const volunteers = await prisma.volunteer.findMany({
-    orderBy: { appliedAt: "desc" },
-    include: { event: { select: { name: true } } },
-  });
+  const [volunteers, events] = await Promise.all([
+    prisma.volunteer.findMany({
+      orderBy: { appliedAt: "desc" },
+      include: { event: { select: { id: true, name: true, date: true, status: true } } },
+    }),
+    prisma.event.findMany({
+      select: { id: true, name: true, date: true, status: true },
+      orderBy: { date: "desc" },
+    }),
+  ]);
 
-  return <VolunteerManager volunteers={volunteers} />;
+  return <VolunteerManager volunteers={volunteers} events={events} />;
 }

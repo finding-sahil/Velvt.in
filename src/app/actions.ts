@@ -457,6 +457,92 @@ export async function deleteVolunteer(volunteerId: string) {
   }
 }
 
+export async function createVolunteerDirect(data: {
+  fullName: string;
+  email: string;
+  phone: string;
+  city?: string;
+  preferredRole: string;
+  assignedRole?: string;
+  eventId?: string;
+  year?: number;
+  status?: string;
+  photo?: string;
+  socialLink?: string;
+  adminNotes?: string;
+}) {
+  try {
+    const session = await requireAdmin();
+
+    if (!data.fullName?.trim() || !data.email?.trim() || !data.phone?.trim()) {
+      return { success: false, error: "Full name, email, and phone number are required." };
+    }
+
+    const year = data.year ? Number(data.year) : new Date().getFullYear();
+    let targetEventId = data.eventId;
+
+    if (!targetEventId) {
+      const defaultEvent = await prisma.event.findFirst({
+        orderBy: { date: "desc" },
+      });
+      if (defaultEvent) {
+        targetEventId = defaultEvent.id;
+      } else {
+        const newEvent = await prisma.event.create({
+          data: {
+            name: `VELVT CURSE ${year}`,
+            slug: `velvt-curse-${year}-${Date.now()}`,
+            description: `Event operations archive for ${year}`,
+            date: new Date(`${year}-11-01T18:00:00.000Z`),
+          },
+        });
+        targetEventId = newEvent.id;
+      }
+    }
+
+    const generatedId = await generateVolunteerId(year);
+    const status = data.status || "verified";
+
+    const volunteer = await prisma.volunteer.create({
+      data: {
+        volunteerId: generatedId,
+        fullName: data.fullName.trim(),
+        email: data.email.trim().toLowerCase(),
+        phone: data.phone.trim(),
+        city: data.city?.trim() || "Kolkata",
+        preferredRole: data.preferredRole || "General Crew & Operations",
+        assignedRole: data.assignedRole?.trim() || data.preferredRole || "General Crew & Operations",
+        eventId: targetEventId,
+        status,
+        photo: data.photo || null,
+        socialLink: data.socialLink || null,
+        adminNotes: data.adminNotes || `Added directly via Admin Portal on ${new Date().toLocaleDateString()}`,
+        consentGiven: true,
+        approvedAt: status === "approved" || status === "verified" ? new Date() : null,
+      },
+      include: {
+        event: { select: { name: true } },
+      },
+    });
+
+    logAuditEvent({
+      action: "volunteer.create_direct",
+      targetType: "Volunteer",
+      targetId: volunteer.id,
+      metadata: { volunteerId: generatedId, year, status },
+      actor: { id: session.userId, email: session.user.email },
+    }).catch((e) => console.error("Audit log error:", e));
+
+    revalidatePath("/velvt-management/volunteers");
+    revalidatePath("/volunteers");
+    revalidatePath(`/verify/${generatedId}`);
+    return { success: true, volunteer };
+  } catch (error: any) {
+    console.error("Direct volunteer creation error:", error);
+    return { success: false, error: error?.message || "Failed to create volunteer." };
+  }
+}
+
 // ─── Admin: Update Inquiry Status ──────────────────────────────────────────────
 
 export async function updateInquiryStatus(
