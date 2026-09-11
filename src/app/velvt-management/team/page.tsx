@@ -3,6 +3,9 @@ import { getSession } from "@/lib/auth";
 import { prisma } from "@/lib/db";
 import { TeamManager } from "./TeamManager";
 
+export const dynamic = "force-dynamic";
+export const revalidate = 0;
+
 export default async function AdminTeamPage() {
   const session = await getSession();
   if (!session) {

@@ -123,8 +123,7 @@ body {
   z-index: 99990;
   pointer-events: none;
   background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noiseFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.65' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noiseFilter)'/%3E%3C/svg%3E");
-  opacity: 0.045;
-  mix-blend-mode: overlay;
+  opacity: 0.025;
 }
 
 .scanlines {
@@ -132,30 +131,21 @@ body {
   inset: 0;
   z-index: 99989;
   pointer-events: none;
-  background: linear-gradient(rgba(18, 16, 16, 0) 50%, rgba(0, 0, 0, 0.12) 50%),
+  background: linear-gradient(rgba(18, 16, 16, 0) 50%, rgba(0, 0, 0, 0.08) 50%),
     linear-gradient(90deg, rgba(200, 16, 46, 0.02), rgba(0, 0, 0, 0.01), rgba(200, 16, 46, 0.02));
   background-size: 100% 3px, 3px 100%;
 }
 
-/* ─── UNTOLDSURI Custom Cursor ──────────────────────────────────────────────── */
-@media (pointer: fine) {
-  body.has-custom-cursor,
-  body.has-custom-cursor a,
-  body.has-custom-cursor button,
-  body.has-custom-cursor [role="button"] {
-    cursor: none;
-  }
-}
-
+/* ─── UNTOLDSURI Hardware-Accelerated Ambient Cursor ──────────────────────── */
 #cursor-dot {
   position: fixed;
   top: 0;
   left: 0;
-  width: 8px;
-  height: 8px;
+  width: 6px;
+  height: 6px;
   border-radius: 50%;
   background: var(--red);
-  box-shadow: 0 0 10px var(--red), 0 0 20px rgba(200, 16, 46, 0.5);
+  box-shadow: 0 0 10px var(--red), 0 0 20px rgba(200, 16, 46, 0.4);
   pointer-events: none;
   z-index: 99999;
   transition: width 0.2s, height 0.2s, opacity 0.3s;
@@ -167,32 +157,49 @@ body {
   position: fixed;
   top: 0;
   left: 0;
-  width: 36px;
-  height: 36px;
+  width: 32px;
+  height: 32px;
   border-radius: 50%;
-  background: rgba(200, 16, 46, 0.06);
-  backdrop-filter: blur(4px);
-  -webkit-backdrop-filter: blur(4px);
-  border: 1px solid rgba(200, 16, 46, 0.4);
-  box-shadow: 0 0 14px rgba(200, 16, 46, 0.15), inset 0 0 10px rgba(255, 255, 255, 0.03);
+  background: rgba(200, 16, 46, 0.04);
+  border: 1px solid rgba(200, 16, 46, 0.35);
+  box-shadow: 0 0 12px rgba(200, 16, 46, 0.15);
   pointer-events: none;
   z-index: 99998;
-  transition: width 0.25s ease, height 0.25s ease, border-color 0.2s, box-shadow 0.2s, opacity 0.3s;
+  transition: width 0.2s ease, height 0.2s ease, border-color 0.2s, box-shadow 0.2s, opacity 0.3s;
   will-change: transform;
   opacity: 0;
 }
 
 body.cursor-hover #cursor-ring {
-  width: 52px;
-  height: 52px;
+  width: 44px;
+  height: 44px;
   border-color: var(--red);
-  box-shadow: 0 0 24px rgba(200, 16, 46, 0.35), inset 0 0 14px rgba(255, 255, 255, 0.04);
+  box-shadow: 0 0 20px rgba(200, 16, 46, 0.3);
 }
 
 body.cursor-hover #cursor-dot {
-  width: 5px;
-  height: 5px;
-  box-shadow: 0 0 16px var(--red), 0 0 30px rgba(200, 16, 46, 0.6);
+  width: 4px;
+  height: 4px;
+  box-shadow: 0 0 14px var(--red);
+}
+
+/* ─── Admin Performance & Hardware Cursor ─────────────────────────────────── */
+body.is-admin,
+body.is-admin * {
+  cursor: auto !important;
+}
+body.is-admin a,
+body.is-admin button,
+body.is-admin [role="button"],
+body.is-admin select,
+body.is-admin input[type="submit"] {
+  cursor: pointer !important;
+}
+body.is-admin #cursor-dot,
+body.is-admin #cursor-ring,
+body.is-admin .film-grain,
+body.is-admin .scanlines {
+  display: none !important;
 }
 
 /* ─── Scrollbar ─────────────────────────────────────────────────────────────── */

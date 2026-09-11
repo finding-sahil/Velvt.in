@@ -13,8 +13,27 @@ import { FinalCTASection } from "./sections/FinalCTASection";
 export const revalidate = 0; // Dynamic on load
 
 export default async function HomePage() {
-  // Fetch site settings
-  const siteSettings = await prisma.siteSetting.findMany().catch(() => []);
+  // Fetch initial queries in parallel to eliminate waterfall network latency
+  const [siteSettings, recentEvents, teamMembers, partners] = await Promise.all([
+    prisma.siteSetting.findMany().catch(() => []),
+    prisma.event.findMany({
+      where: { status: { not: "draft" } },
+      include: { venue: true },
+      orderBy: { date: "desc" },
+      take: 4,
+    }).catch(() => []),
+    prisma.teamMember.findMany({
+      where: { isPublished: true },
+      orderBy: { displayOrder: "asc" },
+      take: 4,
+    }).catch(() => []),
+    prisma.partner.findMany({
+      where: { isActive: true },
+      orderBy: { displayOrder: "asc" },
+      take: 8,
+    }).catch(() => []),
+  ]);
+
   const settings: Record<string, string> = {};
   for (const s of siteSettings) {
     settings[s.key] = s.value;
@@ -41,28 +60,6 @@ export default async function HomePage() {
       },
     }).catch(() => null);
   }
-
-  // Fetch recent events for archive preview
-  const recentEvents = await prisma.event.findMany({
-    where: { status: { not: "draft" } },
-    include: { venue: true },
-    orderBy: { date: "desc" },
-    take: 4,
-  }).catch(() => []);
-
-  // Fetch published team members
-  const teamMembers = await prisma.teamMember.findMany({
-    where: { isPublished: true },
-    orderBy: { displayOrder: "asc" },
-    take: 4,
-  }).catch(() => []);
-
-  // Fetch active partners
-  const partners = await prisma.partner.findMany({
-    where: { isActive: true },
-    orderBy: { displayOrder: "asc" },
-    take: 8,
-  }).catch(() => []);
 
   // Parse CMS Experience Highlights if present
   let experienceHighlights;

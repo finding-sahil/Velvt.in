@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import {
   createPartner,
@@ -19,10 +19,20 @@ interface PartnersManagerProps {
 
 export function PartnersManager({ partners, pressMentions, events }: PartnersManagerProps) {
   const router = useRouter();
+  const [partnerList, setPartnerList] = useState(partners);
+  const [pressList, setPressList] = useState(pressMentions);
   const [activeTab, setActiveTab] = useState<"partners" | "press">("partners");
   const [showPartnerModal, setShowPartnerModal] = useState(false);
   const [showPressModal, setShowPressModal] = useState(false);
   const [loading, setLoading] = useState(false);
+
+  useEffect(() => {
+    setPartnerList(partners);
+  }, [partners]);
+
+  useEffect(() => {
+    setPressList(pressMentions);
+  }, [pressMentions]);
 
   // Partner Form State
   const [partnerForm, setPartnerForm] = useState({
@@ -143,12 +153,12 @@ export function PartnersManager({ partners, pressMentions, events }: PartnersMan
       {/* Partners Tab */}
       {activeTab === "partners" && (
         <div className="grid gap-4">
-          {partners.length === 0 ? (
+          {partnerList.length === 0 ? (
             <div className="p-12 text-center border border-white/10 bg-white/[0.02] rounded-2xl font-mono text-xs text-muted">
               No partners registered yet.
             </div>
           ) : (
-            partners.map((p) => (
+            partnerList.map((p) => (
               <div
                 key={p.id}
                 className="p-5 border border-white/10 bg-white/[0.03] rounded-2xl flex items-center justify-between gap-4 hover:border-white/20 transition-colors"
@@ -178,10 +188,21 @@ export function PartnersManager({ partners, pressMentions, events }: PartnersMan
                 <div className="flex items-center gap-2">
                   <button
                     onClick={async () => {
-                      setLoading(true);
-                      await togglePartnerActive(p.id, !p.isActive);
-                      setLoading(false);
-                      router.refresh();
+                      setPartnerList((prev) =>
+                        prev.map((item) => (item.id === p.id ? { ...item, isActive: !p.isActive } : item))
+                      );
+                      try {
+                        const res = await togglePartnerActive(p.id, !p.isActive);
+                        if (!res.success) {
+                          alert(res.error || "Failed to update partner status");
+                          setPartnerList(partners);
+                        } else {
+                          router.refresh();
+                        }
+                      } catch (err: any) {
+                        alert(err?.message || "Failed to update partner status");
+                        setPartnerList(partners);
+                      }
                     }}
                     className="px-3 py-1.5 text-xs font-mono rounded border border-white/10 text-muted-foreground hover:text-white cursor-pointer"
                   >
@@ -190,10 +211,20 @@ export function PartnersManager({ partners, pressMentions, events }: PartnersMan
                   <button
                     onClick={async () => {
                       if (!confirm("Delete this partner?")) return;
-                      setLoading(true);
-                      await deletePartner(p.id);
-                      setLoading(false);
-                      router.refresh();
+                      const prevList = partnerList;
+                      setPartnerList((prev) => prev.filter((item) => item.id !== p.id));
+                      try {
+                        const res = await deletePartner(p.id);
+                        if (!res.success) {
+                          alert(res.error || "Failed to delete partner");
+                          setPartnerList(prevList);
+                        } else {
+                          router.refresh();
+                        }
+                      } catch (err: any) {
+                        alert(err?.message || "Failed to delete partner");
+                        setPartnerList(prevList);
+                      }
                     }}
                     className="px-3 py-1.5 text-xs font-mono rounded border border-red-500/30 text-red-400 hover:bg-red-500/10 cursor-pointer"
                   >
@@ -209,12 +240,12 @@ export function PartnersManager({ partners, pressMentions, events }: PartnersMan
       {/* Press Tab */}
       {activeTab === "press" && (
         <div className="grid gap-4">
-          {pressMentions.length === 0 ? (
+          {pressList.length === 0 ? (
             <div className="p-12 text-center border border-white/10 bg-white/[0.02] rounded-2xl font-mono text-xs text-muted">
               No press mentions found.
             </div>
           ) : (
-            pressMentions.map((pm) => (
+            pressList.map((pm) => (
               <div
                 key={pm.id}
                 className="p-5 border border-white/10 bg-white/[0.03] rounded-2xl flex flex-col sm:flex-row sm:items-center justify-between gap-4 hover:border-white/20 transition-colors"
@@ -233,10 +264,21 @@ export function PartnersManager({ partners, pressMentions, events }: PartnersMan
                 <div className="flex items-center gap-2 shrink-0">
                   <button
                     onClick={async () => {
-                      setLoading(true);
-                      await togglePressPublish(pm.id, !pm.isPublished);
-                      setLoading(false);
-                      router.refresh();
+                      setPressList((prev) =>
+                        prev.map((item) => (item.id === pm.id ? { ...item, isPublished: !pm.isPublished } : item))
+                      );
+                      try {
+                        const res = await togglePressPublish(pm.id, !pm.isPublished);
+                        if (!res.success) {
+                          alert(res.error || "Failed to update press mention status");
+                          setPressList(pressMentions);
+                        } else {
+                          router.refresh();
+                        }
+                      } catch (err: any) {
+                        alert(err?.message || "Failed to update press mention status");
+                        setPressList(pressMentions);
+                      }
                     }}
                     className="px-3 py-1.5 text-xs font-mono rounded border border-white/10 text-muted-foreground hover:text-white cursor-pointer"
                   >
@@ -245,10 +287,20 @@ export function PartnersManager({ partners, pressMentions, events }: PartnersMan
                   <button
                     onClick={async () => {
                       if (!confirm("Delete this press mention?")) return;
-                      setLoading(true);
-                      await deletePressMention(pm.id);
-                      setLoading(false);
-                      router.refresh();
+                      const prevList = pressList;
+                      setPressList((prev) => prev.filter((item) => item.id !== pm.id));
+                      try {
+                        const res = await deletePressMention(pm.id);
+                        if (!res.success) {
+                          alert(res.error || "Failed to delete press mention");
+                          setPressList(prevList);
+                        } else {
+                          router.refresh();
+                        }
+                      } catch (err: any) {
+                        alert(err?.message || "Failed to delete press mention");
+                        setPressList(prevList);
+                      }
                     }}
                     className="px-3 py-1.5 text-xs font-mono rounded border border-red-500/30 text-red-400 hover:bg-red-500/10 cursor-pointer"
                   >

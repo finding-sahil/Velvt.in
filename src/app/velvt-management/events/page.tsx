@@ -3,6 +3,9 @@ import { getSession } from "@/lib/auth";
 import { prisma } from "@/lib/db";
 import { EventManager } from "./EventManager";
 
+export const dynamic = "force-dynamic";
+export const revalidate = 0;
+
 export default async function AdminEventsPage() {
   const session = await getSession();
   if (!session) {

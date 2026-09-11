@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import {
   createGalleryItem,
@@ -16,8 +16,13 @@ interface GalleryManagerProps {
 
 export function GalleryManager({ items, events }: GalleryManagerProps) {
   const router = useRouter();
+  const [itemList, setItemList] = useState(items);
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [loading, setLoading] = useState(false);
+
+  useEffect(() => {
+    setItemList(items);
+  }, [items]);
 
   const [formData, setFormData] = useState({
     url: "",
@@ -63,18 +68,41 @@ export function GalleryManager({ items, events }: GalleryManagerProps) {
   }
 
   async function handleTogglePublish(id: string, current: boolean) {
-    setLoading(true);
-    await toggleGalleryPublish(id, !current);
-    setLoading(false);
-    router.refresh();
+    // Optimistic toggle
+    setItemList((prev) =>
+      prev.map((item) => (item.id === id ? { ...item, isPublished: !current } : item))
+    );
+    try {
+      const res = await toggleGalleryPublish(id, !current);
+      if (!res.success) {
+        alert(res.error || "Failed to update gallery item status");
+        setItemList(items);
+      } else {
+        router.refresh();
+      }
+    } catch {
+      setItemList(items);
+    }
   }
 
   async function handleDelete(id: string) {
     if (!confirm("Are you sure you want to delete this media item?")) return;
-    setLoading(true);
-    await deleteGalleryItem(id);
-    setLoading(false);
-    router.refresh();
+    // Instant optimistic deletion from UI
+    const prevItems = itemList;
+    setItemList((prev) => prev.filter((item) => item.id !== id));
+
+    try {
+      const res = await deleteGalleryItem(id);
+      if (!res.success) {
+        alert(res.error || "Failed to delete media item");
+        setItemList(prevItems); // restore on failure
+      } else {
+        router.refresh();
+      }
+    } catch (err: any) {
+      alert(err?.message || "Failed to delete media item");
+      setItemList(prevItems);
+    }
   }
 
   return (
@@ -88,25 +116,25 @@ export function GalleryManager({ items, events }: GalleryManagerProps) {
             Gallery &amp; Media Archive
           </h1>
           <p className="text-xs text-muted mt-1">
-            Curate photography, video recordings, and event highlights for public display.
+            Manage photo documentation, party memories, and atmosphere records.
           </p>
         </div>
 
         <button
           onClick={() => setShowCreateModal(true)}
-          className="px-5 py-2.5 text-xs font-mono uppercase tracking-wider rounded-full bg-primary text-white font-bold hover:bg-red-700 transition-colors cursor-pointer self-start sm:self-auto shadow-[0_0_15px_rgba(200,16,46,0.4)]"
+          className="px-4 py-2 text-xs font-mono uppercase tracking-wider rounded-full bg-primary text-white font-bold hover:bg-primary/80 transition-all cursor-pointer shadow-[0_0_20px_rgba(200,16,46,0.3)]"
         >
           + Add Media Item
         </button>
       </div>
 
       <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-6">
-        {items.length === 0 ? (
+        {itemList.length === 0 ? (
           <div className="col-span-full p-12 text-center border border-white/10 bg-white/[0.02] rounded-2xl font-mono text-xs text-muted">
             No gallery items found. Click &quot;+ Add Media Item&quot; to upload or link event photography.
           </div>
         ) : (
-          items.map((item) => (
+          itemList.map((item) => (
             <div
               key={item.id}
               className="border border-white/10 bg-white/[0.03] rounded-2xl overflow-hidden flex flex-col justify-between hover:border-white/20 transition-colors"

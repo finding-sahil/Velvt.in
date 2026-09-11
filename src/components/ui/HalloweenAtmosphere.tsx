@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import { usePathname } from "next/navigation";
 
 interface Particle {
   x: number;
@@ -14,8 +15,10 @@ interface Particle {
 }
 
 export function HalloweenAtmosphere() {
+  const pathname = usePathname();
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
-  const [isActive, setIsActive] = useState(true);
+  const isAdmin = pathname?.startsWith("/velvt-management");
+  const [isActive, setIsActive] = useState(!isAdmin);
 
   useEffect(() => {
     if (!isActive) return;
@@ -94,8 +97,6 @@ export function HalloweenAtmosphere() {
           ctx.beginPath();
           ctx.arc(p.x, p.y, p.size, 0, Math.PI * 2);
           ctx.fillStyle = `${p.color} ${p.opacity})`;
-          ctx.shadowColor = `${p.color} 0.8)`;
-          ctx.shadowBlur = 8;
           ctx.fill();
         }
       }
@@ -112,15 +113,13 @@ export function HalloweenAtmosphere() {
     };
   }, [isActive]);
 
+  if (isAdmin || !isActive) return null;
+
   return (
-    <>
-      {isActive && (
-        <canvas
-          ref={canvasRef}
-          aria-hidden="true"
-          className="fixed inset-0 pointer-events-none z-[1] opacity-50 transition-opacity duration-1000"
-        />
-      )}
-    </>
+    <canvas
+      ref={canvasRef}
+      aria-hidden="true"
+      className="fixed inset-0 pointer-events-none z-[1] opacity-40 transition-opacity duration-1000"
+    />
   );
 }

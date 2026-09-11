@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import {
@@ -22,11 +22,22 @@ interface EventManagerProps {
 
 export function EventManager({ events }: EventManagerProps) {
   const router = useRouter();
+  const [eventList, setEventList] = useState(events);
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [editingEvent, setEditingEvent] = useState<any | null>(null);
   const [managingTicketsFor, setManagingTicketsFor] = useState<any | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    setEventList(events);
+    if (managingTicketsFor) {
+      const updated = events.find((e) => e.id === managingTicketsFor.id);
+      if (updated) {
+        setManagingTicketsFor(updated);
+      }
+    }
+  }, [events]);
 
   // Form states for creating event
   const [formData, setFormData] = useState({
@@ -121,18 +132,20 @@ export function EventManager({ events }: EventManagerProps) {
 
     const fd = new FormData();
     fd.append("name", editingEvent.name);
+    fd.append("slug", editingEvent.slug);
     fd.append("description", editingEvent.description);
     fd.append("theme", editingEvent.theme || "");
     fd.append("coverImage", editingEvent.coverImage || "");
     fd.append("dressCode", editingEvent.dressCode || "");
     fd.append("ageRestriction", editingEvent.ageRestriction || "");
     fd.append("entryInfo", editingEvent.entryInfo || "");
-    fd.append(
-      "date",
-      editingEvent.date
-        ? new Date(editingEvent.date).toISOString().split("T")[0]
-        : ""
-    );
+    const dateStr =
+      editingEvent.date instanceof Date
+        ? editingEvent.date.toISOString().split("T")[0]
+        : typeof editingEvent.date === "string" && editingEvent.date.includes("T")
+        ? editingEvent.date.split("T")[0]
+        : editingEvent.date || "";
+    fd.append("date", dateStr);
     fd.append("time", editingEvent.time || "");
     fd.append("status", editingEvent.status);
     fd.append("venueName", editingEvent.venue?.name || "");
@@ -153,18 +166,41 @@ export function EventManager({ events }: EventManagerProps) {
 
   async function handleArchive(eventId: string) {
     if (!confirm("Are you sure you want to archive this event?")) return;
-    setLoading(true);
-    await archiveEvent(eventId);
-    setLoading(false);
-    router.refresh();
+    setEventList((prev) =>
+      prev.map((e) => (e.id === eventId ? { ...e, status: "archived" } : e))
+    );
+    try {
+      const res = await archiveEvent(eventId);
+      if (!res.success) {
+        alert(res.error || "Failed to archive event");
+        setEventList(events);
+      } else {
+        router.refresh();
+      }
+    } catch (err: any) {
+      alert(err?.message || "Failed to archive event");
+      setEventList(events);
+    }
   }
 
   async function handleDelete(eventId: string) {
     if (!confirm("Permanently delete this event and its ticket tiers?")) return;
-    setLoading(true);
-    await deleteEvent(eventId);
-    setLoading(false);
-    router.refresh();
+    // Instant optimistic deletion from UI
+    const prevEvents = eventList;
+    setEventList((prev) => prev.filter((e) => e.id !== eventId));
+
+    try {
+      const res = await deleteEvent(eventId);
+      if (!res.success) {
+        alert(res.error || "Failed to delete event");
+        setEventList(prevEvents); // revert on failure
+      } else {
+        router.refresh();
+      }
+    } catch (err: any) {
+      alert(err?.message || "Failed to delete event");
+      setEventList(prevEvents);
+    }
   }
 
   async function handleAddTicket(e: React.FormEvent) {
@@ -183,7 +219,8 @@ export function EventManager({ events }: EventManagerProps) {
     const res = await createTicketType(fd);
     setLoading(false);
 
-    if (res.success) {
+    if (res.success && (res as any).ticket) {
+      const newTicket = (res as any).ticket;
       setTicketForm({
         name: "",
         priceInRupees: 499,
@@ -191,6 +228,25 @@ export function EventManager({ events }: EventManagerProps) {
         bookingUrl: "",
         isActive: true,
       });
+      // Instant optimistic UI update
+      setManagingTicketsFor((prev: any) =>
+        prev
+          ? {
+              ...prev,
+              ticketTypes: [...(prev.ticketTypes || []), newTicket],
+            }
+          : prev
+      );
+      setEventList((prev) =>
+        prev.map((e) =>
+          e.id === managingTicketsFor.id
+            ? {
+                ...e,
+                ticketTypes: [...(e.ticketTypes || []), newTicket],
+              }
+            : e
+        )
+      );
       router.refresh();
     } else {
       alert(res.error || "Failed to add ticket tier");
@@ -198,18 +254,70 @@ export function EventManager({ events }: EventManagerProps) {
   }
 
   async function handleToggleTicket(ticketId: string, current: boolean) {
-    setLoading(true);
-    await toggleTicketType(ticketId, !current);
-    setLoading(false);
-    router.refresh();
+    // Instant optimistic UI update
+    setManagingTicketsFor((prev: any) =>
+      prev
+        ? {
+            ...prev,
+            ticketTypes: (prev.ticketTypes || []).map((t: any) =>
+              t.id === ticketId ? { ...t, isActive: !current } : t
+            ),
+          }
+        : prev
+    );
+    setEventList((prev) =>
+      prev.map((e) =>
+        e.id === managingTicketsFor?.id
+          ? {
+              ...e,
+              ticketTypes: (e.ticketTypes || []).map((t: any) =>
+                t.id === ticketId ? { ...t, isActive: !current } : t
+              ),
+            }
+          : e
+      )
+    );
+
+    try {
+      await toggleTicketType(ticketId, !current);
+      router.refresh();
+    } catch (err: any) {
+      alert(err?.message || "Failed to update ticket tier");
+    }
   }
 
   async function handleDeleteTicket(ticketId: string) {
     if (!confirm("Delete this ticket tier?")) return;
-    setLoading(true);
-    await deleteTicketType(ticketId);
-    setLoading(false);
-    router.refresh();
+
+    // Instant optimistic UI update
+    setManagingTicketsFor((prev: any) =>
+      prev
+        ? {
+            ...prev,
+            ticketTypes: (prev.ticketTypes || []).filter((t: any) => t.id !== ticketId),
+          }
+        : prev
+    );
+    setEventList((prev) =>
+      prev.map((e) =>
+        e.id === managingTicketsFor?.id
+          ? {
+              ...e,
+              ticketTypes: (e.ticketTypes || []).filter((t: any) => t.id !== ticketId),
+            }
+          : e
+      )
+    );
+
+    try {
+      const res = await deleteTicketType(ticketId);
+      if (!res.success) {
+        alert(res.error || "Failed to delete ticket tier");
+      }
+      router.refresh();
+    } catch (err: any) {
+      alert(err?.message || "Failed to delete ticket tier");
+    }
   }
 
   return (
@@ -238,14 +346,14 @@ export function EventManager({ events }: EventManagerProps) {
 
       {/* Events List */}
       <div className="grid gap-5">
-        {events.length === 0 ? (
+        {eventList.length === 0 ? (
           <div className="p-12 text-center border border-white/10 bg-white/[0.02] rounded-2xl">
             <p className="text-g5 text-sm font-mono">
               No events found. Click &quot;+ Create New Event&quot; to begin.
             </p>
           </div>
         ) : (
-          events.map((event) => (
+          eventList.map((event) => (
             <div
               key={event.id}
               className="border border-white/10 bg-white/[0.03] p-5 sm:p-6 rounded-2xl space-y-5 hover:border-white/20 transition-all"

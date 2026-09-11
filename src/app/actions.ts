@@ -337,76 +337,124 @@ export async function approveVolunteer(volunteerId: string, assignedRole?: strin
 // ─── Admin: Revoke Volunteer ───────────────────────────────────────────────────
 
 export async function revokeVolunteer(volunteerId: string) {
-  const session = await requireAdmin();
+  try {
+    const session = await requireAdmin();
 
-  await prisma.volunteer.update({
-    where: { id: volunteerId },
-    data: {
-      status: "revoked",
-      revokedAt: new Date(),
-    },
-  });
+    await prisma.volunteer.update({
+      where: { id: volunteerId },
+      data: {
+        status: "revoked",
+        revokedAt: new Date(),
+      },
+    });
 
-  await logAuditEvent({
-    action: "volunteer.revoke",
-    targetType: "Volunteer",
-    targetId: volunteerId,
-    actor: { id: session.userId, email: session.user.email },
-  });
+    logAuditEvent({
+      action: "volunteer.revoke",
+      targetType: "Volunteer",
+      targetId: volunteerId,
+      actor: { id: session.userId, email: session.user.email },
+    }).catch((e) => console.error("Audit log error:", e));
 
-  return { success: true };
+    revalidatePath("/velvt-management/volunteers");
+    revalidatePath("/volunteers");
+    return { success: true };
+  } catch (error: any) {
+    console.error("Revoke volunteer error:", error);
+    return { success: false, error: error?.message || "Failed to revoke volunteer." };
+  }
 }
 
 // ─── Admin: Mark Volunteer Verified ────────────────────────────────────────────
 
 export async function verifyVolunteer(volunteerId: string) {
-  const session = await requireAdmin();
+  try {
+    const session = await requireAdmin();
 
-  await prisma.volunteer.update({
-    where: { id: volunteerId },
-    data: {
-      status: "verified",
-    },
-  });
+    await prisma.volunteer.update({
+      where: { id: volunteerId },
+      data: {
+        status: "verified",
+      },
+    });
 
-  await logAuditEvent({
-    action: "volunteer.verify",
-    targetType: "Volunteer",
-    targetId: volunteerId,
-    actor: { id: session.userId, email: session.user.email },
-  });
+    logAuditEvent({
+      action: "volunteer.verify",
+      targetType: "Volunteer",
+      targetId: volunteerId,
+      actor: { id: session.userId, email: session.user.email },
+    }).catch((e) => console.error("Audit log error:", e));
 
-  return { success: true };
+    revalidatePath("/velvt-management/volunteers");
+    revalidatePath("/volunteers");
+    return { success: true };
+  } catch (error: any) {
+    console.error("Verify volunteer error:", error);
+    return { success: false, error: error?.message || "Failed to verify volunteer." };
+  }
 }
 
 export async function updateVolunteerPhoto(volunteerId: string, photo: string) {
-  await requireAdmin();
+  try {
+    await requireAdmin();
 
-  await prisma.volunteer.update({
-    where: { id: volunteerId },
-    data: {
-      photo,
-    },
-  });
+    await prisma.volunteer.update({
+      where: { id: volunteerId },
+      data: {
+        photo,
+      },
+    });
 
-  revalidatePath("/velvt-management/volunteers");
-  revalidatePath("/volunteers");
-  return { success: true };
+    revalidatePath("/velvt-management/volunteers");
+    revalidatePath("/volunteers");
+    return { success: true };
+  } catch (error: any) {
+    console.error("Update volunteer photo error:", error);
+    return { success: false, error: error?.message || "Failed to update volunteer photo." };
+  }
 }
 
 export async function updateVolunteerSocials(volunteerId: string, socialLink: string) {
-  await requireAdmin();
+  try {
+    await requireAdmin();
 
-  await prisma.volunteer.update({
-    where: { id: volunteerId },
-    data: {
-      socialLink,
-    },
-  });
+    await prisma.volunteer.update({
+      where: { id: volunteerId },
+      data: {
+        socialLink,
+      },
+    });
 
-  revalidatePath("/velvt-management/volunteers");
-  revalidatePath("/volunteers");
-  return { success: true };
+    revalidatePath("/velvt-management/volunteers");
+    revalidatePath("/volunteers");
+    return { success: true };
+  } catch (error: any) {
+    console.error("Update volunteer socials error:", error);
+    return { success: false, error: error?.message || "Failed to update volunteer socials." };
+  }
+}
+
+export async function deleteVolunteer(volunteerId: string) {
+  try {
+    const session = await requireAdmin();
+
+    await prisma.volunteer.delete({
+      where: { id: volunteerId },
+    });
+
+    logAuditEvent({
+      action: "volunteer.delete",
+      targetType: "Volunteer",
+      targetId: volunteerId,
+      actor: { id: session.userId, email: session.user.email },
+    }).catch((e) => console.error("Audit log error:", e));
+
+    revalidatePath("/velvt-management/volunteers");
+    revalidatePath("/volunteers");
+    return { success: true };
+  } catch (error: any) {
+    console.error("Delete volunteer error:", error);
+    return { success: false, error: error?.message || "Failed to delete volunteer." };
+  }
 }
 
 // ─── Admin: Update Inquiry Status ──────────────────────────────────────────────
@@ -426,16 +474,39 @@ export async function updateInquiryStatus(
     },
   });
 
-  await logAuditEvent({
+  logAuditEvent({
     action: "inquiry.update_status",
     targetType: "ContactInquiry",
     targetId: inquiryId,
     metadata: { status },
     actor: { id: session.userId, email: session.user.email },
-  });
+  }).catch((e) => console.error("Audit log error:", e));
 
   revalidatePath("/velvt-management/inquiries");
   return { success: true };
+}
+
+export async function deleteInquiry(inquiryId: string) {
+  try {
+    const session = await requireAdmin();
+
+    await prisma.contactInquiry.delete({
+      where: { id: inquiryId },
+    });
+
+    logAuditEvent({
+      action: "inquiry.delete",
+      targetType: "ContactInquiry",
+      targetId: inquiryId,
+      actor: { id: session.userId, email: session.user.email },
+    }).catch((e) => console.error("Audit log error:", e));
+
+    revalidatePath("/velvt-management/inquiries");
+    return { success: true };
+  } catch (error: any) {
+    console.error("Delete inquiry error:", error);
+    return { success: false, error: error?.message || "Failed to delete inquiry." };
+  }
 }
 
 // ─── Admin: Events ─────────────────────────────────────────────────────────────
@@ -565,29 +636,66 @@ export async function updateEvent(eventId: string, formData: FormData) {
 }
 
 export async function archiveEvent(eventId: string) {
-  await requireAdmin();
+  try {
+    await requireAdmin();
 
-  const event = await prisma.event.update({
-    where: { id: eventId },
-    data: { status: "archived" },
-  });
+    const event = await prisma.event.update({
+      where: { id: eventId },
+      data: { status: "archived" },
+    });
 
-  revalidatePath("/");
-  revalidatePath("/events");
-  revalidatePath(`/events/${event.slug}`);
-  revalidatePath("/velvt-management/events");
-  return { success: true };
+    revalidatePath("/");
+    revalidatePath("/events");
+    revalidatePath(`/events/${event.slug}`);
+    revalidatePath("/velvt-management/events");
+    return { success: true };
+  } catch (error: any) {
+    console.error("Archive event error:", error);
+    return { success: false, error: error?.message || "Failed to archive event." };
+  }
 }
 
 export async function deleteEvent(eventId: string) {
-  await requireAdmin();
+  try {
+    await requireAdmin();
 
-  await prisma.event.delete({ where: { id: eventId } });
+    // Clear featured event setting if this event was featured
+    await prisma.siteSetting.updateMany({
+      where: { key: "featured_event_id", value: eventId },
+      data: { value: "" },
+    }).catch(() => {});
 
-  revalidatePath("/");
-  revalidatePath("/events");
-  revalidatePath("/velvt-management/events");
-  return { success: true };
+    // Delete event (PostgreSQL natively cascades ticketTypes, venues, announcements, faqs, etc.)
+    await prisma.event.delete({ where: { id: eventId } });
+
+    revalidatePath("/");
+    revalidatePath("/events");
+    revalidatePath("/velvt-management/events");
+    return { success: true };
+  } catch (error: any) {
+    console.error("Delete event error:", error);
+    // Fallback: if database foreign key constraint blocked it, clean dependents in parallel
+    try {
+      await Promise.allSettled([
+        prisma.galleryItem.updateMany({ where: { eventId }, data: { eventId: null } }),
+        prisma.partner.updateMany({ where: { eventId }, data: { eventId: null } }),
+        prisma.pressMention.updateMany({ where: { eventId }, data: { eventId: null } }),
+        prisma.ticketType.deleteMany({ where: { eventId } }),
+        prisma.eventScheduleItem.deleteMany({ where: { eventId } }),
+        prisma.eventAnnouncement.deleteMany({ where: { eventId } }),
+        prisma.eventFAQ.deleteMany({ where: { eventId } }),
+        prisma.venue.deleteMany({ where: { eventId } }),
+        prisma.volunteer.deleteMany({ where: { eventId } }),
+      ]);
+      await prisma.event.delete({ where: { id: eventId } });
+      revalidatePath("/");
+      revalidatePath("/events");
+      revalidatePath("/velvt-management/events");
+      return { success: true };
+    } catch (fallbackErr: any) {
+      return { success: false, error: fallbackErr?.message || error?.message || "Failed to delete event." };
+    }
+  }
 }
 
 // ─── Admin: Ticket Types ───────────────────────────────────────────────────────
@@ -661,26 +769,34 @@ export async function updateTicketType(ticketId: string, formData: FormData) {
 }
 
 export async function toggleTicketType(ticketId: string, isActive: boolean) {
-  await requireAdmin();
+  try {
+    await requireAdmin();
 
-  const ticket = await prisma.ticketType.update({
-    where: { id: ticketId },
-    data: { isActive },
-  });
+    const ticket = await prisma.ticketType.update({
+      where: { id: ticketId },
+      data: { isActive },
+    });
 
-  revalidatePath("/tickets");
-  revalidatePath("/velvt-management/events");
-  return { success: true, ticket };
+    revalidatePath("/tickets");
+    revalidatePath("/velvt-management/events");
+    return { success: true, ticket };
+  } catch (error: any) {
+    return { success: false, error: error?.message || "Failed to toggle ticket." };
+  }
 }
 
 export async function deleteTicketType(ticketId: string) {
-  await requireAdmin();
+  try {
+    await requireAdmin();
 
-  await prisma.ticketType.delete({ where: { id: ticketId } });
+    await prisma.ticketType.delete({ where: { id: ticketId } });
 
-  revalidatePath("/tickets");
-  revalidatePath("/velvt-management/events");
-  return { success: true };
+    revalidatePath("/tickets");
+    revalidatePath("/velvt-management/events");
+    return { success: true };
+  } catch (error: any) {
+    return { success: false, error: error?.message || "Failed to delete ticket." };
+  }
 }
 
 // ─── Admin: Team Members ───────────────────────────────────────────────────────
@@ -761,28 +877,36 @@ export async function updateTeamMember(id: string, formData: FormData) {
 }
 
 export async function toggleTeamMemberPublish(id: string, isPublished: boolean) {
-  await requireAdmin();
+  try {
+    await requireAdmin();
 
-  const member = await prisma.teamMember.update({
-    where: { id },
-    data: { isPublished },
-  });
+    const member = await prisma.teamMember.update({
+      where: { id },
+      data: { isPublished },
+    });
 
-  revalidatePath("/");
-  revalidatePath("/team");
-  revalidatePath("/velvt-management/team");
-  return { success: true, member };
+    revalidatePath("/");
+    revalidatePath("/team");
+    revalidatePath("/velvt-management/team");
+    return { success: true, member };
+  } catch (error: any) {
+    return { success: false, error: error?.message || "Failed to toggle team member." };
+  }
 }
 
 export async function deleteTeamMember(id: string) {
-  await requireAdmin();
+  try {
+    await requireAdmin();
 
-  await prisma.teamMember.delete({ where: { id } });
+    await prisma.teamMember.delete({ where: { id } });
 
-  revalidatePath("/");
-  revalidatePath("/team");
-  revalidatePath("/velvt-management/team");
-  return { success: true };
+    revalidatePath("/");
+    revalidatePath("/team");
+    revalidatePath("/velvt-management/team");
+    return { success: true };
+  } catch (error: any) {
+    return { success: false, error: error?.message || "Failed to delete team member." };
+  }
 }
 
 // ─── Admin: Gallery Items ──────────────────────────────────────────────────────
@@ -825,28 +949,36 @@ export async function createGalleryItem(formData: FormData) {
 }
 
 export async function toggleGalleryPublish(id: string, isPublished: boolean) {
-  await requireAdmin();
+  try {
+    await requireAdmin();
 
-  const item = await prisma.galleryItem.update({
-    where: { id },
-    data: { isPublished },
-  });
+    const item = await prisma.galleryItem.update({
+      where: { id },
+      data: { isPublished },
+    });
 
-  revalidatePath("/");
-  revalidatePath("/gallery");
-  revalidatePath("/velvt-management/gallery");
-  return { success: true, item };
+    revalidatePath("/");
+    revalidatePath("/gallery");
+    revalidatePath("/velvt-management/gallery");
+    return { success: true, item };
+  } catch (error: any) {
+    return { success: false, error: error?.message || "Failed to toggle gallery item." };
+  }
 }
 
 export async function deleteGalleryItem(id: string) {
-  await requireAdmin();
+  try {
+    await requireAdmin();
 
-  await prisma.galleryItem.delete({ where: { id } });
+    await prisma.galleryItem.delete({ where: { id } });
 
-  revalidatePath("/");
-  revalidatePath("/gallery");
-  revalidatePath("/velvt-management/gallery");
-  return { success: true };
+    revalidatePath("/");
+    revalidatePath("/gallery");
+    revalidatePath("/velvt-management/gallery");
+    return { success: true };
+  } catch (error: any) {
+    return { success: false, error: error?.message || "Failed to delete gallery item." };
+  }
 }
 
 // ─── Admin: Partners & Sponsors ───────────────────────────────────────────────
@@ -886,26 +1018,34 @@ export async function createPartner(formData: FormData) {
 }
 
 export async function togglePartnerActive(id: string, isActive: boolean) {
-  await requireAdmin();
+  try {
+    await requireAdmin();
 
-  const partner = await prisma.partner.update({
-    where: { id },
-    data: { isActive },
-  });
+    const partner = await prisma.partner.update({
+      where: { id },
+      data: { isActive },
+    });
 
-  revalidatePath("/");
-  revalidatePath("/velvt-management/partners");
-  return { success: true, partner };
+    revalidatePath("/");
+    revalidatePath("/velvt-management/partners");
+    return { success: true, partner };
+  } catch (error: any) {
+    return { success: false, error: error?.message || "Failed to toggle partner." };
+  }
 }
 
 export async function deletePartner(id: string) {
-  await requireAdmin();
+  try {
+    await requireAdmin();
 
-  await prisma.partner.delete({ where: { id } });
+    await prisma.partner.delete({ where: { id } });
 
-  revalidatePath("/");
-  revalidatePath("/velvt-management/partners");
-  return { success: true };
+    revalidatePath("/");
+    revalidatePath("/velvt-management/partners");
+    return { success: true };
+  } catch (error: any) {
+    return { success: false, error: error?.message || "Failed to delete partner." };
+  }
 }
 
 // ─── Admin: Press Mentions ─────────────────────────────────────────────────────
@@ -943,26 +1083,34 @@ export async function createPressMention(formData: FormData) {
 }
 
 export async function togglePressPublish(id: string, isPublished: boolean) {
-  await requireAdmin();
+  try {
+    await requireAdmin();
 
-  const mention = await prisma.pressMention.update({
-    where: { id },
-    data: { isPublished },
-  });
+    const mention = await prisma.pressMention.update({
+      where: { id },
+      data: { isPublished },
+    });
 
-  revalidatePath("/press");
-  revalidatePath("/velvt-management/partners");
-  return { success: true, mention };
+    revalidatePath("/press");
+    revalidatePath("/velvt-management/partners");
+    return { success: true, mention };
+  } catch (error: any) {
+    return { success: false, error: error?.message || "Failed to toggle press mention." };
+  }
 }
 
 export async function deletePressMention(id: string) {
-  await requireAdmin();
+  try {
+    await requireAdmin();
 
-  await prisma.pressMention.delete({ where: { id } });
+    await prisma.pressMention.delete({ where: { id } });
 
-  revalidatePath("/press");
-  revalidatePath("/velvt-management/partners");
-  return { success: true };
+    revalidatePath("/press");
+    revalidatePath("/velvt-management/partners");
+    return { success: true };
+  } catch (error: any) {
+    return { success: false, error: error?.message || "Failed to delete press mention." };
+  }
 }
 
 // ─── Admin: Site Settings / CMS ────────────────────────────────────────────────

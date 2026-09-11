@@ -1,12 +1,17 @@
 "use client";
 
 import { useEffect, useRef } from "react";
+import { usePathname } from "next/navigation";
 
 export function CustomCursor() {
+  const pathname = usePathname();
   const dotRef = useRef<HTMLDivElement | null>(null);
   const ringRef = useRef<HTMLDivElement | null>(null);
 
+  const isAdmin = pathname?.startsWith("/velvt-management");
+
   useEffect(() => {
+    if (isAdmin) return;
     // Only activate on pointer: fine (desktop mice/trackpads)
     if (window.matchMedia("(pointer: coarse)").matches) return;
 
@@ -83,7 +88,9 @@ export function CustomCursor() {
       document.body.classList.remove("has-custom-cursor", "cursor-hover");
       cancelAnimationFrame(animId);
     };
-  }, []);
+  }, [isAdmin]);
+
+  if (isAdmin) return null;
 
   return (
     <>

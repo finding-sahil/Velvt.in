@@ -177,10 +177,10 @@ export function VolunteerActions({
         </button>
       )}
 
-      {volunteerId && (
+      {(volunteerId || status === "approved" || status === "verified") && (
         <>
           <a
-            href={`/verify/${volunteerId}`}
+            href={`/verify/${encodeURIComponent(volunteerId || id)}`}
             target="_blank"
             rel="noopener noreferrer"
             className="px-2.5 py-1 text-[11px] font-mono uppercase tracking-wider rounded bg-white/[0.04] text-g5 border border-white/[0.08] hover:text-white transition-colors"
@@ -189,10 +189,10 @@ export function VolunteerActions({
           </a>
 
           <DownloadQrButton
-            data={`https://velvt.in/verify/${encodeURIComponent(volunteerId)}`}
-            filename={`VELVT-Volunteer-${volunteerId}-Pass.png`}
+            data={`/verify/${encodeURIComponent(volunteerId || id)}`}
+            filename={`VELVT-Volunteer-${volunteerId || id}-Pass.png`}
             title={fullName || "VELVT VOLUNTEER"}
-            subtitle={`ID: ${volunteerId} • ${assignedRole || "Event Contributor"}`}
+            subtitle={`ID: ${volunteerId || id} • ${assignedRole || "Event Contributor"}`}
             badgeText="OFFICIAL CREDENTIAL"
             label="Download QR"
             variant="pill"

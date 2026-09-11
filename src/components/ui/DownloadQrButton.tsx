@@ -42,8 +42,23 @@ export default function DownloadQrButton({
     setStatus("generating");
 
     try {
+      // Dynamically resolve target URL so QR code always encodes the live working site URL
+      let targetUrl = data;
+      if (typeof window !== "undefined") {
+        const origin = window.location.origin;
+        if (targetUrl.startsWith("/")) {
+          targetUrl = `${origin}${targetUrl}`;
+        } else if (targetUrl.includes("velvt.in") && origin && !origin.includes("velvt.in")) {
+          targetUrl = targetUrl.replace(/https?:\/\/velvt\.in/g, origin);
+        }
+      }
+      if (!targetUrl.startsWith("http")) {
+        const base = process.env.NEXT_PUBLIC_SITE_URL || "https://velvt-in.vercel.app";
+        targetUrl = targetUrl.startsWith("/") ? `${base}${targetUrl}` : `${base}/${targetUrl}`;
+      }
+
       // 1. Generate high-res QR code data URL (High error correction level)
-      const qrDataUrl = await QRCode.toDataURL(data, {
+      const qrDataUrl = await QRCode.toDataURL(targetUrl, {
         errorCorrectionLevel: "H",
         margin: 2,
         width: 360,
@@ -161,7 +176,7 @@ export default function DownloadQrButton({
       // Footer branding
       ctx.font = "500 10px monospace";
       ctx.fillStyle = "rgba(255, 255, 255, 0.3)";
-      ctx.fillText("official: velvt.in  •  instagram: @velvt.in", w / 2, h - 45);
+      ctx.fillText("official: velvt-in.vercel.app  •  instagram: @velvt.in", w / 2, h - 45);
 
       // 3. Trigger PNG Download
       const finalDataUrl = canvas.toDataURL("image/png");
@@ -172,7 +187,15 @@ export default function DownloadQrButton({
       console.error("QR Pass generation error:", err);
       // Fallback
       try {
-        const simpleQr = await QRCode.toDataURL(data, { width: 512, margin: 2 });
+        let fallbackUrl = data;
+        if (typeof window !== "undefined") {
+          const origin = window.location.origin;
+          if (fallbackUrl.startsWith("/")) fallbackUrl = `${origin}${fallbackUrl}`;
+          else if (fallbackUrl.includes("velvt.in") && !origin.includes("velvt.in")) {
+            fallbackUrl = fallbackUrl.replace(/https?:\/\/velvt\.in/g, origin);
+          }
+        }
+        const simpleQr = await QRCode.toDataURL(fallbackUrl, { width: 512, margin: 2 });
         triggerDownload(simpleQr, filename);
       } catch {}
       setStatus("done");

@@ -1,5 +1,6 @@
 import { prisma } from "@/lib/db";
 import { notFound } from "next/navigation";
+import { headers } from "next/headers";
 import type { Metadata } from "next";
 import QRCode from "qrcode";
 
@@ -25,11 +26,17 @@ export default async function VerifyVolunteerPage({
   const { volunteerId } = await params;
   const decodedId = decodeURIComponent(volunteerId);
 
-  // Query ONLY public-safe fields — never return email, phone, adminNotes
+  // Query ONLY public-safe fields — look up by generated volunteerId OR record ID
   const volunteer = await prisma.volunteer
-    .findUnique({
-      where: { volunteerId: decodedId },
+    .findFirst({
+      where: {
+        OR: [
+          { volunteerId: decodedId },
+          { id: decodedId },
+        ],
+      },
       select: {
+        id: true,
         volunteerId: true,
         fullName: true,
         status: true,
@@ -138,9 +145,15 @@ export default async function VerifyVolunteerPage({
     ? new Date(volunteer.event.date).getFullYear()
     : null;
 
+  const headersList = await headers();
+  const host = headersList.get("x-forwarded-host") || headersList.get("host");
+  const proto = headersList.get("x-forwarded-proto") || (host?.includes("localhost") ? "http" : "https");
+  const baseUrl = host ? `${proto}://${host}` : (process.env.NEXT_PUBLIC_SITE_URL || "https://velvt-in.vercel.app");
+  const passCode = volunteer.volunteerId || volunteer.id;
+  const verifyUrl = `${baseUrl}/verify/${encodeURIComponent(passCode)}`;
+
   let qrSvg = "";
   try {
-    const verifyUrl = `https://velvt.in/verify/${encodeURIComponent(volunteer.volunteerId || "")}`;
     qrSvg = await QRCode.toString(verifyUrl, {
       type: "svg",
       margin: 1,
@@ -325,10 +338,10 @@ export default async function VerifyVolunteerPage({
                 Scan to Verify Credential Authenticity
               </span>
               <a
-                href={`/verify/${encodeURIComponent(volunteer.volunteerId || "")}`}
+                href={`/verify/${encodeURIComponent(passCode)}`}
                 className="text-[9px] font-mono text-primary hover:underline break-all"
               >
-                https://velvt.in/verify/{volunteer.volunteerId}
+                {verifyUrl}
               </a>
             </div>
           )}

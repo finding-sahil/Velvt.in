@@ -6,6 +6,9 @@ import { StatusBadge } from "@/components/ui/StatusBadge";
 import { formatDateShort } from "@/lib/utils";
 import { adminPath, adminLoginPath } from "@/lib/admin-path";
 
+export const dynamic = "force-dynamic";
+export const revalidate = 0;
+
 export default async function AdminDashboardPage() {
   const session = await getSession();
   if (!session) {

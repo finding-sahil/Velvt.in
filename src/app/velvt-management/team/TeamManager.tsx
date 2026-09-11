@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import {
   createTeamMember,
@@ -16,10 +16,15 @@ interface TeamManagerProps {
 
 export function TeamManager({ members }: TeamManagerProps) {
   const router = useRouter();
+  const [teamList, setTeamList] = useState(members);
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [editingMember, setEditingMember] = useState<any | null>(null);
   const [loading, setLoading] = useState(false);
   const [uploading, setUploading] = useState(false);
+
+  useEffect(() => {
+    setTeamList(members);
+  }, [members]);
 
   const [formData, setFormData] = useState({
     name: "",
@@ -145,18 +150,42 @@ export function TeamManager({ members }: TeamManagerProps) {
   }
 
   async function handleTogglePublish(id: string, current: boolean) {
-    setLoading(true);
-    await toggleTeamMemberPublish(id, !current);
-    setLoading(false);
-    router.refresh();
+    // Instant optimistic toggle
+    setTeamList((prev) =>
+      prev.map((m) => (m.id === id ? { ...m, isPublished: !current } : m))
+    );
+    try {
+      const res = await toggleTeamMemberPublish(id, !current);
+      if (!res.success) {
+        alert(res.error || "Failed to update team member status");
+        setTeamList(members); // revert
+      } else {
+        router.refresh();
+      }
+    } catch (err: any) {
+      alert(err?.message || "Failed to update team member status");
+      setTeamList(members);
+    }
   }
 
   async function handleDelete(id: string) {
     if (!confirm("Are you sure you want to delete this team member?")) return;
-    setLoading(true);
-    await deleteTeamMember(id);
-    setLoading(false);
-    router.refresh();
+    // Instant optimistic removal from UI
+    const prevList = teamList;
+    setTeamList((prev) => prev.filter((m) => m.id !== id));
+
+    try {
+      const res = await deleteTeamMember(id);
+      if (!res.success) {
+        alert(res.error || "Failed to delete team member");
+        setTeamList(prevList); // revert on failure
+      } else {
+        router.refresh();
+      }
+    } catch (err: any) {
+      alert(err?.message || "Failed to delete team member");
+      setTeamList(prevList);
+    }
   }
 
   function parseSocials(raw: string | null) {
@@ -194,12 +223,12 @@ export function TeamManager({ members }: TeamManagerProps) {
 
       {/* Member List */}
       <div className="grid gap-4">
-        {members.length === 0 ? (
+        {teamList.length === 0 ? (
           <div className="p-12 text-center border border-white/10 bg-white/[0.02] rounded-2xl font-mono text-xs text-g5">
             No team members added yet.
           </div>
         ) : (
-          members.map((m) => {
+          teamList.map((m) => {
             const socials = parseSocials(m.socialLinks);
             return (
               <div
@@ -301,7 +330,7 @@ export function TeamManager({ members }: TeamManagerProps) {
 
                 <div className="flex items-center gap-2 shrink-0">
                   <DownloadQrButton
-                    data={`https://velvt.in/team#${encodeURIComponent(m.name.toLowerCase().replace(/\s+/g, "-"))}`}
+                    data={`/team#${encodeURIComponent(m.name.toLowerCase().replace(/\s+/g, "-"))}`}
                     filename={`VELVT-CoreTeam-${m.name.replace(/\s+/g, "_")}-Pass.png`}
                     title={m.name}
                     subtitle={`VELVT CORE TEAM • ${m.role}`}
