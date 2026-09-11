@@ -13,7 +13,7 @@ import {
   pressMentionSchema,
 } from "@/lib/validations";
 import { generateVolunteerId } from "@/lib/volunteer-id";
-import { verifyPassword, createSession, destroySession, requireAdmin } from "@/lib/auth";
+import { verifyPassword, hashPassword, createSession, destroySession, requireAdmin } from "@/lib/auth";
 import { checkRateLimit, RATE_LIMITS, getClientIdentifier } from "@/lib/rate-limit";
 import { logAuditEvent } from "@/lib/audit";
 import { redirect } from "next/navigation";
@@ -205,9 +205,85 @@ export async function adminLogin(formData: FormData) {
     });
 
     return { success: true };
-  } catch (error) {
+  } catch (error: any) {
     console.error("Login error:", error);
-    return { success: false, error: "Login failed. Please try again." };
+    if (!process.env.DATABASE_URL) {
+      return {
+        success: false,
+        error: "Database not connected: DATABASE_URL is missing in Vercel Environment Variables.",
+      };
+    }
+    const msg = error?.message || "";
+    if (msg.includes("Can't reach database server") || msg.includes("connect")) {
+      return {
+        success: false,
+        error: "Cannot reach Supabase database. Please check connection pooler status.",
+      };
+    }
+    return { success: false, error: error?.message || "Login failed. Please try again." };
+  }
+}
+
+export async function changeAdminPassword(formData: FormData) {
+  const session = await requireAdmin();
+  const currentPassword = formData.get("currentPassword") as string;
+  const newPassword = formData.get("newPassword") as string;
+  const confirmPassword = formData.get("confirmPassword") as string;
+
+  if (!currentPassword || !newPassword || !confirmPassword) {
+    return { success: false, error: "All password fields are required." };
+  }
+
+  if (newPassword !== confirmPassword) {
+    return { success: false, error: "New passwords do not match." };
+  }
+
+  // Strong password enforcement
+  if (newPassword.length < 10) {
+    return { success: false, error: "Password must be at least 10 characters long." };
+  }
+  if (!/[A-Z]/.test(newPassword)) {
+    return { success: false, error: "Password must contain at least one uppercase letter (A-Z)." };
+  }
+  if (!/[a-z]/.test(newPassword)) {
+    return { success: false, error: "Password must contain at least one lowercase letter (a-z)." };
+  }
+  if (!/[0-9]/.test(newPassword)) {
+    return { success: false, error: "Password must contain at least one number (0-9)." };
+  }
+  if (!/[^A-Za-z0-9]/.test(newPassword)) {
+    return { success: false, error: "Password must contain at least one special symbol (e.g. !@#$%^&*)." };
+  }
+
+  try {
+    const admin = await prisma.adminUser.findUnique({
+      where: { id: session.userId },
+    });
+
+    if (!admin) {
+      return { success: false, error: "Admin user not found." };
+    }
+
+    const isCurrentValid = await verifyPassword(currentPassword, admin.passwordHash);
+    if (!isCurrentValid) {
+      return { success: false, error: "Current password is incorrect." };
+    }
+
+    const newHash = await hashPassword(newPassword);
+    await prisma.adminUser.update({
+      where: { id: admin.id },
+      data: { passwordHash: newHash },
+    });
+
+    await logAuditEvent({
+      action: "admin.password.changed",
+      actor: { id: admin.id, email: admin.email },
+    });
+
+    return { success: true };
+  } catch (error: any) {
+    console.error("Change password error:", error);
+    return { success: false, error: error?.message || "Failed to update password." };
   }
 }
 

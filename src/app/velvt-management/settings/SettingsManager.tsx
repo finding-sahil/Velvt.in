@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { updateSiteSettings } from "@/app/actions";
+import { updateSiteSettings, changeAdminPassword } from "@/app/actions";
 import { defaultPillars, ExperienceHighlightItem } from "@/app/sections/HalloweenExperienceSection";
 
 interface SettingsManagerProps {
@@ -16,7 +16,17 @@ export function SettingsManager({ settings, events }: SettingsManagerProps) {
   const router = useRouter();
   const [loading, setLoading] = useState(false);
   const [saved, setSaved] = useState(false);
-  const [activeTab, setActiveTab] = useState<"highlights" | "hero" | "story" | "socials" | "event_cta">("highlights");
+  const [activeTab, setActiveTab] = useState<"highlights" | "hero" | "story" | "socials" | "event_cta" | "security">("highlights");
+
+  // Security / Password Change State
+  const [passwordForm, setPasswordForm] = useState({
+    currentPassword: "",
+    newPassword: "",
+    confirmPassword: "",
+  });
+  const [passwordLoading, setPasswordLoading] = useState(false);
+  const [passwordStatus, setPasswordStatus] = useState<{ type: "success" | "error"; text: string } | null>(null);
+  const [showPassword, setShowPassword] = useState(false);
 
   // Parse existing highlights or fallback to default
   const initialHighlights: ExperienceHighlightItem[] = (() => {
@@ -128,6 +138,33 @@ export function SettingsManager({ settings, events }: SettingsManagerProps) {
     }
   }
 
+  async function handlePasswordChange(e: React.FormEvent) {
+    e.preventDefault();
+    setPasswordLoading(true);
+    setPasswordStatus(null);
+
+    const fd = new FormData();
+    fd.append("currentPassword", passwordForm.currentPassword);
+    fd.append("newPassword", passwordForm.newPassword);
+    fd.append("confirmPassword", passwordForm.confirmPassword);
+
+    const res = await changeAdminPassword(fd);
+    setPasswordLoading(false);
+
+    if (res.success) {
+      setPasswordStatus({
+        type: "success",
+        text: "Password changed successfully! Keep your new credentials safe.",
+      });
+      setPasswordForm({ currentPassword: "", newPassword: "", confirmPassword: "" });
+    } else {
+      setPasswordStatus({
+        type: "error",
+        text: res.error || "Failed to update password. Please check requirements.",
+      });
+    }
+  }
+
   return (
     <div className="space-y-6 max-w-4xl pb-16">
       {/* Top Header Bar with Save Button */}
@@ -181,6 +218,7 @@ export function SettingsManager({ settings, events }: SettingsManagerProps) {
           { id: "story", label: "🏛️ Story & Services" },
           { id: "socials", label: "💬 Socials & Contact" },
           { id: "event_cta", label: "🎃 Event Hub & CTA" },
+          { id: "security", label: "🔒 Security & Password" },
         ].map((tab) => (
           <button
             key={tab.id}
@@ -672,6 +710,162 @@ export function SettingsManager({ settings, events }: SettingsManagerProps) {
                     onChange={(e) => setForm({ ...form, final_cta_button: e.target.value })}
                     className="w-full bg-black/50 border border-white/10 rounded-lg p-2.5 text-white"
                   />
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* TAB 6: SECURITY & PASSWORD CHANGE */}
+        {activeTab === "security" && (
+          <div className="space-y-6 animate-fade-in">
+            <div className="p-6 bg-white/[0.03] border border-white/10 rounded-2xl space-y-5">
+              <div className="pb-3 border-b border-white/10">
+                <h3 className="font-display text-xl text-white font-bold uppercase tracking-wider">
+                  Admin Security &amp; Password
+                </h3>
+                <p className="text-[11px] text-g5 mt-0.5">
+                  Update your credentials. Enforces industry-standard strong password hashing with PBKDF2 (100,000 rounds).
+                </p>
+              </div>
+
+              {passwordStatus && (
+                <div
+                  className={`p-4 rounded-xl border text-xs font-mono flex items-center justify-between ${
+                    passwordStatus.type === "success"
+                      ? "bg-emerald-950/60 border-emerald-800/60 text-emerald-400"
+                      : "bg-red-950/60 border-red-800/60 text-red-400"
+                  }`}
+                >
+                  <div className="flex items-center gap-2">
+                    <span className="text-base">{passwordStatus.type === "success" ? "✓" : "⚠"}</span>
+                    <span>{passwordStatus.text}</span>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => setPasswordStatus(null)}
+                    className="text-white/40 hover:text-white cursor-pointer"
+                  >
+                    ✕
+                  </button>
+                </div>
+              )}
+
+              <div className="max-w-xl space-y-4">
+                <div>
+                  <label className="block text-g5 mb-1 uppercase">Current Password</label>
+                  <div className="relative">
+                    <input
+                      type={showPassword ? "text" : "password"}
+                      value={passwordForm.currentPassword}
+                      onChange={(e) =>
+                        setPasswordForm({ ...passwordForm, currentPassword: e.target.value })
+                      }
+                      placeholder="Enter your current password"
+                      className="w-full bg-black/50 border border-white/10 rounded-lg p-2.5 text-white pr-16"
+                    />
+                    <button
+                      type="button"
+                      onClick={() => setShowPassword(!showPassword)}
+                      className="absolute right-3 top-1/2 -translate-y-1/2 text-[10px] text-g5 hover:text-white uppercase cursor-pointer"
+                    >
+                      {showPassword ? "Hide" : "Show"}
+                    </button>
+                  </div>
+                </div>
+
+                <div>
+                  <label className="block text-g5 mb-1 uppercase">New Strong Password</label>
+                  <input
+                    type={showPassword ? "text" : "password"}
+                    value={passwordForm.newPassword}
+                    onChange={(e) =>
+                      setPasswordForm({ ...passwordForm, newPassword: e.target.value })
+                    }
+                    placeholder="Create a strong new password"
+                    className="w-full bg-black/50 border border-white/10 rounded-lg p-2.5 text-white"
+                  />
+                  {/* Strength Checklist */}
+                  <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 mt-2 text-[10px] font-mono">
+                    <span
+                      className={`flex items-center gap-1 ${
+                        passwordForm.newPassword.length >= 10 ? "text-emerald-400" : "text-g5"
+                      }`}
+                    >
+                      {passwordForm.newPassword.length >= 10 ? "✓" : "○"} 10+ Characters
+                    </span>
+                    <span
+                      className={`flex items-center gap-1 ${
+                        /[A-Z]/.test(passwordForm.newPassword) ? "text-emerald-400" : "text-g5"
+                      }`}
+                    >
+                      {/[A-Z]/.test(passwordForm.newPassword) ? "✓" : "○"} Uppercase (A-Z)
+                    </span>
+                    <span
+                      className={`flex items-center gap-1 ${
+                        /[a-z]/.test(passwordForm.newPassword) ? "text-emerald-400" : "text-g5"
+                      }`}
+                    >
+                      {/[a-z]/.test(passwordForm.newPassword) ? "✓" : "○"} Lowercase (a-z)
+                    </span>
+                    <span
+                      className={`flex items-center gap-1 ${
+                        /[0-9]/.test(passwordForm.newPassword) ? "text-emerald-400" : "text-g5"
+                      }`}
+                    >
+                      {/[0-9]/.test(passwordForm.newPassword) ? "✓" : "○"} Number (0-9)
+                    </span>
+                    <span
+                      className={`flex items-center gap-1 ${
+                        /[^A-Za-z0-9]/.test(passwordForm.newPassword) ? "text-emerald-400" : "text-g5"
+                      }`}
+                    >
+                      {/[^A-Za-z0-9]/.test(passwordForm.newPassword) ? "✓" : "○"} Symbol (!@#$)
+                    </span>
+                  </div>
+                </div>
+
+                <div>
+                  <label className="block text-g5 mb-1 uppercase">Confirm New Password</label>
+                  <input
+                    type={showPassword ? "text" : "password"}
+                    value={passwordForm.confirmPassword}
+                    onChange={(e) =>
+                      setPasswordForm({ ...passwordForm, confirmPassword: e.target.value })
+                    }
+                    placeholder="Repeat the new password"
+                    className="w-full bg-black/50 border border-white/10 rounded-lg p-2.5 text-white"
+                  />
+                  {passwordForm.confirmPassword && (
+                    <p
+                      className={`text-[10px] mt-1 ${
+                        passwordForm.newPassword === passwordForm.confirmPassword
+                          ? "text-emerald-400"
+                          : "text-red"
+                      }`}
+                    >
+                      {passwordForm.newPassword === passwordForm.confirmPassword
+                        ? "✓ Passwords match"
+                        : "✗ Passwords do not match"}
+                    </p>
+                  )}
+                </div>
+
+                <div className="pt-3">
+                  <button
+                    type="button"
+                    onClick={handlePasswordChange}
+                    disabled={
+                      passwordLoading ||
+                      !passwordForm.currentPassword ||
+                      !passwordForm.newPassword ||
+                      passwordForm.newPassword !== passwordForm.confirmPassword ||
+                      passwordForm.newPassword.length < 10
+                    }
+                    className="px-6 py-2.5 rounded-full bg-red text-white font-bold text-xs uppercase tracking-wider hover:bg-red/80 disabled:opacity-40 disabled:cursor-not-allowed transition-all cursor-pointer shadow-[0_0_20px_rgba(200,16,46,0.5)] flex items-center gap-2"
+                  >
+                    {passwordLoading ? "Updating..." : "Update Admin Password"}
+                  </button>
                 </div>
               </div>
             </div>

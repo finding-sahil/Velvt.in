@@ -14,7 +14,7 @@ export function VolunteerPreviewSection() {
         <div className="red-rule center" />
 
         <p className="section-intro max-w-md mx-auto text-g5">
-          Official digital credentials issued to verified contributors and crew members across our live productions.
+          Every contribution matters. Official digital credentials issued to verified contributors and crew members across our live productions.
         </p>
 
         {/* Verification Preview Card */}
