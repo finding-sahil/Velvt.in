@@ -14,7 +14,15 @@ const navLinks = [
   { href: "/contact", label: "Contact" },
 ];
 
-export function Navigation() {
+interface NavigationProps {
+  featuredSlug?: string;
+  featuredLabel?: string;
+}
+
+export function Navigation({
+  featuredSlug = "velvt-curse-2-o",
+  featuredLabel = "CURSE 2.O",
+}: NavigationProps = {}) {
   const pathname = usePathname();
   const [mobileOpen, setMobileOpen] = useState(false);
 
@@ -58,14 +66,14 @@ export function Navigation() {
           })}
         </ul>
 
-        {/* Featured Halloween Event Pill & Socials */}
+        {/* Featured Event Pill & Socials */}
         <div className="hidden sm:flex items-center gap-3">
           <Link
-            href="/events/velvt-curse-2-o"
+            href={featuredSlug ? `/events/${featuredSlug}` : "/events"}
             className="px-3 py-1 rounded-full text-[10px] font-mono tracking-wider uppercase text-red bg-red-dim border border-red-glow hover:bg-red/20 transition-all flex items-center gap-1.5"
           >
             <span className="w-1.5 h-1.5 rounded-full bg-red animate-pulse" />
-            <span>CURSE 2.O</span>
+            <span>{featuredLabel}</span>
           </Link>
           <a
             href="https://www.instagram.com/velvt.in"
@@ -154,11 +162,11 @@ export function Navigation() {
 
             <div className="flex justify-between items-center pt-2">
               <Link
-                href="/events/velvt-curse-2-o"
+                href={featuredSlug ? `/events/${featuredSlug}` : "/events"}
                 onClick={() => setMobileOpen(false)}
                 className="text-xs font-mono text-red uppercase tracking-wider"
               >
-                🎃 Curse 2.O &rarr;
+                ★ {featuredLabel} &rarr;
               </Link>
               <Link
                 href="/verify"

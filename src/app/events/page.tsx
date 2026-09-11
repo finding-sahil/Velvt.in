@@ -1,8 +1,13 @@
 import { prisma } from "@/lib/db";
+import { getPageStatus } from "@/lib/page-status";
+import { PageStatusGate } from "@/components/ui/PageStatusGate";
 import { SectionHeading } from "@/components/ui/SectionHeading";
 import { EventCard } from "@/components/ui/EventCard";
 import { EmptyState } from "@/components/ui/EmptyState";
 import type { Metadata } from "next";
+
+export const dynamic = "force-dynamic";
+export const revalidate = 0;
 
 export const metadata: Metadata = {
   title: "Events",
@@ -10,9 +15,9 @@ export const metadata: Metadata = {
     "Explore the VELVT event archive. Upcoming, ongoing, and past events — every experience leaves a trace.",
 };
 
-export const revalidate = 0;
-
 export default async function EventsPage() {
+  const { status, customTitle, customSubtitle } = await getPageStatus("events");
+
   const events = await prisma.event
     .findMany({
       where: { status: { not: "draft" } },
@@ -34,7 +39,13 @@ export default async function EventsPage() {
 
 
   return (
-    <div className="py-section-sm md:py-section">
+    <PageStatusGate
+      pageKey="events"
+      status={status}
+      customTitle={customTitle}
+      customSubtitle={customSubtitle}
+    >
+      <div className="py-section-sm md:py-section">
       <div className="container-velvt">
         <SectionHeading
           title="Every Event Leaves A Trace."
@@ -104,5 +115,6 @@ export default async function EventsPage() {
         )}
       </div>
     </div>
+    </PageStatusGate>
   );
 }

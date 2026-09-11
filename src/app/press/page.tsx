@@ -1,9 +1,14 @@
 import { prisma } from "@/lib/db";
+import { getPageStatus } from "@/lib/page-status";
+import { PageStatusGate } from "@/components/ui/PageStatusGate";
 import { SectionHeading } from "@/components/ui/SectionHeading";
 import { Button } from "@/components/ui/Button";
 import { EmptyState } from "@/components/ui/EmptyState";
 import { formatDateShort } from "@/lib/utils";
 import type { Metadata } from "next";
+
+export const dynamic = "force-dynamic";
+export const revalidate = 0;
 
 export const metadata: Metadata = {
   title: "Press & Sponsors",
@@ -11,9 +16,9 @@ export const metadata: Metadata = {
     "Official press resources, media assets, coverage, and inquiries for VELVT experiences and productions.",
 };
 
-export const revalidate = 0;
-
 export default async function PressPage() {
+  const { status, customTitle, customSubtitle } = await getPageStatus("press");
+
   const dbMentions = await prisma.pressMention
     .findMany({
       where: { isPublished: true },
@@ -22,7 +27,13 @@ export default async function PressPage() {
     .catch(() => []);
 
   return (
-    <main className="py-12 md:py-20 relative">
+    <PageStatusGate
+      pageKey="press"
+      status={status}
+      customTitle={customTitle}
+      customSubtitle={customSubtitle}
+    >
+      <main className="py-12 md:py-20 relative">
       {/* Ambient background glow */}
       <div className="absolute top-1/4 left-1/3 w-96 h-96 rounded-full bg-primary/15 blur-[140px] pointer-events-none" />
 
@@ -142,5 +153,6 @@ export default async function PressPage() {
         </div>
       </div>
     </main>
+    </PageStatusGate>
   );
 }

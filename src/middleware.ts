@@ -23,9 +23,26 @@ export function middleware(request: NextRequest) {
   if (process.env.NODE_ENV === "production") {
     response.headers.set(
       "Strict-Transport-Security",
-      "max-age=31536000; includeSubDomains"
+      "max-age=31536000; includeSubDomains; preload"
     );
   }
+
+  // Cross-Origin-Opener-Policy for origin isolation (Lighthouse security audit)
+  response.headers.set("Cross-Origin-Opener-Policy", "same-origin");
+
+  // Basic Content-Security-Policy (permissive enough for the app's needs)
+  response.headers.set(
+    "Content-Security-Policy",
+    [
+      "default-src 'self'",
+      "script-src 'self' 'unsafe-inline' 'unsafe-eval'",
+      "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
+      "font-src 'self' https://fonts.gstatic.com data:",
+      "img-src 'self' data: blob: https:",
+      "connect-src 'self' https:",
+      "frame-ancestors 'none'",
+    ].join("; ")
+  );
 
   // ─── Block source maps in production ────────────────────────────────────────
   if (

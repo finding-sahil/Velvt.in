@@ -11,6 +11,7 @@ import {
   galleryItemSchema,
   partnerSchema,
   pressMentionSchema,
+  eventFaqSchema,
 } from "@/lib/validations";
 import { generateVolunteerId } from "@/lib/volunteer-id";
 import { verifyPassword, hashPassword, createSession, destroySession, requireAdmin } from "@/lib/auth";
@@ -1474,10 +1475,130 @@ export async function updateSiteSettings(settings: Record<string, string>) {
 
     revalidatePath("/");
     revalidatePath("/about");
+    revalidatePath("/events");
+    revalidatePath("/tickets");
+    revalidatePath("/gallery");
+    revalidatePath("/team");
+    revalidatePath("/press");
+    revalidatePath("/volunteers");
+    revalidatePath("/contact");
     revalidatePath("/velvt-management/settings");
     return { success: true };
   } catch (error: any) {
     return { success: false, error: error?.message || "Failed to update settings." };
   }
 }
+
+// ─── Admin: Event FAQs ────────────────────────────────────────────────────────
+
+export async function createEventFAQ(formData: FormData) {
+  const session = await requireAdmin();
+
+  const raw = {
+    question: (formData.get("question") as string || "").trim(),
+    answer: (formData.get("answer") as string || "").trim(),
+    displayOrder: parseInt(formData.get("displayOrder") as string, 10) || 0,
+    eventId: formData.get("eventId") as string,
+  };
+
+  const result = eventFaqSchema.safeParse(raw);
+  if (!result.success) {
+    return {
+      success: false,
+      error: result.error.issues[0]?.message || "Invalid FAQ data",
+    };
+  }
+
+  try {
+    const faq = await prisma.eventFAQ.create({
+      data: result.data,
+      include: { event: { select: { slug: true } } },
+    });
+
+    await logAuditEvent({
+      action: "event.faq.create",
+      targetType: "EventFAQ",
+      targetId: faq.id,
+      metadata: { question: faq.question, eventId: faq.eventId },
+      actor: { id: session.userId, email: session.user.email },
+    });
+
+    revalidatePath(`/events/${faq.event.slug}`);
+    revalidatePath("/velvt-management/events");
+    return { success: true, faq };
+  } catch (error: any) {
+    return { success: false, error: error?.message || "Failed to create FAQ." };
+  }
+}
+
+export async function updateEventFAQ(id: string, formData: FormData) {
+  const session = await requireAdmin();
+
+  const raw = {
+    question: (formData.get("question") as string || "").trim(),
+    answer: (formData.get("answer") as string || "").trim(),
+    displayOrder: parseInt(formData.get("displayOrder") as string, 10) || 0,
+    eventId: formData.get("eventId") as string,
+  };
+
+  const result = eventFaqSchema.safeParse(raw);
+  if (!result.success) {
+    return {
+      success: false,
+      error: result.error.issues[0]?.message || "Invalid FAQ data",
+    };
+  }
+
+  try {
+    const faq = await prisma.eventFAQ.update({
+      where: { id },
+      data: {
+        question: result.data.question,
+        answer: result.data.answer,
+        displayOrder: result.data.displayOrder,
+      },
+      include: { event: { select: { slug: true } } },
+    });
+
+    await logAuditEvent({
+      action: "event.faq.update",
+      targetType: "EventFAQ",
+      targetId: faq.id,
+      metadata: { question: faq.question },
+      actor: { id: session.userId, email: session.user.email },
+    });
+
+    revalidatePath(`/events/${faq.event.slug}`);
+    revalidatePath("/velvt-management/events");
+    return { success: true, faq };
+  } catch (error: any) {
+    return { success: false, error: error?.message || "Failed to update FAQ." };
+  }
+}
+
+export async function deleteEventFAQ(id: string) {
+  const session = await requireAdmin();
+
+  try {
+    const faq = await prisma.eventFAQ.delete({
+      where: { id },
+      include: { event: { select: { slug: true } } },
+    });
+
+    await logAuditEvent({
+      action: "event.faq.delete",
+      targetType: "EventFAQ",
+      targetId: id,
+      metadata: { question: faq.question },
+      actor: { id: session.userId, email: session.user.email },
+    });
+
+    revalidatePath(`/events/${faq.event.slug}`);
+    revalidatePath("/velvt-management/events");
+    return { success: true };
+  } catch (error: any) {
+    return { success: false, error: error?.message || "Failed to delete FAQ." };
+  }
+}
+
 

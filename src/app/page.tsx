@@ -25,7 +25,7 @@ export default async function HomePage() {
     prisma.teamMember.findMany({
       where: { isPublished: true },
       orderBy: { displayOrder: "asc" },
-      take: 4,
+      take: 8,
     }).catch(() => []),
     prisma.partner.findMany({
       where: { isActive: true },

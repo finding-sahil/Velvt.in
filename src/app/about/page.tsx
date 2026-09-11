@@ -1,13 +1,26 @@
 import type { Metadata } from "next";
+import { getPageStatus } from "@/lib/page-status";
+import { PageStatusGate } from "@/components/ui/PageStatusGate";
+
+export const dynamic = "force-dynamic";
+export const revalidate = 0;
 
 export const metadata: Metadata = {
   title: "About",
   description: "VELVT is an event organization focused on creating immersive experiences, bringing communities together, and turning creative ideas into memorable events.",
 };
 
-export default function AboutPage() {
+export default async function AboutPage() {
+  const { status, customTitle, customSubtitle } = await getPageStatus("about");
+
   return (
-    <div className="py-12 md:py-20 relative">
+    <PageStatusGate
+      pageKey="about"
+      status={status}
+      customTitle={customTitle}
+      customSubtitle={customSubtitle}
+    >
+      <div className="py-12 md:py-20 relative">
       {/* Ambient background glow */}
       <div className="absolute top-1/4 left-1/3 w-96 h-96 rounded-full bg-primary/15 blur-[140px] pointer-events-none" />
 
@@ -91,5 +104,6 @@ export default function AboutPage() {
         </div>
       </section>
     </div>
+    </PageStatusGate>
   );
 }

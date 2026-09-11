@@ -117,7 +117,21 @@ export async function verifyPassword(
 
 // ─── Session Management ────────────────────────────────────────────────────────
 
-async function hashToken(token: string): Promise<string> {
+async function hashToken(
+  token: string,
+  userId: string,
+  timestamp: string | number
+): Promise<string> {
+  const encoder = new TextEncoder();
+  const data = encoder.encode(`${token}|${userId}|${timestamp}|${SESSION_SECRET}`);
+  const hash = await crypto.subtle.digest("SHA-256", data);
+  return Array.from(new Uint8Array(hash))
+    .map((b) => b.toString(16).padStart(2, "0"))
+    .join("");
+}
+
+// Fallback verification for sessions created prior to HMAC binding
+async function hashTokenLegacy(token: string): Promise<string> {
   const encoder = new TextEncoder();
   const data = encoder.encode(token + SESSION_SECRET);
   const hash = await crypto.subtle.digest("SHA-256", data);
@@ -126,10 +140,19 @@ async function hashToken(token: string): Promise<string> {
     .join("");
 }
 
+function constantTimeEqual(a: string, b: string): boolean {
+  if (a.length !== b.length) return false;
+  let diff = 0;
+  for (let i = 0; i < a.length; i++) {
+    diff |= a.charCodeAt(i) ^ b.charCodeAt(i);
+  }
+  return diff === 0;
+}
+
 export async function createSession(userId: string): Promise<void> {
   const token = crypto.randomUUID();
-  const sessionHash = await hashToken(token);
   const timestamp = Date.now();
+  const sessionHash = await hashToken(token, userId, timestamp);
 
   // Cookie value format: token|userId|sessionHash|timestamp
   const sessionValue = `${token}|${userId}|${sessionHash}|${timestamp}`;
@@ -166,14 +189,15 @@ export async function getSession(): Promise<{
       return null;
     }
 
-    // Verify the token hash
-    const computedHash = await hashToken(token);
-    if (computedHash.length !== storedHash.length) return null;
-    let diff = 0;
-    for (let i = 0; i < computedHash.length; i++) {
-      diff |= computedHash.charCodeAt(i) ^ storedHash.charCodeAt(i);
-    }
-    if (diff !== 0) return null;
+    // Verify the token hash (checks bound signature first, falls back to legacy)
+    const computedHash = await hashToken(token, storedUserId, timestampStr);
+    const legacyHash = await hashTokenLegacy(token);
+
+    const isValid =
+      constantTimeEqual(computedHash, storedHash) ||
+      constantTimeEqual(legacyHash, storedHash);
+
+    if (!isValid) return null;
 
     // Verify user exists
     const user = await prisma.adminUser.findUnique({

@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { prisma } from "@/lib/db";
 
 const footerLinks = {
   explore: [
@@ -19,8 +20,20 @@ const footerLinks = {
   ],
 };
 
-export function Footer() {
+export async function Footer() {
   const year = new Date().getFullYear();
+
+  const siteSettings = await prisma.siteSetting.findMany().catch(() => []);
+  const settings: Record<string, string> = {};
+  for (const s of siteSettings) {
+    settings[s.key] = s.value;
+  }
+
+  const location = settings.location || "Silchar, Assam, India";
+  const phone = settings.phone || "+91 93951 78940";
+  const cleanPhone = phone.replace(/\s+/g, "");
+  const instagram = settings.social_instagram || "https://www.instagram.com/velvt.in";
+  const whatsapp = settings.social_whatsapp || "https://chat.whatsapp.com/E5F1PCTqmgU2ljE2rtuzl8";
 
   return (
     <footer className="border-t border-white/10 bg-black/80 backdrop-blur-xl mt-16">
@@ -43,16 +56,16 @@ export function Footer() {
               <div>
                 <span className="text-[10px] font-mono tracking-widest text-g5 uppercase bg-white/[0.04] px-2.5 py-1 rounded-full border border-white/10 inline-flex items-center gap-1.5">
                   <span className="w-1.5 h-1.5 rounded-full bg-red animate-pulse" />
-                  Silchar, Assam, India
+                  {location}
                 </span>
               </div>
               <div>
                 <a
-                  href="tel:+919395178940"
+                  href={`tel:${cleanPhone}`}
                   className="text-[11px] font-mono text-g5 hover:text-white transition-colors inline-flex items-center gap-1.5 bg-white/[0.03] px-2.5 py-1 rounded-full border border-white/10 hover:border-red/40"
                 >
                   <span>📞</span>
-                  <span>+91 93951 78940</span>
+                  <span>{phone}</span>
                 </a>
               </div>
             </div>
@@ -120,13 +133,13 @@ export function Footer() {
               </p>
               <div className="flex flex-col gap-1 text-xs font-mono">
                 <a
-                  href="tel:+919395178940"
+                  href={`tel:${cleanPhone}`}
                   className="text-g6 hover:text-white transition-colors flex items-center gap-1.5 py-1 min-h-[32px]"
                 >
-                  <span>📞</span> +91 93951 78940
+                  <span>📞</span> {phone}
                 </a>
                 <a
-                  href="https://www.instagram.com/velvt.in"
+                  href={instagram}
                   target="_blank"
                   rel="noopener noreferrer"
                   className="text-g6 hover:text-red transition-colors flex items-center gap-1.5 py-1 min-h-[32px]"
@@ -134,7 +147,7 @@ export function Footer() {
                   <span>📷</span> Instagram @velvt.in
                 </a>
                 <a
-                  href="https://chat.whatsapp.com/E5F1PCTqmgU2ljE2rtuzl8"
+                  href={whatsapp}
                   target="_blank"
                   rel="noopener noreferrer"
                   className="text-g6 hover:text-emerald-400 transition-colors flex items-center gap-1.5 py-1 min-h-[32px]"
@@ -166,7 +179,7 @@ export function Footer() {
           </div>
           <div className="flex items-center gap-6">
             <a
-              href="https://www.instagram.com/velvt.in"
+              href={instagram}
               target="_blank"
               rel="noopener noreferrer"
               className="text-[11px] font-mono text-g5 hover:text-red transition-colors uppercase tracking-wider py-2 px-1 inline-block"
@@ -174,7 +187,7 @@ export function Footer() {
               Instagram
             </a>
             <a
-              href="https://chat.whatsapp.com/E5F1PCTqmgU2ljE2rtuzl8"
+              href={whatsapp}
               target="_blank"
               rel="noopener noreferrer"
               className="text-[11px] font-mono text-g5 hover:text-emerald-400 transition-colors uppercase tracking-wider py-2 px-1 inline-block"

@@ -4,6 +4,7 @@ import { Navigation } from "@/components/layout/Navigation";
 import { Footer } from "@/components/layout/Footer";
 import { CustomCursor } from "@/components/ui/CustomCursor";
 import { HalloweenAtmosphere } from "@/components/ui/HalloweenAtmosphere";
+import { prisma } from "@/lib/db";
 import "./globals.css";
 
 const barlowCondensed = Barlow_Condensed({
@@ -50,11 +51,33 @@ export const metadata: Metadata = {
   },
 };
 
-export default function RootLayout({
+export default async function RootLayout({
   children,
 }: Readonly<{
   children: React.ReactNode;
 }>) {
+  let featuredSlug = "velvt-curse-2-o";
+  let featuredLabel = "CURSE 2.O";
+
+  try {
+    const featured = await prisma.event.findFirst({
+      where: {
+        OR: [{ isFeatured: true }, { status: "upcoming" }],
+      },
+      orderBy: [{ isFeatured: "desc" }, { date: "asc" }],
+      select: { slug: true, name: true },
+    });
+    if (featured) {
+      featuredSlug = featured.slug;
+      featuredLabel =
+        featured.name.length > 14
+          ? `${featured.name.slice(0, 14)}...`
+          : featured.name;
+    }
+  } catch {
+    // Graceful fallback if database is not reachable at build time
+  }
+
   return (
     <html lang="en" className={`${barlowCondensed.variable} ${inter.variable}`}>
       <body className="min-h-screen flex flex-col bg-black text-white relative">
@@ -69,7 +92,7 @@ export default function RootLayout({
         <HalloweenAtmosphere />
 
         {/* Floating Pill Glass Navigation */}
-        <Navigation />
+        <Navigation featuredSlug={featuredSlug} featuredLabel={featuredLabel} />
 
         {/* Page Content */}
         <main className="flex-1 pt-24">{children}</main>

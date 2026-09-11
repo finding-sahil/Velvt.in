@@ -11,6 +11,9 @@ import {
   createTicketType,
   toggleTicketType,
   deleteTicketType,
+  createEventFAQ,
+  updateEventFAQ,
+  deleteEventFAQ,
 } from "@/app/actions";
 import { StatusBadge } from "@/components/ui/StatusBadge";
 import { formatDateShort, formatPrice } from "@/lib/utils";
@@ -27,6 +30,13 @@ export function EventManager({ events }: EventManagerProps) {
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [editingEvent, setEditingEvent] = useState<any | null>(null);
   const [managingTicketsFor, setManagingTicketsFor] = useState<any | null>(null);
+  const [managingFaqsFor, setManagingFaqsFor] = useState<any | null>(null);
+  const [editingFaq, setEditingFaq] = useState<any | null>(null);
+  const [faqForm, setFaqForm] = useState({
+    question: "",
+    answer: "",
+    displayOrder: 0,
+  });
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [toast, setToast] = useState<ToastMessage | null>(null);
@@ -37,6 +47,12 @@ export function EventManager({ events }: EventManagerProps) {
       const updated = events.find((e) => e.id === managingTicketsFor.id);
       if (updated) {
         setManagingTicketsFor(updated);
+      }
+    }
+    if (managingFaqsFor) {
+      const updated = events.find((e) => e.id === managingFaqsFor.id);
+      if (updated) {
+        setManagingFaqsFor(updated);
       }
     }
   }, [events]);
@@ -338,6 +354,102 @@ export function EventManager({ events }: EventManagerProps) {
     }
   }
 
+  // ─── FAQ Handlers ────────────────────────────────────────────────────────────
+
+  async function handleSaveFaq(e: React.FormEvent) {
+    e.preventDefault();
+    if (!managingFaqsFor) return;
+    setLoading(true);
+
+    const fd = new FormData();
+    fd.append("question", faqForm.question);
+    fd.append("answer", faqForm.answer);
+    fd.append("displayOrder", String(faqForm.displayOrder));
+    fd.append("eventId", managingFaqsFor.id);
+
+    let res;
+    if (editingFaq) {
+      res = await updateEventFAQ(editingFaq.id, fd);
+    } else {
+      res = await createEventFAQ(fd);
+    }
+    setLoading(false);
+
+    if (res.success && res.faq) {
+      const savedFaq = res.faq;
+      setManagingFaqsFor((prev: any) => {
+        if (!prev) return prev;
+        const faqs = prev.faqs || [];
+        const updated = editingFaq
+          ? faqs.map((f: any) => (f.id === editingFaq.id ? savedFaq : f))
+          : [...faqs, savedFaq];
+        return { ...prev, faqs: updated };
+      });
+      setEventList((prev) =>
+        prev.map((e) => {
+          if (e.id !== managingFaqsFor.id) return e;
+          const faqs = e.faqs || [];
+          const updated = editingFaq
+            ? faqs.map((f: any) => (f.id === editingFaq.id ? savedFaq : f))
+            : [...faqs, savedFaq];
+          return { ...e, faqs: updated };
+        })
+      );
+      setToast({
+        message: editingFaq ? "FAQ updated successfully" : "New FAQ created",
+        type: "success",
+      });
+      setEditingFaq(null);
+      setFaqForm({ question: "", answer: "", displayOrder: 0 });
+      router.refresh();
+    } else {
+      setToast({ message: res.error || "Failed to save FAQ", type: "error" });
+    }
+  }
+
+  async function handleDeleteFaq(faqId: string) {
+    if (!confirm("Are you sure you want to delete this FAQ?")) return;
+
+    setManagingFaqsFor((prev: any) =>
+      prev
+        ? {
+            ...prev,
+            faqs: (prev.faqs || []).filter((f: any) => f.id !== faqId),
+          }
+        : prev
+    );
+    setEventList((prev) =>
+      prev.map((e) =>
+        e.id === managingFaqsFor?.id
+          ? {
+              ...e,
+              faqs: (e.faqs || []).filter((f: any) => f.id !== faqId),
+            }
+          : e
+      )
+    );
+    setToast({ message: "FAQ removed", type: "info" });
+
+    try {
+      const res = await deleteEventFAQ(faqId);
+      if (!res.success) {
+        setToast({ message: res.error || "Failed to delete FAQ", type: "error" });
+      }
+      router.refresh();
+    } catch (err: any) {
+      setToast({ message: err?.message || "Failed to delete FAQ", type: "error" });
+    }
+  }
+
+  function handleEditFaq(faq: any) {
+    setEditingFaq(faq);
+    setFaqForm({
+      question: faq.question,
+      answer: faq.answer,
+      displayOrder: faq.displayOrder || 0,
+    });
+  }
+
   return (
     <div className="space-y-6">
       {/* Top Header */}
@@ -446,6 +558,20 @@ export function EventManager({ events }: EventManagerProps) {
                     className="px-3 py-1.5 text-xs font-mono uppercase tracking-wider rounded-full border border-red-glow bg-red-dim text-white hover:bg-red/20 transition-colors cursor-pointer"
                   >
                     Tickets ({event.ticketTypes?.length || 0})
+                  </button>
+                  <button
+                    onClick={() => {
+                      setManagingFaqsFor(event);
+                      setEditingFaq(null);
+                      setFaqForm({
+                        question: "",
+                        answer: "",
+                        displayOrder: (event.faqs?.length || 0) + 1,
+                      });
+                    }}
+                    className="px-3 py-1.5 text-xs font-mono uppercase tracking-wider rounded-full border border-purple-500/30 bg-purple-500/10 text-purple-300 hover:bg-purple-500/20 transition-colors cursor-pointer"
+                  >
+                    FAQs ({event.faqs?.length || 0})
                   </button>
                   <button
                     onClick={() => setEditingEvent(event)}
@@ -1058,6 +1184,174 @@ export function EventManager({ events }: EventManagerProps) {
                     className="px-5 py-2 text-xs font-bold rounded-full bg-red text-white hover:bg-red/80 cursor-pointer shadow-[0_0_15px_rgba(200,16,46,0.4)]"
                   >
                     {loading ? "Adding..." : "Add Tier"}
+                  </button>
+                </div>
+              </form>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Manage Event FAQs Modal */}
+      {managingFaqsFor && (
+        <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-md flex items-center justify-center p-4 overflow-y-auto">
+          <div className="bg-[#0e0e0e] border border-white/15 rounded-2xl max-w-xl w-full p-6 space-y-6 max-h-[90vh] overflow-y-auto shadow-2xl">
+            <div className="flex justify-between items-center pb-2 border-b border-white/10">
+              <div>
+                <h3 className="font-display font-bold text-xl text-white uppercase tracking-wide flex items-center gap-2">
+                  <span>Frequently Asked Questions</span>
+                  <span className="text-xs text-purple-400 font-mono px-2 py-0.5 rounded bg-purple-950/60 border border-purple-800/60">
+                    {managingFaqsFor.name}
+                  </span>
+                </h3>
+                <p className="text-[11px] font-mono text-g5 mt-0.5">
+                  Add, edit, or remove attendee questions displayed on the event page.
+                </p>
+              </div>
+              <button
+                onClick={() => {
+                  setManagingFaqsFor(null);
+                  setEditingFaq(null);
+                  setFaqForm({ question: "", answer: "", displayOrder: 0 });
+                }}
+                className="text-g5 hover:text-white cursor-pointer text-lg"
+              >
+                ✕
+              </button>
+            </div>
+
+            {/* Existing FAQs list */}
+            <div className="space-y-3">
+              <h4 className="text-xs font-mono uppercase tracking-wider text-white font-bold flex items-center justify-between">
+                <span>Configured Questions ({managingFaqsFor.faqs?.length || 0})</span>
+                {editingFaq && (
+                  <span className="text-[10px] text-amber-400 font-normal">
+                    Editing Mode Active
+                  </span>
+                )}
+              </h4>
+
+              {(!managingFaqsFor.faqs || managingFaqsFor.faqs.length === 0) ? (
+                <div className="p-4 rounded-xl border border-dashed border-white/10 text-center space-y-1">
+                  <p className="text-xs text-g5 font-mono italic">
+                    No FAQs added for this event yet.
+                  </p>
+                  <p className="text-[10px] text-g5/60 font-mono">
+                    Add dress code, entry rules, age limits, parking, and venue questions below.
+                  </p>
+                </div>
+              ) : (
+                <div className="space-y-2.5 max-h-60 overflow-y-auto pr-1">
+                  {managingFaqsFor.faqs.map((faq: any, idx: number) => (
+                    <div
+                      key={faq.id || idx}
+                      className={`p-3.5 rounded-xl border transition-all text-xs font-mono space-y-2 ${
+                        editingFaq?.id === faq.id
+                          ? "border-purple-500 bg-purple-950/30"
+                          : "border-white/10 bg-white/[0.02]"
+                      }`}
+                    >
+                      <div className="flex items-start justify-between gap-3">
+                        <div className="space-y-1">
+                          <div className="flex items-center gap-2">
+                            <span className="text-[9px] px-1.5 py-0.5 rounded bg-white/[0.08] text-g5 font-bold">
+                              #{faq.displayOrder || idx + 1}
+                            </span>
+                            <p className="text-white font-bold text-xs">{faq.question}</p>
+                          </div>
+                          <p className="text-g5 text-[11px] leading-relaxed line-clamp-2 pl-6">
+                            {faq.answer}
+                          </p>
+                        </div>
+                        <div className="flex items-center gap-1.5 shrink-0">
+                          <button
+                            type="button"
+                            onClick={() => handleEditFaq(faq)}
+                            className="px-2 py-1 rounded text-[10px] uppercase font-mono font-bold bg-white/[0.06] text-purple-300 hover:bg-purple-950 hover:text-purple-200 cursor-pointer transition-colors"
+                          >
+                            Edit
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => handleDeleteFaq(faq.id)}
+                            className="px-2 py-1 rounded text-[10px] uppercase font-mono font-bold bg-red-950/40 text-red hover:bg-red-950 hover:text-red-300 cursor-pointer transition-colors"
+                          >
+                            Delete
+                          </button>
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+
+            {/* Add / Edit FAQ Form */}
+            <div className="pt-4 border-t border-white/10 space-y-4">
+              <div className="flex items-center justify-between">
+                <h4 className="text-xs font-mono uppercase tracking-wider text-white font-bold">
+                  {editingFaq ? "✏️ Edit Question" : "+ Add New Question"}
+                </h4>
+                {editingFaq && (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setEditingFaq(null);
+                      setFaqForm({ question: "", answer: "", displayOrder: 0 });
+                    }}
+                    className="text-[10px] font-mono text-g5 hover:text-white underline cursor-pointer"
+                  >
+                    Cancel Editing
+                  </button>
+                )}
+              </div>
+
+              <form onSubmit={handleSaveFaq} className="space-y-3 text-xs font-mono">
+                <div>
+                  <label className="block text-g5 mb-1 uppercase">Question *</label>
+                  <input
+                    type="text"
+                    required
+                    placeholder="e.g. What is the dress code for Velvet Curse?"
+                    value={faqForm.question}
+                    onChange={(e) => setFaqForm({ ...faqForm, question: e.target.value })}
+                    className="w-full bg-black/50 border border-white/10 rounded-lg p-2.5 text-white placeholder:text-g5/40 focus:outline-none focus:border-purple-500 font-sans"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-g5 mb-1 uppercase">Answer *</label>
+                  <textarea
+                    required
+                    rows={3}
+                    placeholder="e.g. All black / thematic attire is strictly encouraged..."
+                    value={faqForm.answer}
+                    onChange={(e) => setFaqForm({ ...faqForm, answer: e.target.value })}
+                    className="w-full bg-black/50 border border-white/10 rounded-lg p-2.5 text-white placeholder:text-g5/40 focus:outline-none focus:border-purple-500 font-sans resize-none"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-g5 mb-1 uppercase">Display Order</label>
+                  <input
+                    type="number"
+                    min={0}
+                    value={faqForm.displayOrder}
+                    onChange={(e) =>
+                      setFaqForm({ ...faqForm, displayOrder: parseInt(e.target.value, 10) || 0 })
+                    }
+                    className="w-32 bg-black/50 border border-white/10 rounded-lg p-2 text-white"
+                  />
+                  <span className="text-[10px] text-g5 ml-2">Lower numbers appear first</span>
+                </div>
+
+                <div className="flex justify-end gap-2 pt-2">
+                  <button
+                    type="submit"
+                    disabled={loading}
+                    className="px-5 py-2 text-xs font-bold rounded-full bg-purple-600 text-white hover:bg-purple-500 cursor-pointer shadow-[0_0_15px_rgba(168,85,247,0.4)] transition-all"
+                  >
+                    {loading ? "Saving..." : editingFaq ? "Update FAQ" : "Add FAQ"}
                   </button>
                 </div>
               </form>

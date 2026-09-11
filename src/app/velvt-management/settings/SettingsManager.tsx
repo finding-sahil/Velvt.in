@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { updateSiteSettings, changeAdminPassword } from "@/app/actions";
 import { defaultPillars, ExperienceHighlightItem } from "@/app/sections/HalloweenExperienceSection";
 import { ToastNotification, ToastState } from "@/components/ui/ToastNotification";
+import { CONTROLLED_PAGES, PageStatus } from "@/lib/page-status";
 
 interface SettingsManagerProps {
   settings: Record<string, string>;
@@ -18,7 +19,9 @@ export function SettingsManager({ settings, events }: SettingsManagerProps) {
   const [loading, setLoading] = useState(false);
   const [saved, setSaved] = useState(false);
   const [toast, setToast] = useState<ToastState | null>(null);
-  const [activeTab, setActiveTab] = useState<"highlights" | "hero" | "story" | "socials" | "event_cta" | "security">("highlights");
+  const [activeTab, setActiveTab] = useState<
+    "page_switches" | "highlights" | "hero" | "story" | "socials" | "event_cta" | "security"
+  >("page_switches");
 
   // Security / Password Change State
   const [passwordForm, setPasswordForm] = useState({
@@ -88,6 +91,35 @@ export function SettingsManager({ settings, events }: SettingsManagerProps) {
     setHighlights(updated);
   }
 
+  // Page Switches State
+  const [pageStatuses, setPageStatuses] = useState<
+    Record<string, { status: PageStatus; title: string; subtitle: string }>
+  >(() => {
+    const initial: Record<string, { status: PageStatus; title: string; subtitle: string }> = {};
+    for (const page of CONTROLLED_PAGES) {
+      initial[page.key] = {
+        status: (settings[`page_status_${page.key}`] as PageStatus) || page.defaultStatus,
+        title: settings[`page_title_${page.key}`] || "",
+        subtitle: settings[`page_sub_${page.key}`] || "",
+      };
+    }
+    return initial;
+  });
+
+  function updatePageStatus(
+    pageKey: string,
+    field: "status" | "title" | "subtitle",
+    value: string
+  ) {
+    setPageStatuses((prev) => ({
+      ...prev,
+      [pageKey]: {
+        ...prev[pageKey],
+        [field]: value,
+      },
+    }));
+  }
+
   function addHighlight() {
     setHighlights([
       ...highlights,
@@ -127,6 +159,13 @@ export function SettingsManager({ settings, events }: SettingsManagerProps) {
       ...form,
       experience_highlights: JSON.stringify(highlights),
     };
+
+    // Include page statuses & custom overrides
+    for (const [pageKey, config] of Object.entries(pageStatuses)) {
+      payload[`page_status_${pageKey}`] = config.status;
+      payload[`page_title_${pageKey}`] = config.title;
+      payload[`page_sub_${pageKey}`] = config.subtitle;
+    }
 
     const res = await updateSiteSettings(payload);
     setLoading(false);
@@ -216,6 +255,7 @@ export function SettingsManager({ settings, events }: SettingsManagerProps) {
       {/* Segmented Navigation Tabs */}
       <div className="flex flex-wrap gap-2 border-b border-white/10 pb-3">
         {[
+          { id: "page_switches", label: "🎛️ Page Switches", badge: "Instant Control" },
           { id: "highlights", label: "✨ Experience Highlights", badge: `${highlights.length} cards` },
           { id: "hero", label: "⚡ Hero & Identity" },
           { id: "story", label: "🏛️ Story & Services" },
@@ -244,6 +284,161 @@ export function SettingsManager({ settings, events }: SettingsManagerProps) {
       </div>
 
       <form onSubmit={handleSave} className="space-y-6 text-xs font-mono">
+        {/* TAB 0: PAGE SWITCHES & INSTANT CONTROL */}
+        {activeTab === "page_switches" && (
+          <div className="space-y-6 animate-fade-in">
+            <div className="p-6 bg-white/[0.03] border border-white/10 rounded-2xl space-y-6">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-4 border-b border-white/10">
+                <div>
+                  <div className="flex items-center gap-2">
+                    <span className="w-2 h-2 rounded-full bg-red animate-pulse" />
+                    <h3 className="font-display text-xl text-white font-bold uppercase tracking-wider">
+                      Page Switchboard &amp; Instant Visibility
+                    </h3>
+                  </div>
+                  <p className="text-[11px] text-g5 mt-1">
+                    Control public access for every section of VELVT. Switch between Live, Coming Soon, or Inactive with 1 click.
+                  </p>
+                </div>
+                <div className="flex items-center gap-2">
+                  <span className="text-[10px] font-mono uppercase tracking-widest px-3 py-1 rounded-full border border-red-glow bg-red-dim text-white font-bold">
+                    8 Pages Controlled
+                  </span>
+                </div>
+              </div>
+
+              <div className="space-y-4">
+                {CONTROLLED_PAGES.map((page) => {
+                  const current = pageStatuses[page.key] || {
+                    status: page.defaultStatus,
+                    title: "",
+                    subtitle: "",
+                  };
+
+                  return (
+                    <div
+                      key={page.key}
+                      className="p-5 rounded-xl border border-white/10 bg-white/[0.02] hover:border-white/20 transition-all space-y-4"
+                    >
+                      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+                        <div>
+                          <div className="flex items-center gap-2.5 flex-wrap">
+                            <h4 className="font-display font-bold text-base text-white uppercase tracking-wide">
+                              {page.name}
+                            </h4>
+                            <span className="text-[10px] font-mono px-2 py-0.5 rounded bg-white/[0.05] border border-white/10 text-g5">
+                              {page.path}
+                            </span>
+                            <span
+                              className={`text-[9px] font-mono uppercase tracking-widest px-2.5 py-0.5 rounded-full border font-bold ${
+                                current.status === "active"
+                                  ? "bg-emerald-950/60 text-emerald-400 border-emerald-800/60"
+                                  : current.status === "coming_soon"
+                                  ? "bg-amber-950/60 text-amber-300 border-amber-800/60"
+                                  : "bg-red-950/60 text-red-400 border-red-800/60"
+                              }`}
+                            >
+                              {current.status === "active"
+                                ? "● Live / Active"
+                                : current.status === "coming_soon"
+                                ? "⏳ Coming Soon"
+                                : "⊘ Inactive / Paused"}
+                            </span>
+                          </div>
+                          <p className="text-[11px] text-g5 font-mono mt-1">
+                            Default: <span className="capitalize">{page.defaultStatus.replace("_", " ")}</span> •{" "}
+                            <a
+                              href={page.path}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="text-red hover:underline inline-flex items-center gap-1"
+                            >
+                              <span>Preview in new tab</span>
+                              <span>&nearr;</span>
+                            </a>
+                          </p>
+                        </div>
+
+                        {/* 3-Way Instant Mode Selector */}
+                        <div className="flex items-center rounded-xl bg-black/60 border border-white/10 p-1 shrink-0 self-start md:self-auto">
+                          <button
+                            type="button"
+                            onClick={() => updatePageStatus(page.key, "status", "active")}
+                            className={`px-3 py-1.5 rounded-lg text-xs font-mono uppercase tracking-wider transition-all cursor-pointer flex items-center gap-1.5 ${
+                              current.status === "active"
+                                ? "bg-emerald-600 text-white font-bold shadow-[0_0_12px_rgba(16,185,129,0.4)]"
+                                : "text-g5 hover:text-white"
+                            }`}
+                          >
+                            <span>●</span>
+                            <span>Live</span>
+                          </button>
+
+                          <button
+                            type="button"
+                            onClick={() => updatePageStatus(page.key, "status", "coming_soon")}
+                            className={`px-3 py-1.5 rounded-lg text-xs font-mono uppercase tracking-wider transition-all cursor-pointer flex items-center gap-1.5 ${
+                              current.status === "coming_soon"
+                                ? "bg-amber-500 text-black font-bold shadow-[0_0_12px_rgba(245,158,11,0.4)]"
+                                : "text-g5 hover:text-white"
+                            }`}
+                          >
+                            <span>⏳</span>
+                            <span>Coming Soon</span>
+                          </button>
+
+                          <button
+                            type="button"
+                            onClick={() => updatePageStatus(page.key, "status", "inactive")}
+                            className={`px-3 py-1.5 rounded-lg text-xs font-mono uppercase tracking-wider transition-all cursor-pointer flex items-center gap-1.5 ${
+                              current.status === "inactive"
+                                ? "bg-red text-white font-bold shadow-[0_0_12px_rgba(200,16,46,0.5)]"
+                                : "text-g5 hover:text-white"
+                            }`}
+                          >
+                            <span>⊘</span>
+                            <span>Inactive</span>
+                          </button>
+                        </div>
+                      </div>
+
+                      {/* Optional Custom Overrides */}
+                      {current.status !== "active" && (
+                        <div className="pt-3 border-t border-white/[0.06] grid sm:grid-cols-2 gap-3 animate-fade-in bg-black/40 p-3.5 rounded-xl border border-white/5">
+                          <div>
+                            <label className="block text-[10px] text-g5 uppercase tracking-wider mb-1">
+                              Custom Headline (Optional)
+                            </label>
+                            <input
+                              type="text"
+                              placeholder={page.defaultTitle}
+                              value={current.title}
+                              onChange={(e) => updatePageStatus(page.key, "title", e.target.value)}
+                              className="w-full bg-black/70 border border-white/10 rounded-lg px-3 py-2 text-xs text-white placeholder:text-g5/40 focus:outline-none focus:border-primary font-mono"
+                            />
+                          </div>
+                          <div>
+                            <label className="block text-[10px] text-g5 uppercase tracking-wider mb-1">
+                              Custom Subtitle / Message (Optional)
+                            </label>
+                            <input
+                              type="text"
+                              placeholder={page.defaultSubtitle}
+                              value={current.subtitle}
+                              onChange={(e) => updatePageStatus(page.key, "subtitle", e.target.value)}
+                              className="w-full bg-black/70 border border-white/10 rounded-lg px-3 py-2 text-xs text-white placeholder:text-g5/40 focus:outline-none focus:border-primary font-mono"
+                            />
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          </div>
+        )}
+
         {/* TAB 1: EXPERIENCE HIGHLIGHTS */}
         {activeTab === "highlights" && (
           <div className="space-y-6 animate-fade-in">

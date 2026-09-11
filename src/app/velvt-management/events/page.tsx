@@ -19,11 +19,15 @@ export default async function AdminEventsPage() {
       ticketTypes: {
         orderBy: { displayOrder: "asc" },
       },
+      faqs: {
+        orderBy: { displayOrder: "asc" },
+      },
       _count: {
         select: {
           volunteers: true,
           ticketTypes: true,
           announcements: true,
+          faqs: true,
         },
       },
     },

@@ -159,3 +159,14 @@ export type PressMentionInput = z.infer<typeof pressMentionSchema>;
 export const siteSettingsSchema = z.record(z.string(), z.string());
 export type SiteSettingsInput = z.infer<typeof siteSettingsSchema>;
 
+// ─── Event FAQ ─────────────────────────────────────────────────────────────────
+
+export const eventFaqSchema = z.object({
+  question: z.string().min(2, "Question is required"),
+  answer: z.string().min(2, "Answer is required"),
+  displayOrder: z.number().default(0),
+  eventId: z.string().min(1, "Event is required"),
+});
+
+export type EventFaqInput = z.infer<typeof eventFaqSchema>;
+

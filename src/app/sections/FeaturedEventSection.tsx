@@ -33,9 +33,13 @@ export function FeaturedEventSection({ event }: FeaturedEventSectionProps) {
             <div className="lg:col-span-5 relative">
               <div className="relative aspect-[4/5] rounded-[16px] overflow-hidden border border-white/10 group shadow-2xl bg-black">
                 {event.coverImage ? (
-                  <div
-                    className="absolute inset-0 bg-cover bg-center transition-transform duration-700 group-hover:scale-105"
-                    style={{ backgroundImage: `url(${event.coverImage})` }}
+                  /* eslint-disable-next-line @next/next/no-img-element */
+                  <img
+                    src={event.coverImage}
+                    alt={event.name}
+                    loading="eager"
+                    fetchPriority="high"
+                    className="absolute inset-0 w-full h-full object-cover transition-transform duration-700 group-hover:scale-105"
                   />
                 ) : (
                   <div className="absolute inset-0 bg-gradient-to-b from-[#18090C] via-black to-black flex flex-col items-center justify-between p-7 text-center">

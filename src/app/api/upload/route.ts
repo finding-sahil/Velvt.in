@@ -8,6 +8,7 @@ import path from "path";
 import { cookies } from "next/headers";
 import sharp from "sharp";
 import { checkRateLimit, RATE_LIMITS } from "@/lib/rate-limit";
+import { getSession } from "@/lib/auth";
 
 // File magic bytes for validation
 const MAGIC_BYTES: Record<string, number[][]> = {
@@ -43,9 +44,8 @@ export async function POST(req: NextRequest) {
     }
 
     // ─── Auth Check ──────────────────────────────────────────────────────
-    const cookieStore = await cookies();
-    const sessionCookie = cookieStore.get("velvt_admin_session");
-    const isAdmin = Boolean(sessionCookie?.value && sessionCookie.value.split("|").length === 4);
+    const session = await getSession();
+    const isAdmin = Boolean(session);
 
     // If not admin, the only permitted upload is a volunteer badge photo
     const isVolunteerBadge = purpose === "volunteer-badge";
@@ -136,25 +136,57 @@ export async function POST(req: NextRequest) {
     const uniqueSuffix = `${Date.now()}-${crypto.randomUUID().slice(0, 8)}`;
     const filename = `${cleanBase}-${uniqueSuffix}.webp`;
 
-    // Attempt local disk storage (works in dev/containerized environments)
+    // ─── Normal .webp Storage Strategy (Supabase Storage CDN + Local Disk) ─
     let publicUrl: string | null = null;
-    try {
-      const uploadsDir = path.join(process.cwd(), "public", "uploads");
-      if (!existsSync(uploadsDir)) {
-        await mkdir(uploadsDir, { recursive: true });
+
+    // 1. Primary: Upload directly to Supabase Storage public 'uploads' bucket
+    const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
+    const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+
+    if (supabaseUrl && supabaseKey) {
+      try {
+        const uploadEndpoint = `${supabaseUrl}/storage/v1/object/uploads/${filename}`;
+        const res = await fetch(uploadEndpoint, {
+          method: "POST",
+          headers: {
+            Authorization: `Bearer ${supabaseKey}`,
+            apikey: supabaseKey,
+            "Content-Type": "image/webp",
+            "x-upsert": "true",
+          },
+          body: new Uint8Array(webpBuffer),
+        });
+
+        if (res.ok) {
+          publicUrl = `${supabaseUrl}/storage/v1/object/public/uploads/${filename}`;
+        }
+      } catch (err) {
+        console.warn("Supabase storage upload failed, trying local disk fallback:", err);
       }
-      const filePath = path.resolve(uploadsDir, filename);
-      if (filePath.startsWith(path.resolve(uploadsDir))) {
-        await writeFile(filePath, webpBuffer);
-        publicUrl = `/uploads/${filename}`;
+    }
+
+    // 2. Secondary: Save to local public/uploads directory
+    if (!publicUrl) {
+      try {
+        const uploadsDir = path.join(process.cwd(), "public", "uploads");
+        if (!existsSync(uploadsDir)) {
+          await mkdir(uploadsDir, { recursive: true });
+        }
+        const filePath = path.resolve(uploadsDir, filename);
+        if (filePath.startsWith(path.resolve(uploadsDir))) {
+          await writeFile(filePath, webpBuffer);
+          publicUrl = `/uploads/${filename}`;
+        }
+      } catch (err) {
+        console.warn("Local disk write failed:", err);
       }
-    } catch {
-      // Local filesystem is read-only (standard Vercel AWS Lambda environment)
-      // Gracefully fall back to optimized self-contained WebP Data URL
     }
 
     if (!publicUrl) {
-      publicUrl = `data:image/webp;base64,${webpBuffer.toString("base64")}`;
+      return NextResponse.json(
+        { success: false, error: "Failed to save .webp image to storage." },
+        { status: 500 }
+      );
     }
 
     return NextResponse.json({

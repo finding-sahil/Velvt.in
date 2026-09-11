@@ -1,8 +1,13 @@
 import { prisma } from "@/lib/db";
+import { getPageStatus } from "@/lib/page-status";
+import { PageStatusGate } from "@/components/ui/PageStatusGate";
 import { SectionHeading } from "@/components/ui/SectionHeading";
 import { EmptyState } from "@/components/ui/EmptyState";
 import { InteractiveGallery } from "./InteractiveGallery";
 import type { Metadata } from "next";
+
+export const dynamic = "force-dynamic";
+export const revalidate = 0;
 
 export const metadata: Metadata = {
   title: "Gallery & Visual Archive",
@@ -10,9 +15,9 @@ export const metadata: Metadata = {
     "Immerse yourself in the visual archive of VELVT experiences. Atmospheric photography, stage craft, and crowd energy.",
 };
 
-export const revalidate = 0;
-
 export default async function GalleryPage() {
+  const { status, customTitle, customSubtitle } = await getPageStatus("gallery");
+
   const dbItems = await prisma.galleryItem
     .findMany({
       where: { isPublished: true },
@@ -22,7 +27,13 @@ export default async function GalleryPage() {
     .catch(() => []);
 
   return (
-    <main className="py-12 md:py-20 relative">
+    <PageStatusGate
+      pageKey="gallery"
+      status={status}
+      customTitle={customTitle}
+      customSubtitle={customSubtitle}
+    >
+      <main className="py-12 md:py-20 relative">
       {/* Ambient background glow */}
       <div className="absolute top-1/4 left-1/3 w-96 h-96 rounded-full bg-primary/15 blur-[140px] pointer-events-none" />
 
@@ -62,5 +73,6 @@ export default async function GalleryPage() {
         </div>
       </div>
     </main>
+    </PageStatusGate>
   );
 }

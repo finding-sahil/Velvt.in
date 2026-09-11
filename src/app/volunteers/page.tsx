@@ -1,8 +1,13 @@
 import { prisma } from "@/lib/db";
+import { getPageStatus } from "@/lib/page-status";
+import { PageStatusGate } from "@/components/ui/PageStatusGate";
 import { SectionHeading } from "@/components/ui/SectionHeading";
 import { Button } from "@/components/ui/Button";
 import { EmptyState } from "@/components/ui/EmptyState";
 import type { Metadata } from "next";
+
+export const dynamic = "force-dynamic";
+export const revalidate = 0;
 
 export const metadata: Metadata = {
   title: "Volunteers — Official Directory — VELVT",
@@ -11,6 +16,7 @@ export const metadata: Metadata = {
 };
 
 export default async function VolunteersPage() {
+  const { status, customTitle, customSubtitle } = await getPageStatus("volunteers");
   // Only show approved/verified volunteers publicly
   const volunteers = await prisma.volunteer
     .findMany({
@@ -42,7 +48,13 @@ export default async function VolunteersPage() {
   const roleList: string[] = roles ? JSON.parse(roles.value) : [];
 
   return (
-    <div className="py-12 md:py-16">
+    <PageStatusGate
+      pageKey="volunteers"
+      status={status}
+      customTitle={customTitle}
+      customSubtitle={customSubtitle}
+    >
+      <div className="py-12 md:py-16">
       {/* Hero */}
       <section className="container-velvt space-y-12">
         <SectionHeading
@@ -331,5 +343,6 @@ export default async function VolunteersPage() {
         </div>
       </section>
     </div>
+    </PageStatusGate>
   );
 }

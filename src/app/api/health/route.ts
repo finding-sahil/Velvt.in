@@ -19,7 +19,6 @@ export async function GET() {
       eventCount,
       adminCount,
       dbHost: maskedUrl.includes("@") ? maskedUrl.split("@")[1] : "not_specified",
-      adminPrefix: process.env.ADMIN_ROUTE_PREFIX || "default",
       resolvedSource: process.env.DATABASE_URL
         ? "DATABASE_URL"
         : process.env.POSTGRES_PRISMA_URL
