@@ -20,7 +20,7 @@ export function FinalCTASection({
         <div className="red-rule center" />
 
         <p className="text-xs sm:text-sm text-g5 leading-relaxed max-w-sm mx-auto">
-          Open for artist collaborations, venue takeovers, and strategic brand partnerships in Kolkata.
+          Open for artist collaborations, venue takeovers, and strategic brand partnerships in Silchar, Assam, India.
         </p>
 
         <div className="flex flex-wrap items-center justify-center gap-3 pt-2">

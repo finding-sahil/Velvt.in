@@ -55,8 +55,8 @@ export function EventManager({ events }: EventManagerProps) {
     time: "7:00 PM onwards",
     status: "upcoming",
     venueName: "",
-    venueCity: "Kolkata",
-    venueAddress: "Kolkata, India",
+    venueCity: "Silchar",
+    venueAddress: "Silchar, Assam, India",
     isFeatured: false,
   });
 
@@ -116,8 +116,8 @@ export function EventManager({ events }: EventManagerProps) {
         time: "7:00 PM onwards",
         status: "upcoming",
         venueName: "",
-        venueCity: "Kolkata",
-        venueAddress: "Kolkata, India",
+        venueCity: "Silchar",
+        venueAddress: "Silchar, Assam, India",
         isFeatured: false,
       });
       router.refresh();
@@ -151,7 +151,7 @@ export function EventManager({ events }: EventManagerProps) {
     fd.append("time", editingEvent.time || "");
     fd.append("status", editingEvent.status);
     fd.append("venueName", editingEvent.venue?.name || "");
-    fd.append("venueCity", editingEvent.venue?.city || "Kolkata");
+    fd.append("venueCity", editingEvent.venue?.city || "Silchar");
     fd.append("venueAddress", editingEvent.venue?.address || "");
     fd.append("isFeatured", String(editingEvent.isFeatured));
 
@@ -485,7 +485,7 @@ export function EventManager({ events }: EventManagerProps) {
                     Venue
                   </span>
                   <p className="text-white mt-0.5">
-                    {event.venue?.name || "TBA"} ({event.venue?.city || "Kolkata"})
+                    {event.venue?.name || "TBA"} ({event.venue?.city || "Silchar"})
                   </p>
                 </div>
                 <div>
@@ -629,7 +629,7 @@ export function EventManager({ events }: EventManagerProps) {
                     type="text"
                     value={formData.venueCity}
                     onChange={(e) => setFormData({ ...formData, venueCity: e.target.value })}
-                    placeholder="Kolkata"
+                    placeholder="Silchar"
                     className="w-full bg-black/50 border border-white/10 rounded-lg p-2.5 text-white"
                   />
                 </div>

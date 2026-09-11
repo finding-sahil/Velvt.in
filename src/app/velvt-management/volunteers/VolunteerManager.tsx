@@ -178,7 +178,7 @@ export function VolunteerManager({ volunteers, events = [] }: VolunteerManagerPr
     fullName: "",
     email: "",
     phone: "",
-    city: "Kolkata",
+    city: "Silchar",
     preferredRole: ROLE_PRESETS[0],
     assignedRole: ROLE_PRESETS[0],
     year: defaultYear,
@@ -252,9 +252,9 @@ export function VolunteerManager({ volunteers, events = [] }: VolunteerManagerPr
   function handleDownloadTemplateCsv() {
     const csv = [
       `fullName,email,phone,city,role,year,status,instagram,adminNotes,credentialId`,
-      `"Arjun Sharma","arjun@velvt.in","+91 98765 43210","Kolkata","Stage Operations & Backstage",2026,"verified","@arjun_sharma","Main stage lead coordinator",""`,
-      `"Rhea Sen","rhea@velvt.in","+91 91234 56789","Kolkata","Photography & Videography",2025,"verified","@rhea.raw","2025 past event media crew","VEL-2025-00014"`,
-      `"Vikram Das","vikram@velvt.in","+91 98300 11223","Kolkata","Crowd Control & Guest Safety",2026,"approved","@vikram_das","VIP entry coordination",""`,
+      `"Arjun Sharma","arjun@velvt.in","+91 98765 43210","Silchar","Stage Operations & Backstage",2026,"verified","@arjun_sharma","Main stage lead coordinator",""`,
+      `"Rhea Sen","rhea@velvt.in","+91 91234 56789","Silchar","Photography & Videography",2025,"verified","@rhea.raw","2025 past event media crew","VEL-2025-00014"`,
+      `"Vikram Das","vikram@velvt.in","+91 98300 11223","Silchar","Crowd Control & Guest Safety",2026,"approved","@vikram_das","VIP entry coordination",""`,
     ].join("\r\n");
 
     downloadCsvFile("velvt_volunteers_template.csv", csv);
@@ -312,7 +312,7 @@ export function VolunteerManager({ volunteers, events = [] }: VolunteerManagerPr
         const fullName = row.fullname || row.name || row.volunteername || "";
         const email = row.email || row.emailaddress || "";
         const phone = row.phone || row.phonenumber || row.contact || row.mobile || "";
-        const city = row.city || row.location || "Kolkata";
+        const city = row.city || row.location || "Silchar";
         const role =
           row.role ||
           row.assignedrole ||
@@ -631,7 +631,7 @@ export function VolunteerManager({ volunteers, events = [] }: VolunteerManagerPr
           fullName: "",
           email: "",
           phone: "",
-          city: "Kolkata",
+          city: "Silchar",
           preferredRole: ROLE_PRESETS[0],
           assignedRole: ROLE_PRESETS[0],
           year: defaultYear,
@@ -1077,7 +1077,7 @@ export function VolunteerManager({ volunteers, events = [] }: VolunteerManagerPr
                       <td className="py-1.5 pr-3 font-bold text-white">city</td>
                       <td className="py-1.5 pr-3 text-white/50">Optional</td>
                       <td className="py-1.5 pr-3">Location / Region</td>
-                      <td className="py-1.5 text-g5">Kolkata</td>
+                      <td className="py-1.5 text-g5">Silchar</td>
                     </tr>
                     <tr>
                       <td className="py-1.5 pr-3 font-bold text-white">credentialId</td>
@@ -1326,7 +1326,7 @@ export function VolunteerManager({ volunteers, events = [] }: VolunteerManagerPr
                       type="text"
                       value={addForm.city}
                       onChange={(e) => setAddForm({ ...addForm, city: e.target.value })}
-                      placeholder="Kolkata"
+                      placeholder="Silchar"
                       className="w-full bg-black/60 border border-white/10 rounded-lg p-2.5 text-white focus:outline-none focus:border-primary"
                     />
                   </div>

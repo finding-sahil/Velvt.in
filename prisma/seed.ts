@@ -98,7 +98,7 @@ async function main() {
       data: {
         name: "Venue To Be Announced",
         address: "Venue details will be confirmed closer to the event",
-        city: "Kolkata",
+        city: "Silchar",
         accessInfo:
           "Exact venue location and directions will be shared with ticket holders before the event.",
         eventId: event.id,

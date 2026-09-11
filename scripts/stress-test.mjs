@@ -54,7 +54,7 @@ async function runAllWorkflows() {
           create: {
             name: "Grand Colonial Ballroom",
             address: "7 Old Court House Street",
-            city: "Kolkata",
+            city: "Silchar",
           }
         }
       },
@@ -114,7 +114,7 @@ async function runAllWorkflows() {
           create: {
             name: "The Crypt Underground",
             address: "Park Street",
-            city: "Kolkata",
+            city: "Silchar",
           }
         }
       }
@@ -170,7 +170,7 @@ async function runAllWorkflows() {
         fullName: "Aarav 'Hex' Mukherjee",
         email: "hex.aarav@stress-test.velvt.in",
         phone: "+91 9830099999",
-        city: "Kolkata",
+        city: "Silchar",
         preferredRole: "Stage Management & Crowd Flow",
         experience: "3 years managing stage cues at underground gothic festivals.",
         status: "pending",
@@ -309,7 +309,7 @@ async function runAllWorkflows() {
     });
     const press = await prisma.pressMention.create({
       data: {
-        publication: "The Gothic Gazette Kolkata",
+        publication: "The Gothic Gazette Silchar",
         title: "Inside VELVT: Bengal's Darkest Nightclub Transformation",
         url: "https://gothicgazette.test/velvt-exclusive",
         isPublished: true,

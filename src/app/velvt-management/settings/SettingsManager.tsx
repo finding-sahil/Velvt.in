@@ -50,7 +50,7 @@ export function SettingsManager({ settings, events }: SettingsManagerProps) {
     tagline: settings.tagline || "It starts as a thought, ends as a memory.",
     hero_title: settings.hero_title || "VELVT",
     hero_tagline: settings.hero_tagline || "It starts as a thought, ends as a memory.",
-    hero_sub: settings.hero_sub || "Thematic nightlife, immersive staging, and sensory productions in Kolkata.",
+    hero_sub: settings.hero_sub || "Thematic nightlife, immersive staging, and sensory productions in Silchar, Assam, India.",
     hero_cta_primary: settings.hero_cta_primary || "Explore Curse 2.O",
     hero_cta_secondary: settings.hero_cta_secondary || "Book Passes",
 
@@ -62,7 +62,7 @@ export function SettingsManager({ settings, events }: SettingsManagerProps) {
     brand_intro_title: settings.brand_intro_title || "Sensory Architecture.",
     brand_intro_headline: settings.brand_intro_headline || "We don't just organize events — we construct immersive nocturnal worlds.",
     brand_intro_body: settings.brand_intro_body || "From subterranean set design to synchronized lighting and acoustics, VELVT crafts experiences that linger long after the night ends.",
-    brand_intro_badge: settings.brand_intro_badge || "Thematic Event Production • Kolkata",
+    brand_intro_badge: settings.brand_intro_badge || "Thematic Event Production • Silchar, Assam, India",
 
     // Services Section
     services_title: settings.services_title || "What We Do.",
@@ -557,7 +557,7 @@ export function SettingsManager({ settings, events }: SettingsManagerProps) {
                   type="text"
                   value={form.brand_intro_badge}
                   onChange={(e) => setForm({ ...form, brand_intro_badge: e.target.value })}
-                  placeholder="Thematic Event Production • Kolkata"
+                  placeholder="Thematic Event Production • Silchar, Assam, India"
                   className="w-full bg-black/50 border border-white/10 rounded-lg p-2.5 text-white"
                 />
               </div>

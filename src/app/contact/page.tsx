@@ -188,6 +188,24 @@ export default function ContactPage() {
                 <p className="font-mono text-xs text-muted mt-1 uppercase tracking-wider">
                   It starts as a thought, ends as a memory.
                 </p>
+                <div className="pt-2">
+                  <span className="text-[10px] font-mono tracking-widest text-white/80 uppercase bg-white/[0.04] px-2.5 py-1 rounded-full border border-white/10 inline-flex items-center gap-1.5">
+                    <span className="w-1.5 h-1.5 rounded-full bg-primary animate-pulse" />
+                    Silchar, Assam, India
+                  </span>
+                </div>
+              </div>
+
+              <div className="pt-4 border-t border-white/10 space-y-2">
+                <p className="text-[10px] font-mono uppercase tracking-[0.2em] text-muted">
+                  Phone &amp; Direct WhatsApp
+                </p>
+                <a
+                  href="tel:+919395178940"
+                  className="font-mono text-lg text-primary hover:text-white transition-colors block"
+                >
+                  +91 93951 78940
+                </a>
               </div>
 
               <div className="pt-4 border-t border-white/10 space-y-2">

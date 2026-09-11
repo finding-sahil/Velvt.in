@@ -82,7 +82,7 @@ export default function TicketsPage() {
 
         {/* Bottom Note */}
         <p className="text-[11px] font-mono text-g5/60 uppercase tracking-widest">
-          Powered by VELVT • Kolkata&apos;s Premier Experiential Events
+          Powered by VELVT • Silchar, Assam, India&apos;s Premier Experiential Events
         </p>
       </div>
     </main>

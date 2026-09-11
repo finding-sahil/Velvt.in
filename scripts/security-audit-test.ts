@@ -175,7 +175,7 @@ async function runAuditSuite() {
     honeypotData.append("fullName", "Bot Applicant");
     honeypotData.append("email", "bot@spammer.com");
     honeypotData.append("phone", "+919876543210");
-    honeypotData.append("city", "Kolkata");
+    honeypotData.append("city", "Silchar");
     honeypotData.append("preferredRole", "Event Operations");
     honeypotData.append("consentGiven", "true");
     honeypotData.append("eventId", event.id);

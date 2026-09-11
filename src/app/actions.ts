@@ -509,7 +509,7 @@ export async function createVolunteerDirect(data: {
         fullName: data.fullName.trim(),
         email: data.email.trim().toLowerCase(),
         phone: data.phone.trim(),
-        city: data.city?.trim() || "Kolkata",
+        city: data.city?.trim() || "Silchar",
         preferredRole: data.preferredRole || "General Crew & Operations",
         assignedRole: data.assignedRole?.trim() || data.preferredRole || "General Crew & Operations",
         eventId: targetEventId,
@@ -661,7 +661,7 @@ export async function bulkImportVolunteers(
             fullName,
             email,
             phone: phone || "N/A",
-            city: row.city?.trim() || "Kolkata",
+            city: row.city?.trim() || "Silchar",
             preferredRole: effectiveRole,
             assignedRole: effectiveRole,
             eventId: targetEventId,
@@ -781,8 +781,8 @@ export async function createEvent(formData: FormData) {
   const time = (formData.get("time") as string) || null;
   const status = (formData.get("status") as string) || "draft";
   const venueName = (formData.get("venueName") as string) || null;
-  const venueCity = (formData.get("venueCity") as string) || "Kolkata";
-  const venueAddress = (formData.get("venueAddress") as string) || "Kolkata, India";
+  const venueCity = (formData.get("venueCity") as string) || "Silchar";
+  const venueAddress = (formData.get("venueAddress") as string) || "Silchar, Assam, India";
   const isFeatured = formData.get("isFeatured") === "true";
 
   if (!name || !description || !dateStr) {
@@ -865,13 +865,13 @@ export async function updateEvent(eventId: string, formData: FormData) {
             upsert: {
               create: {
                 name: venueName,
-                city: venueCity || "Kolkata",
-                address: venueAddress || "Kolkata, India",
+                city: venueCity || "Silchar",
+                address: venueAddress || "Silchar, Assam, India",
               },
               update: {
                 name: venueName,
-                city: venueCity || "Kolkata",
-                address: venueAddress || "Kolkata, India",
+                city: venueCity || "Silchar",
+                address: venueAddress || "Silchar, Assam, India",
               },
             },
           },

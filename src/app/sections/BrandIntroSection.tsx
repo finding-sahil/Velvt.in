@@ -9,7 +9,7 @@ export function BrandIntroSection({
   title = "Sensory Architecture.",
   headline = "We don't just organize events — we construct immersive nocturnal worlds.",
   body = "From subterranean set design to synchronized lighting and acoustics, VELVT crafts experiences that linger long after the night ends.",
-  badge = "Thematic Event Production • Kolkata",
+  badge = "Thematic Event Production • Silchar, Assam, India",
 }: BrandIntroSectionProps) {
   return (
     <section className="py-10 md:py-14 relative overflow-hidden">

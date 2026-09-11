@@ -57,7 +57,7 @@ export function FeaturedEventSection({ event }: FeaturedEventSectionProps) {
                     </div>
 
                     <div className="w-full flex items-center justify-between text-[10px] font-mono text-g5 uppercase tracking-wider border-t border-white/[0.08] pt-3">
-                      <span>Kolkata</span>
+                      <span>Silchar, Assam, India</span>
                       <span>Doors 7:00 PM</span>
                     </div>
                   </div>
@@ -99,8 +99,8 @@ export function FeaturedEventSection({ event }: FeaturedEventSectionProps) {
                   <p className="font-semibold text-red">{event.time || "7:00 PM"}</p>
                 </div>
                 <div className="space-y-0.5">
-                  <span className="text-[10px] font-mono text-g5 uppercase">City</span>
-                  <p className="font-semibold text-white">{event.venue?.city || "Kolkata"}</p>
+                  <span className="text-[10px] font-mono text-g5 uppercase">City / State</span>
+                  <p className="font-semibold text-white">{event.venue?.city ? `${event.venue.city}, Assam` : "Silchar, Assam"}</p>
                 </div>
                 <div className="space-y-0.5">
                   <span className="text-[10px] font-mono text-g5 uppercase">Dress Code</span>

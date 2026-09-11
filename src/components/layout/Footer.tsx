@@ -39,10 +39,22 @@ export function Footer() {
               &ldquo;It starts as a thought, ends as a memory.&rdquo;
             </p>
 
-            <div className="pt-2">
-              <span className="text-[10px] font-mono tracking-widest text-g5 uppercase bg-white/[0.04] px-2.5 py-1 rounded-full border border-white/10">
-                Kolkata, India
-              </span>
+            <div className="pt-2 space-y-2">
+              <div>
+                <span className="text-[10px] font-mono tracking-widest text-g5 uppercase bg-white/[0.04] px-2.5 py-1 rounded-full border border-white/10 inline-flex items-center gap-1.5">
+                  <span className="w-1.5 h-1.5 rounded-full bg-red animate-pulse" />
+                  Silchar, Assam, India
+                </span>
+              </div>
+              <div>
+                <a
+                  href="tel:+919395178940"
+                  className="text-[11px] font-mono text-g5 hover:text-white transition-colors inline-flex items-center gap-1.5 bg-white/[0.03] px-2.5 py-1 rounded-full border border-white/10 hover:border-red/40"
+                >
+                  <span>📞</span>
+                  <span>+91 93951 78940</span>
+                </a>
+              </div>
             </div>
           </div>
 
@@ -104,14 +116,20 @@ export function Footer() {
 
             <div className="pt-3 border-t border-white/[0.08] space-y-2">
               <p className="text-[10px] font-mono font-bold uppercase tracking-[0.16em] text-g5">
-                Join Community
+                Join Community &amp; Contact
               </p>
               <div className="flex flex-col gap-1 text-xs font-mono">
+                <a
+                  href="tel:+919395178940"
+                  className="text-g6 hover:text-white transition-colors flex items-center gap-1.5 py-1 min-h-[32px]"
+                >
+                  <span>📞</span> +91 93951 78940
+                </a>
                 <a
                   href="https://www.instagram.com/velvt.in"
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="text-g6 hover:text-red transition-colors flex items-center gap-1.5 py-1.5 min-h-[36px]"
+                  className="text-g6 hover:text-red transition-colors flex items-center gap-1.5 py-1 min-h-[32px]"
                 >
                   <span>📷</span> Instagram @velvt.in
                 </a>
@@ -119,7 +137,7 @@ export function Footer() {
                   href="https://chat.whatsapp.com/E5F1PCTqmgU2ljE2rtuzl8"
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="text-g6 hover:text-emerald-400 transition-colors flex items-center gap-1.5 py-1.5 min-h-[36px]"
+                  className="text-g6 hover:text-emerald-400 transition-colors flex items-center gap-1.5 py-1 min-h-[32px]"
                 >
                   <span>💬</span> WhatsApp Updates Group
                 </a>

@@ -24,7 +24,7 @@ export function VolunteerPreviewSection() {
               <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
               Verified
             </span>
-            <span className="text-g5">KOLKATA</span>
+            <span className="text-g5">SILCHAR, ASSAM, INDIA</span>
           </div>
 
           <div>

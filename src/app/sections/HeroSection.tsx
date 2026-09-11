@@ -12,7 +12,7 @@ interface HeroSectionProps {
 export function HeroSection({
   title = "VELVT",
   tagline = "It starts as a thought, ends as a memory.",
-  sub = "Thematic nightlife, immersive staging, and sensory productions in Kolkata.",
+  sub = "Thematic nightlife, immersive staging, and sensory productions in Silchar, Assam, India.",
   primaryCta = "Explore Curse 2.O",
   primaryHref = "/events/velvt-curse-2-o",
   secondaryCta = "Book Passes",
