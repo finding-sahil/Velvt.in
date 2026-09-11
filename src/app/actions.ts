@@ -207,10 +207,15 @@ export async function adminLogin(formData: FormData) {
     return { success: true };
   } catch (error: any) {
     console.error("Login error:", error);
-    if (!process.env.DATABASE_URL) {
+    const hasDb = Boolean(
+      (process.env.DATABASE_URL && process.env.DATABASE_URL.trim() !== "") ||
+      process.env.POSTGRES_PRISMA_URL ||
+      process.env.POSTGRES_URL
+    );
+    if (!hasDb) {
       return {
         success: false,
-        error: "Database not connected: DATABASE_URL is missing in Vercel Environment Variables.",
+        error: "Database not connected: DATABASE_URL is missing in Vercel Environment Variables (ensure it is checked for 'Production').",
       };
     }
     const msg = error?.message || "";
