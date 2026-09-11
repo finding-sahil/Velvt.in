@@ -10,6 +10,7 @@ import {
   updateVolunteerSocials,
   deleteVolunteer,
   createVolunteerDirect,
+  bulkImportVolunteers,
 } from "@/app/actions";
 import { StatusBadge } from "@/components/ui/StatusBadge";
 import { formatDateShort } from "@/lib/utils";
@@ -57,6 +58,100 @@ const ROLE_PRESETS = [
   "General Crew & Production Runner",
 ];
 
+// Helper to trigger client-side CSV downloads
+function downloadCsvFile(filename: string, csvContent: string) {
+  const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
+  const url = URL.createObjectURL(blob);
+  const link = document.createElement("a");
+  link.setAttribute("href", url);
+  link.setAttribute("download", filename);
+  document.body.appendChild(link);
+  link.click();
+  document.body.removeChild(link);
+  URL.revokeObjectURL(url);
+}
+
+// Robust client-side CSV parser supporting quotes, commas, CRLF
+function parseCsv(text: string): Array<Record<string, string>> {
+  const lines: string[] = [];
+  let currentLine = "";
+  let inQuotes = false;
+
+  for (let i = 0; i < text.length; i++) {
+    const char = text[i];
+    const nextChar = text[i + 1];
+
+    if (char === '"') {
+      if (inQuotes && nextChar === '"') {
+        currentLine += '"';
+        i++;
+      } else {
+        inQuotes = !inQuotes;
+      }
+    } else if ((char === "\r" || char === "\n") && !inQuotes) {
+      if (currentLine.trim()) {
+        lines.push(currentLine);
+      }
+      currentLine = "";
+      if (char === "\r" && nextChar === "\n") {
+        i++;
+      }
+    } else {
+      currentLine += char;
+    }
+  }
+  if (currentLine.trim()) {
+    lines.push(currentLine);
+  }
+
+  if (lines.length < 2) return [];
+
+  function splitRow(rowStr: string): string[] {
+    const fields: string[] = [];
+    let field = "";
+    let insideQuotes = false;
+
+    for (let i = 0; i < rowStr.length; i++) {
+      const c = rowStr[i];
+      const nc = rowStr[i + 1];
+
+      if (c === '"') {
+        if (insideQuotes && nc === '"') {
+          field += '"';
+          i++;
+        } else {
+          insideQuotes = !insideQuotes;
+        }
+      } else if (c === "," && !insideQuotes) {
+        fields.push(field.trim());
+        field = "";
+      } else {
+        field += c;
+      }
+    }
+    fields.push(field.trim());
+    return fields;
+  }
+
+  const rawHeaders = splitRow(lines[0]);
+  const headers = rawHeaders.map((h) => h.toLowerCase().replace(/[^a-z0-9]/g, ""));
+
+  const results: Array<Record<string, string>> = [];
+
+  for (let i = 1; i < lines.length; i++) {
+    const values = splitRow(lines[i]);
+    if (values.every((v) => !v)) continue;
+
+    const row: Record<string, string> = {};
+    headers.forEach((header, index) => {
+      row[header] = values[index] || "";
+    });
+    results.push(row);
+  }
+
+  return results;
+}
+
 export function VolunteerManager({ volunteers, events = [] }: VolunteerManagerProps) {
   const router = useRouter();
   const [volunteerList, setVolunteerList] = useState<VolunteerItem[]>(volunteers);
@@ -69,12 +164,13 @@ export function VolunteerManager({ volunteers, events = [] }: VolunteerManagerPr
   const [filterYear, setFilterYear] = useState<string>("all");
   const [filterStatus, setFilterStatus] = useState<string>("all");
 
-  // Add Volunteer Modal State
+  // Defaults
   const defaultEvent = events.find((e) => e.status === "upcoming") || events[0];
   const defaultYear = defaultEvent?.date
     ? new Date(defaultEvent.date).getFullYear()
     : new Date().getFullYear();
 
+  // Add Volunteer Modal State
   const [showAddModal, setShowAddModal] = useState(false);
   const [addLoading, setAddLoading] = useState(false);
   const [addPhotoUploading, setAddPhotoUploading] = useState(false);
@@ -92,6 +188,14 @@ export function VolunteerManager({ volunteers, events = [] }: VolunteerManagerPr
     socialLink: "",
     adminNotes: "",
   });
+
+  // Bulk CSV Import Modal State
+  const [showCsvModal, setShowCsvModal] = useState(false);
+  const [csvFile, setCsvFile] = useState<File | null>(null);
+  const [csvPreviewRows, setCsvPreviewRows] = useState<Array<any>>([]);
+  const [csvDefaultYear, setCsvDefaultYear] = useState<number>(defaultYear);
+  const [csvDefaultEventId, setCsvDefaultEventId] = useState<string>(defaultEvent?.id || "");
+  const [csvImporting, setCsvImporting] = useState(false);
 
   // Edit Socials Modal State (replaces browser prompt popups)
   const [editingSocials, setEditingSocials] = useState<{
@@ -143,10 +247,145 @@ export function VolunteerManager({ volunteers, events = [] }: VolunteerManagerPr
     });
   }, [volunteerList, searchQuery, filterYear, filterStatus]);
 
+  // ─── CSV Export & Template Handlers ─────────────────────────────────────────
+
+  function handleDownloadTemplateCsv() {
+    const csv = [
+      `fullName,email,phone,city,role,year,status,instagram,adminNotes,credentialId`,
+      `"Arjun Sharma","arjun@velvt.in","+91 98765 43210","Kolkata","Stage Operations & Backstage",2026,"verified","@arjun_sharma","Main stage lead coordinator",""`,
+      `"Rhea Sen","rhea@velvt.in","+91 91234 56789","Kolkata","Photography & Videography",2025,"verified","@rhea.raw","2025 past event media crew","VEL-2025-00014"`,
+      `"Vikram Das","vikram@velvt.in","+91 98300 11223","Kolkata","Crowd Control & Guest Safety",2026,"approved","@vikram_das","VIP entry coordination",""`,
+    ].join("\r\n");
+
+    downloadCsvFile("velvt_volunteers_template.csv", csv);
+    setToast({ message: "Downloaded volunteer CSV template", type: "success" });
+  }
+
+  function handleExportAllCsv() {
+    const rows = [
+      `credentialId,fullName,email,phone,city,assignedRole,preferredRole,status,event,appliedDate,socials`,
+    ];
+
+    volunteerList.forEach((v) => {
+      let instagram = "";
+      if (v.socialLink) {
+        try {
+          const p = JSON.parse(v.socialLink);
+          instagram = p.instagram || "";
+        } catch {
+          instagram = v.socialLink;
+        }
+      }
+
+      const cols = [
+        `"${v.volunteerId || ""}"`,
+        `"${(v.fullName || "").replace(/"/g, '""')}"`,
+        `"${(v.email || "").replace(/"/g, '""')}"`,
+        `"${(v.phone || "").replace(/"/g, '""')}"`,
+        `"${(v.city || "").replace(/"/g, '""')}"`,
+        `"${(v.assignedRole || v.preferredRole || "").replace(/"/g, '""')}"`,
+        `"${(v.preferredRole || "").replace(/"/g, '""')}"`,
+        `"${v.status || ""}"`,
+        `"${(v.event?.name || "").replace(/"/g, '""')}"`,
+        `"${v.appliedAt ? new Date(v.appliedAt).toISOString().split("T")[0] : ""}"`,
+        `"${instagram.replace(/"/g, '""')}"`,
+      ];
+      rows.push(cols.join(","));
+    });
+
+    const dateStr = new Date().toISOString().split("T")[0];
+    downloadCsvFile(`velvt_volunteers_export_${dateStr}.csv`, rows.join("\r\n"));
+    setToast({ message: `Exported ${volunteerList.length} volunteers to CSV`, type: "success" });
+  }
+
+  // Handle CSV file selection and parsing
+  async function handleCsvFileChange(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    setCsvFile(file);
+    try {
+      const text = await file.text();
+      const rawRows = parseCsv(text);
+
+      const parsed = rawRows.map((row) => {
+        const fullName = row.fullname || row.name || row.volunteername || "";
+        const email = row.email || row.emailaddress || "";
+        const phone = row.phone || row.phonenumber || row.contact || row.mobile || "";
+        const city = row.city || row.location || "Kolkata";
+        const role =
+          row.role ||
+          row.assignedrole ||
+          row.preferredrole ||
+          row.department ||
+          "General Crew & Operations";
+        const year = parseInt(row.year || row.timeline || "", 10) || undefined;
+        const status = (row.status || "verified").toLowerCase();
+        const volunteerId = row.credentialid || row.volunteerid || row.id || "";
+        const instagram = row.instagram || row.social || row.sociallink || "";
+        const adminNotes = row.adminnotes || row.notes || "";
+
+        return {
+          fullName,
+          email,
+          phone,
+          city,
+          preferredRole: role,
+          assignedRole: role,
+          year,
+          status,
+          volunteerId,
+          socialLink: instagram ? JSON.stringify({ instagram }) : undefined,
+          adminNotes,
+        };
+      });
+
+      setCsvPreviewRows(parsed);
+      setToast({ message: `Detected ${parsed.length} rows in CSV file`, type: "info" });
+    } catch (err: any) {
+      setToast({ message: "Failed to parse CSV: " + err.message, type: "error" });
+    }
+  }
+
+  async function handleConfirmBulkCsvImport() {
+    if (!csvPreviewRows || csvPreviewRows.length === 0) {
+      setToast({ message: "No rows found in CSV to import", type: "error" });
+      return;
+    }
+
+    setCsvImporting(true);
+
+    try {
+      const recordsToImport = csvPreviewRows.map((r) => ({
+        ...r,
+        year: r.year || csvDefaultYear,
+        eventId: csvDefaultEventId || undefined,
+      }));
+
+      const res = await bulkImportVolunteers(recordsToImport);
+
+      if (res.success) {
+        setShowCsvModal(false);
+        setCsvFile(null);
+        setCsvPreviewRows([]);
+        setToast({
+          message: `CSV Imported: ${res.createdCount} created, ${res.updatedCount} updated (${res.totalProcessed} total)`,
+          type: "success",
+        });
+        router.refresh();
+      } else {
+        setToast({ message: res.error || "Failed to bulk import CSV", type: "error" });
+      }
+    } catch (err: any) {
+      setToast({ message: "Bulk import error: " + err.message, type: "error" });
+    } finally {
+      setCsvImporting(false);
+    }
+  }
+
   // ─── Actions ───────────────────────────────────────────────────────────────
 
   async function handleDelete(id: string, name: string) {
-    // Instant optimistic deletion from UI (0ms, no popups)
     const prevList = volunteerList;
     setVolunteerList((prev) => prev.filter((v) => v.id !== id));
 
@@ -173,7 +412,6 @@ export function VolunteerManager({ volunteers, events = [] }: VolunteerManagerPr
 
   async function handleApprove(id: string, currentRole: string) {
     setLoadingId(id);
-    // Instant optimistic status update (0ms, no browser prompt popup)
     setVolunteerList((prev) =>
       prev.map((v) =>
         v.id === id ? { ...v, status: "approved", assignedRole: currentRole } : v
@@ -199,7 +437,6 @@ export function VolunteerManager({ volunteers, events = [] }: VolunteerManagerPr
 
   async function handleVerify(id: string) {
     setLoadingId(id);
-    // Instant optimistic update (0ms, no popups)
     setVolunteerList((prev) =>
       prev.map((v) => (v.id === id ? { ...v, status: "verified" } : v))
     );
@@ -223,7 +460,6 @@ export function VolunteerManager({ volunteers, events = [] }: VolunteerManagerPr
 
   async function handleRevoke(id: string) {
     setLoadingId(id);
-    // Instant optimistic update (0ms, no popups)
     setVolunteerList((prev) =>
       prev.map((v) => (v.id === id ? { ...v, status: "revoked" } : v))
     );
@@ -282,9 +518,10 @@ export function VolunteerManager({ volunteers, events = [] }: VolunteerManagerPr
     const jsonStr = JSON.stringify(soc);
     const targetId = editingSocials.id;
 
-    // Instant optimistic update
     setVolunteerList((prev) =>
-      prev.map((v) => (v.id === targetId ? { ...v, socialLink: jsonStr, phone: editingSocials.phone } : v))
+      prev.map((v) =>
+        v.id === targetId ? { ...v, socialLink: jsonStr, phone: editingSocials.phone } : v
+      )
     );
     setToast({ message: "Social handles updated successfully", type: "success" });
     setEditingSocials(null);
@@ -377,7 +614,9 @@ export function VolunteerManager({ volunteers, events = [] }: VolunteerManagerPr
         eventId: addForm.eventId,
         status: addForm.status,
         photo: addForm.photo || undefined,
-        socialLink: addForm.socialLink ? JSON.stringify({ instagram: addForm.socialLink }) : undefined,
+        socialLink: addForm.socialLink
+          ? JSON.stringify({ instagram: addForm.socialLink })
+          : undefined,
         adminNotes: addForm.adminNotes || undefined,
       });
 
@@ -388,7 +627,6 @@ export function VolunteerManager({ volunteers, events = [] }: VolunteerManagerPr
           message: `Volunteer "${res.volunteer.fullName}" registered directly with ID ${res.volunteer.volunteerId || "created"}`,
           type: "success",
         });
-        // Reset form
         setAddForm({
           fullName: "",
           email: "",
@@ -417,7 +655,7 @@ export function VolunteerManager({ volunteers, events = [] }: VolunteerManagerPr
   return (
     <div className="space-y-6 animate-fade-in">
       {/* ─── Top Header ─── */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-white/10 pb-5">
+      <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4 border-b border-white/10 pb-5">
         <div>
           <span className="text-[11px] font-mono uppercase tracking-widest text-red">
             Team &amp; Operations
@@ -426,22 +664,55 @@ export function VolunteerManager({ volunteers, events = [] }: VolunteerManagerPr
             Volunteer Management
           </h1>
           <p className="text-xs text-g5 mt-1">
-            Directly add team members, assign timelines, review submissions, and manage verified badge credentials.
+            Add team members, bulk import/update via CSV, export credentials, and manage verified passes.
           </p>
         </div>
 
-        <div className="flex flex-wrap items-center gap-3">
+        <div className="flex flex-wrap items-center gap-2.5">
           <div className="text-xs font-mono text-g5 bg-white/[0.04] px-3.5 py-2 rounded-xl border border-white/10">
             Total: <span className="text-white font-bold">{volunteerList.length}</span>
           </div>
 
+          {/* Download Sample CSV Template */}
+          <button
+            type="button"
+            onClick={handleDownloadTemplateCsv}
+            className="px-3 py-2 text-xs font-mono uppercase tracking-wider rounded-xl bg-white/[0.05] text-white border border-white/15 hover:bg-white/10 hover:border-white/30 transition-all cursor-pointer flex items-center gap-1.5"
+            title="Download formatted CSV template for Google Sheets / Excel"
+          >
+            <span>📋</span>
+            <span>Template CSV</span>
+          </button>
+
+          {/* Export All to CSV */}
+          <button
+            type="button"
+            onClick={handleExportAllCsv}
+            className="px-3 py-2 text-xs font-mono uppercase tracking-wider rounded-xl bg-white/[0.05] text-white border border-white/15 hover:bg-white/10 hover:border-white/30 transition-all cursor-pointer flex items-center gap-1.5"
+            title="Export all currently registered volunteers as CSV"
+          >
+            <span>📥</span>
+            <span>Export CSV</span>
+          </button>
+
+          {/* Bulk Import / Update CSV */}
+          <button
+            type="button"
+            onClick={() => setShowCsvModal(true)}
+            className="px-3.5 py-2 text-xs font-mono uppercase tracking-wider rounded-xl bg-emerald-950/80 text-emerald-300 border border-emerald-700/60 hover:bg-emerald-900 transition-all cursor-pointer flex items-center gap-1.5 shadow-[0_0_15px_rgba(16,185,129,0.2)] font-bold"
+          >
+            <span>📤</span>
+            <span>Bulk CSV Upload</span>
+          </button>
+
+          {/* Add Volunteer Directly */}
           <button
             type="button"
             onClick={() => setShowAddModal(true)}
             className="px-4 py-2 text-xs font-mono uppercase tracking-wider rounded-xl bg-primary text-white font-bold hover:bg-red-700 transition-all cursor-pointer shadow-[0_0_20px_rgba(200,16,46,0.35)] flex items-center gap-1.5"
           >
             <span className="text-base font-bold leading-none">+</span>
-            <span>Add Volunteer Directly</span>
+            <span>Add Volunteer</span>
           </button>
         </div>
       </div>
@@ -500,7 +771,7 @@ export function VolunteerManager({ volunteers, events = [] }: VolunteerManagerPr
           <p className="font-display font-bold text-xl text-white uppercase">No Volunteer Records Found</p>
           <p className="text-xs text-g5">
             {volunteerList.length === 0
-              ? "No volunteers registered yet. Click '+ Add Volunteer Directly' above to onboard your first crew member."
+              ? "No volunteers registered yet. Click '+ Add Volunteer' or 'Bulk CSV Upload' above to onboard crew members."
               : "No records match your active search or filters. Try resetting the search or filter options above."}
           </p>
           {volunteerList.length > 0 && (
@@ -700,6 +971,273 @@ export function VolunteerManager({ volunteers, events = [] }: VolunteerManagerPr
                 })}
               </tbody>
             </table>
+          </div>
+        </div>
+      )}
+
+      {/* ─── BULK CSV UPLOAD & UPDATE MODAL ─── */}
+      {showCsvModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-md overflow-y-auto">
+          <div className="bg-[#0e0e11] border border-white/15 rounded-2xl w-full max-w-3xl max-h-[90vh] overflow-y-auto p-6 space-y-5 shadow-2xl animate-scale-up">
+            {/* Modal Header */}
+            <div className="flex items-center justify-between border-b border-white/10 pb-4">
+              <div>
+                <span className="text-[10px] font-mono uppercase tracking-widest text-emerald-400 font-bold">
+                  Bulk Operations
+                </span>
+                <h2 className="font-display font-bold text-2xl text-white uppercase">
+                  Bulk Upload &amp; Update Volunteers (CSV)
+                </h2>
+                <p className="text-xs text-g5 mt-0.5">
+                  Upload a CSV file to add new volunteers in bulk or update existing volunteers by email / ID.
+                </p>
+              </div>
+              <button
+                type="button"
+                onClick={() => {
+                  setShowCsvModal(false);
+                  setCsvFile(null);
+                  setCsvPreviewRows([]);
+                }}
+                className="text-white/40 hover:text-white text-xl p-1 font-mono transition-colors cursor-pointer"
+              >
+                &times;
+              </button>
+            </div>
+
+            {/* Template Download & Format Info */}
+            <div className="bg-white/[0.02] border border-white/10 rounded-xl p-4 space-y-3">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                <div>
+                  <h4 className="text-white text-xs font-mono font-bold uppercase">
+                    CSV Format Specification
+                  </h4>
+                  <p className="text-[11px] text-g5 font-mono">
+                    Must include headers. Column names are flexible and case-insensitive.
+                  </p>
+                </div>
+                <button
+                  type="button"
+                  onClick={handleDownloadTemplateCsv}
+                  className="px-3 py-1.5 rounded-lg bg-emerald-500/10 border border-emerald-500/30 text-emerald-400 hover:bg-emerald-500/20 text-xs font-mono font-bold transition-colors cursor-pointer shrink-0 flex items-center gap-1.5"
+                >
+                  <span>📋 Download Template CSV</span>
+                </button>
+              </div>
+
+              {/* Format Columns Table */}
+              <div className="overflow-x-auto">
+                <table className="w-full text-[11px] font-mono text-left border-collapse">
+                  <thead>
+                    <tr className="border-b border-white/10 text-white/50 text-[10px] uppercase">
+                      <th className="py-1 pr-3">Header Name</th>
+                      <th className="py-1 pr-3">Required?</th>
+                      <th className="py-1 pr-3">Description</th>
+                      <th className="py-1">Example Value</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-white/[0.04] text-white/80">
+                    <tr>
+                      <td className="py-1.5 pr-3 font-bold text-white">fullName</td>
+                      <td className="py-1.5 pr-3 text-red-400">Yes</td>
+                      <td className="py-1.5 pr-3">Full name of volunteer</td>
+                      <td className="py-1.5 text-g5">Arjun Sharma</td>
+                    </tr>
+                    <tr>
+                      <td className="py-1.5 pr-3 font-bold text-white">email</td>
+                      <td className="py-1.5 pr-3 text-red-400">Yes</td>
+                      <td className="py-1.5 pr-3">Used to match &amp; update if exists</td>
+                      <td className="py-1.5 text-g5">arjun@velvt.in</td>
+                    </tr>
+                    <tr>
+                      <td className="py-1.5 pr-3 font-bold text-white">phone</td>
+                      <td className="py-1.5 pr-3 text-red-400">Yes</td>
+                      <td className="py-1.5 pr-3">Contact / WhatsApp number</td>
+                      <td className="py-1.5 text-g5">+91 98765 43210</td>
+                    </tr>
+                    <tr>
+                      <td className="py-1.5 pr-3 font-bold text-white">role</td>
+                      <td className="py-1.5 pr-3 text-white/50">Optional</td>
+                      <td className="py-1.5 pr-3">Department or crew title</td>
+                      <td className="py-1.5 text-g5">Stage Operations</td>
+                    </tr>
+                    <tr>
+                      <td className="py-1.5 pr-3 font-bold text-white">year</td>
+                      <td className="py-1.5 pr-3 text-white/50">Optional</td>
+                      <td className="py-1.5 pr-3">Timeline year (2026 or 2025)</td>
+                      <td className="py-1.5 text-g5">2026</td>
+                    </tr>
+                    <tr>
+                      <td className="py-1.5 pr-3 font-bold text-white">status</td>
+                      <td className="py-1.5 pr-3 text-white/50">Optional</td>
+                      <td className="py-1.5 pr-3">verified, approved, or pending</td>
+                      <td className="py-1.5 text-g5">verified</td>
+                    </tr>
+                    <tr>
+                      <td className="py-1.5 pr-3 font-bold text-white">city</td>
+                      <td className="py-1.5 pr-3 text-white/50">Optional</td>
+                      <td className="py-1.5 pr-3">Location / Region</td>
+                      <td className="py-1.5 text-g5">Kolkata</td>
+                    </tr>
+                    <tr>
+                      <td className="py-1.5 pr-3 font-bold text-white">credentialId</td>
+                      <td className="py-1.5 pr-3 text-white/50">Optional</td>
+                      <td className="py-1.5 pr-3">Leave blank to auto-generate</td>
+                      <td className="py-1.5 text-g5">VEL-2026-00001</td>
+                    </tr>
+                    <tr>
+                      <td className="py-1.5 pr-3 font-bold text-white">instagram</td>
+                      <td className="py-1.5 pr-3 text-white/50">Optional</td>
+                      <td className="py-1.5 pr-3">Social media handle</td>
+                      <td className="py-1.5 text-g5">@arjun_sharma</td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+            </div>
+
+            {/* Fallback Event & Year for rows without year */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 bg-white/[0.02] p-3 rounded-xl border border-white/10 text-xs font-mono">
+              <div>
+                <label className="block text-white font-bold mb-1 uppercase text-[10px]">
+                  Fallback Timeline Year
+                </label>
+                <input
+                  type="number"
+                  value={csvDefaultYear}
+                  onChange={(e) =>
+                    setCsvDefaultYear(parseInt(e.target.value, 10) || new Date().getFullYear())
+                  }
+                  className="w-full bg-black/60 border border-white/10 rounded-lg p-2.5 text-white focus:outline-none focus:border-primary"
+                />
+                <p className="text-[10px] text-muted-foreground mt-1">
+                  Applied to rows in the CSV where year is omitted
+                </p>
+              </div>
+
+              <div>
+                <label className="block text-white font-bold mb-1 uppercase text-[10px]">
+                  Fallback Event Link
+                </label>
+                <select
+                  value={csvDefaultEventId}
+                  onChange={(e) => setCsvDefaultEventId(e.target.value)}
+                  className="w-full bg-black/60 border border-white/10 rounded-lg p-2.5 text-white focus:outline-none focus:border-primary cursor-pointer"
+                >
+                  {events.length > 0 ? (
+                    events.map((ev) => {
+                      const yr = ev.date ? new Date(ev.date).getFullYear() : "";
+                      return (
+                        <option key={ev.id} value={ev.id}>
+                          {ev.name} {yr ? `(${yr})` : ""}
+                        </option>
+                      );
+                    })
+                  ) : (
+                    <option value="">Default Operations Event</option>
+                  )}
+                </select>
+                <p className="text-[10px] text-muted-foreground mt-1">
+                  Default event connection for imported rows
+                </p>
+              </div>
+            </div>
+
+            {/* File Upload Box */}
+            <div>
+              <label className="block text-white font-bold mb-1.5 uppercase text-[11px] font-mono">
+                Select CSV File to Upload
+              </label>
+              <div className="border-2 border-dashed border-white/20 rounded-xl p-6 text-center hover:border-emerald-500/60 transition-colors bg-white/[0.01]">
+                <input
+                  type="file"
+                  id="csv-file-input"
+                  accept=".csv,text/csv"
+                  onChange={handleCsvFileChange}
+                  className="hidden"
+                />
+                <label htmlFor="csv-file-input" className="cursor-pointer block space-y-2">
+                  <div className="text-3xl">📄</div>
+                  <p className="text-white font-bold text-xs font-mono">
+                    {csvFile ? `Selected: ${csvFile.name}` : "Click to select .CSV file"}
+                  </p>
+                  <p className="text-muted-foreground text-[10px] font-mono">
+                    Supports Microsoft Excel, Google Sheets, and Apple Numbers CSV exports
+                  </p>
+                </label>
+              </div>
+            </div>
+
+            {/* Parsed Rows Preview */}
+            {csvPreviewRows.length > 0 && (
+              <div className="space-y-2">
+                <div className="flex items-center justify-between text-xs font-mono">
+                  <span className="text-emerald-400 font-bold">
+                    ✓ {csvPreviewRows.length} Volunteer Records Detected
+                  </span>
+                  <span className="text-white/40 text-[11px]">
+                    Previewing first {Math.min(5, csvPreviewRows.length)} rows
+                  </span>
+                </div>
+
+                <div className="border border-white/10 rounded-xl overflow-hidden bg-black/40 text-[11px] font-mono">
+                  <table className="w-full text-left">
+                    <thead>
+                      <tr className="border-b border-white/10 bg-white/[0.03] text-white/50 text-[10px] uppercase">
+                        <th className="py-2 px-3">Name</th>
+                        <th className="py-2 px-3">Email</th>
+                        <th className="py-2 px-3">Phone</th>
+                        <th className="py-2 px-3">Role</th>
+                        <th className="py-2 px-3">Year</th>
+                        <th className="py-2 px-3">Status</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-white/[0.04]">
+                      {csvPreviewRows.slice(0, 5).map((row, idx) => (
+                        <tr key={idx} className="hover:bg-white/[0.02]">
+                          <td className="py-2 px-3 font-medium text-white">{row.fullName || "—"}</td>
+                          <td className="py-2 px-3 text-g6">{row.email || "—"}</td>
+                          <td className="py-2 px-3 text-g5">{row.phone || "—"}</td>
+                          <td className="py-2 px-3 text-white/80">{row.assignedRole || "—"}</td>
+                          <td className="py-2 px-3 text-gold">{row.year || csvDefaultYear}</td>
+                          <td className="py-2 px-3">
+                            <span className="px-1.5 py-0.5 rounded text-[10px] bg-emerald-950/60 text-emerald-400 border border-emerald-800/40">
+                              {row.status || "verified"}
+                            </span>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            )}
+
+            {/* Modal Submit Actions */}
+            <div className="flex justify-end gap-3 pt-3 border-t border-white/10">
+              <button
+                type="button"
+                onClick={() => {
+                  setShowCsvModal(false);
+                  setCsvFile(null);
+                  setCsvPreviewRows([]);
+                }}
+                disabled={csvImporting}
+                className="px-4 py-2 text-xs font-mono rounded-lg bg-white/[0.05] text-white hover:bg-white/10 cursor-pointer"
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                onClick={handleConfirmBulkCsvImport}
+                disabled={csvImporting || csvPreviewRows.length === 0}
+                className="px-5 py-2 text-xs font-mono font-bold rounded-lg bg-emerald-600 text-white hover:bg-emerald-500 transition-all disabled:opacity-50 cursor-pointer shadow-[0_0_20px_rgba(16,185,129,0.3)]"
+              >
+                {csvImporting
+                  ? `Importing ${csvPreviewRows.length} Volunteers...`
+                  : `Confirm & Bulk Update (${csvPreviewRows.length} Volunteers)`}
+              </button>
+            </div>
           </div>
         </div>
       )}

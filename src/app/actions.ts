@@ -543,6 +543,175 @@ export async function createVolunteerDirect(data: {
   }
 }
 
+export async function bulkImportVolunteers(
+  records: Array<{
+    fullName: string;
+    email: string;
+    phone: string;
+    city?: string;
+    preferredRole?: string;
+    assignedRole?: string;
+    year?: number;
+    eventId?: string;
+    status?: string;
+    volunteerId?: string;
+    socialLink?: string;
+    adminNotes?: string;
+  }>
+) {
+  try {
+    const session = await requireAdmin();
+
+    if (!records || records.length === 0) {
+      return { success: false, error: "No records found to import." };
+    }
+
+    const existingEvents = await prisma.event.findMany({
+      select: { id: true, name: true, date: true },
+      orderBy: { date: "desc" },
+    });
+    const defaultUpcomingEvent =
+      existingEvents.find((e) => e.date && new Date(e.date).getFullYear() === 2026) ||
+      existingEvents[0];
+
+    let createdCount = 0;
+    let updatedCount = 0;
+    const errors: string[] = [];
+
+    for (const row of records) {
+      const email = row.email?.trim().toLowerCase();
+      const fullName = row.fullName?.trim();
+      const phone = row.phone?.trim();
+
+      if (!email || !fullName) {
+        errors.push(`Row skipped: missing name or email (${fullName || "Unknown"})`);
+        continue;
+      }
+
+      const year = row.year ? Number(row.year) : new Date().getFullYear();
+      let targetEventId = row.eventId;
+
+      if (!targetEventId) {
+        const matchEvent = existingEvents.find(
+          (e) => e.date && new Date(e.date).getFullYear() === year
+        );
+        targetEventId = matchEvent?.id || defaultUpcomingEvent?.id;
+
+        if (!targetEventId) {
+          const newEvent = await prisma.event.create({
+            data: {
+              name: `VELVT CURSE ${year}`,
+              slug: `velvt-curse-${year}-${Date.now()}`,
+              description: `Event operations archive for ${year}`,
+              date: new Date(`${year}-11-01T18:00:00.000Z`),
+            },
+          });
+          targetEventId = newEvent.id;
+        }
+      }
+
+      const effectiveRole =
+        row.assignedRole?.trim() ||
+        row.preferredRole?.trim() ||
+        "General Crew & Operations";
+      const rawStatus = row.status?.trim().toLowerCase();
+      const validStatus = ["verified", "approved", "pending", "revoked", "rejected"].includes(
+        rawStatus || ""
+      )
+        ? rawStatus
+        : "verified";
+
+      // Check if existing volunteer exists by volunteerId or email
+      let existing = null;
+      if (row.volunteerId?.trim()) {
+        existing = await prisma.volunteer.findUnique({
+          where: { volunteerId: row.volunteerId.trim() },
+        });
+      }
+      if (!existing && email) {
+        existing = await prisma.volunteer.findFirst({
+          where: { email },
+        });
+      }
+
+      if (existing) {
+        await prisma.volunteer.update({
+          where: { id: existing.id },
+          data: {
+            fullName,
+            phone: phone || existing.phone,
+            city: row.city?.trim() || existing.city,
+            assignedRole: effectiveRole,
+            preferredRole: row.preferredRole?.trim() || existing.preferredRole,
+            status: validStatus || existing.status,
+            ...(row.socialLink && { socialLink: row.socialLink }),
+            ...(row.adminNotes && { adminNotes: row.adminNotes }),
+            ...(validStatus === "verified" || validStatus === "approved"
+              ? { approvedAt: existing.approvedAt || new Date() }
+              : {}),
+          },
+        });
+        updatedCount++;
+      } else {
+        const generatedId =
+          row.volunteerId?.trim() || (await generateVolunteerId(year));
+        await prisma.volunteer.create({
+          data: {
+            volunteerId: generatedId,
+            fullName,
+            email,
+            phone: phone || "N/A",
+            city: row.city?.trim() || "Kolkata",
+            preferredRole: effectiveRole,
+            assignedRole: effectiveRole,
+            eventId: targetEventId,
+            status: validStatus || "verified",
+            consentGiven: true,
+            socialLink: row.socialLink || null,
+            adminNotes:
+              row.adminNotes ||
+              `Imported via Bulk CSV on ${new Date().toLocaleDateString()}`,
+            approvedAt:
+              validStatus === "verified" || validStatus === "approved"
+                ? new Date()
+                : null,
+          },
+        });
+        createdCount++;
+      }
+    }
+
+    logAuditEvent({
+      action: "volunteer.bulk_import_csv",
+      targetType: "Volunteer",
+      metadata: {
+        total: records.length,
+        createdCount,
+        updatedCount,
+        errorsCount: errors.length,
+      },
+      actor: { id: session.userId, email: session.user.email },
+    }).catch((e) => console.error("Audit log error:", e));
+
+    revalidatePath("/velvt-management/volunteers");
+    revalidatePath("/volunteers");
+
+    return {
+      success: true,
+      createdCount,
+      updatedCount,
+      totalProcessed: createdCount + updatedCount,
+      errors: errors.length > 0 ? errors : undefined,
+    };
+  } catch (error: any) {
+    console.error("Bulk import volunteers error:", error);
+    return {
+      success: false,
+      error: error?.message || "Failed to bulk import volunteers.",
+    };
+  }
+}
+
 // ─── Admin: Update Inquiry Status ──────────────────────────────────────────────
 
 export async function updateInquiryStatus(
