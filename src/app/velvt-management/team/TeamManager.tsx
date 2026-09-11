@@ -9,6 +9,7 @@ import {
   deleteTeamMember,
 } from "@/app/actions";
 import DownloadQrButton from "@/components/ui/DownloadQrButton";
+import { ToastNotification, ToastMessage } from "@/components/ui/ToastNotification";
 
 interface TeamManagerProps {
   members: any[];
@@ -21,6 +22,7 @@ export function TeamManager({ members }: TeamManagerProps) {
   const [editingMember, setEditingMember] = useState<any | null>(null);
   const [loading, setLoading] = useState(false);
   const [uploading, setUploading] = useState(false);
+  const [toast, setToast] = useState<ToastMessage | null>(null);
 
   useEffect(() => {
     setTeamList(members);
@@ -58,10 +60,10 @@ export function TeamManager({ members }: TeamManagerProps) {
           setFormData((prev) => ({ ...prev, portrait: json.url }));
         }
       } else {
-        alert(json.error || "Failed to upload image");
+        setToast({ message: json.error || "Failed to upload image", type: "error" });
       }
     } catch (err: any) {
-      alert("Error uploading image: " + err.message);
+      setToast({ message: "Error uploading image: " + err.message, type: "error" });
     } finally {
       setUploading(false);
     }
@@ -108,9 +110,10 @@ export function TeamManager({ members }: TeamManagerProps) {
         displayOrder: 0,
         isPublished: true,
       });
+      setToast({ message: "Team member added successfully", type: "success" });
       router.refresh();
     } else {
-      alert(res.error || "Failed to create team member");
+      setToast({ message: res.error || "Failed to create team member", type: "error" });
     }
   }
 
@@ -143,9 +146,10 @@ export function TeamManager({ members }: TeamManagerProps) {
 
     if (res.success) {
       setEditingMember(null);
+      setToast({ message: "Team member updated successfully", type: "success" });
       router.refresh();
     } else {
-      alert(res.error || "Failed to update team member");
+      setToast({ message: res.error || "Failed to update team member", type: "error" });
     }
   }
 
@@ -154,36 +158,48 @@ export function TeamManager({ members }: TeamManagerProps) {
     setTeamList((prev) =>
       prev.map((m) => (m.id === id ? { ...m, isPublished: !current } : m))
     );
+    setToast({
+      message: !current ? "Team member published" : "Team member hidden",
+      type: "success",
+    });
     try {
       const res = await toggleTeamMemberPublish(id, !current);
       if (!res.success) {
-        alert(res.error || "Failed to update team member status");
+        setToast({ message: res.error || "Failed to update team member status", type: "error" });
         setTeamList(members); // revert
       } else {
         router.refresh();
       }
     } catch (err: any) {
-      alert(err?.message || "Failed to update team member status");
+      setToast({ message: err?.message || "Failed to update team member status", type: "error" });
       setTeamList(members);
     }
   }
 
   async function handleDelete(id: string) {
-    if (!confirm("Are you sure you want to delete this team member?")) return;
-    // Instant optimistic removal from UI
+    // Instant optimistic removal from UI (0ms, no popups)
     const prevList = teamList;
     setTeamList((prev) => prev.filter((m) => m.id !== id));
+
+    setToast({
+      message: "Team member deleted",
+      type: "success",
+      actionLabel: "Undo",
+      onAction: () => {
+        setTeamList(prevList);
+      },
+    });
 
     try {
       const res = await deleteTeamMember(id);
       if (!res.success) {
-        alert(res.error || "Failed to delete team member");
+        setToast({ message: res.error || "Failed to delete team member", type: "error" });
         setTeamList(prevList); // revert on failure
       } else {
         router.refresh();
       }
     } catch (err: any) {
-      alert(err?.message || "Failed to delete team member");
+      setToast({ message: err?.message || "Failed to delete team member", type: "error" });
       setTeamList(prevList);
     }
   }
@@ -848,6 +864,9 @@ export function TeamManager({ members }: TeamManagerProps) {
           </div>
         </div>
       )}
+
+      {/* Toast Notification Overlay */}
+      <ToastNotification toast={toast} onClose={() => setToast(null)} />
     </div>
   );
 }

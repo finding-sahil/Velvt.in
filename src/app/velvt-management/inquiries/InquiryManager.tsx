@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { updateInquiryStatus, deleteInquiry } from "@/app/actions";
 import { StatusBadge } from "@/components/ui/StatusBadge";
 import { formatDateShort } from "@/lib/utils";
+import { ToastNotification, ToastMessage } from "@/components/ui/ToastNotification";
 
 interface InquiryItem {
   id: string;
@@ -25,6 +26,7 @@ export function InquiryManager({ inquiries }: InquiryManagerProps) {
   const router = useRouter();
   const [inquiryList, setInquiryList] = useState<InquiryItem[]>(inquiries);
   const [loadingId, setLoadingId] = useState<string | null>(null);
+  const [toast, setToast] = useState<ToastMessage | null>(null);
 
   useEffect(() => {
     setInquiryList(inquiries);
@@ -36,17 +38,18 @@ export function InquiryManager({ inquiries }: InquiryManagerProps) {
     setInquiryList((prev) =>
       prev.map((inq) => (inq.id === id ? { ...inq, status: newStatus } : inq))
     );
+    setToast({ message: `Inquiry marked as ${newStatus}`, type: "info" });
 
     try {
       const res = await updateInquiryStatus(id, newStatus);
       if (!res.success) {
-        alert("Failed to update inquiry status");
+        setToast({ message: "Failed to update inquiry status", type: "error" });
         setInquiryList(inquiries);
       } else {
         router.refresh();
       }
     } catch (err: any) {
-      alert(err?.message || "Failed to update inquiry status");
+      setToast({ message: err?.message || "Failed to update inquiry status", type: "error" });
       setInquiryList(inquiries);
     } finally {
       setLoadingId(null);
@@ -54,22 +57,27 @@ export function InquiryManager({ inquiries }: InquiryManagerProps) {
   }
 
   async function handleDelete(id: string, name: string) {
-    if (!confirm(`Permanently delete inquiry from "${name}"?`)) return;
-
-    // Instant optimistic deletion
+    // Instant optimistic deletion (0ms, no popups)
     const prevList = inquiryList;
     setInquiryList((prev) => prev.filter((inq) => inq.id !== id));
+
+    setToast({
+      message: `Inquiry from "${name}" deleted`,
+      type: "success",
+      actionLabel: "Undo",
+      onAction: () => setInquiryList(prevList),
+    });
 
     try {
       const res = await deleteInquiry(id);
       if (!res.success) {
-        alert(res.error || "Failed to delete inquiry");
+        setToast({ message: res.error || "Failed to delete inquiry", type: "error" });
         setInquiryList(prevList);
       } else {
         router.refresh();
       }
     } catch (err: any) {
-      alert(err?.message || "Failed to delete inquiry");
+      setToast({ message: err?.message || "Failed to delete inquiry", type: "error" });
       setInquiryList(prevList);
     }
   }
@@ -186,6 +194,9 @@ export function InquiryManager({ inquiries }: InquiryManagerProps) {
           </div>
         </div>
       )}
+
+      {/* Toast Notification Overlay */}
+      <ToastNotification toast={toast} onClose={() => setToast(null)} />
     </div>
   );
 }

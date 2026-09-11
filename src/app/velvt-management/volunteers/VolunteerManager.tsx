@@ -13,6 +13,7 @@ import {
 import { StatusBadge } from "@/components/ui/StatusBadge";
 import { formatDateShort } from "@/lib/utils";
 import DownloadQrButton from "@/components/ui/DownloadQrButton";
+import { ToastNotification, ToastMessage } from "@/components/ui/ToastNotification";
 
 interface VolunteerItem {
   id: string;
@@ -40,28 +41,34 @@ export function VolunteerManager({ volunteers }: VolunteerManagerProps) {
   const [volunteerList, setVolunteerList] = useState<VolunteerItem[]>(volunteers);
   const [loadingId, setLoadingId] = useState<string | null>(null);
   const [uploadingId, setUploadingId] = useState<string | null>(null);
+  const [toast, setToast] = useState<ToastMessage | null>(null);
 
   useEffect(() => {
     setVolunteerList(volunteers);
   }, [volunteers]);
 
   async function handleDelete(id: string, name: string) {
-    if (!confirm(`Permanently delete volunteer application for "${name}"?`)) return;
-
-    // Instant optimistic deletion from UI
+    // Instant optimistic deletion from UI (0ms, no popups)
     const prevList = volunteerList;
     setVolunteerList((prev) => prev.filter((v) => v.id !== id));
+
+    setToast({
+      message: `Volunteer application for "${name}" deleted`,
+      type: "success",
+      actionLabel: "Undo",
+      onAction: () => setVolunteerList(prevList),
+    });
 
     try {
       const res = await deleteVolunteer(id);
       if (!res.success) {
-        alert(res.error || "Failed to delete volunteer");
+        setToast({ message: res.error || "Failed to delete volunteer", type: "error" });
         setVolunteerList(prevList);
       } else {
         router.refresh();
       }
     } catch (err: any) {
-      alert(err?.message || "Failed to delete volunteer");
+      setToast({ message: err?.message || "Failed to delete volunteer", type: "error" });
       setVolunteerList(prevList);
     }
   }
@@ -80,17 +87,18 @@ export function VolunteerManager({ volunteers }: VolunteerManagerProps) {
         v.id === id ? { ...v, status: "approved", assignedRole: assignedRole.trim() || currentRole } : v
       )
     );
+    setToast({ message: "Volunteer approved & Credential issued", type: "success" });
 
     try {
       const res = await approveVolunteer(id, assignedRole.trim() || undefined);
       if (!res.success) {
-        alert(res.error || "Failed to approve volunteer");
+        setToast({ message: res.error || "Failed to approve volunteer", type: "error" });
         setVolunteerList(volunteers);
       } else {
         router.refresh();
       }
     } catch (err: any) {
-      alert(err?.message || "Failed to approve volunteer");
+      setToast({ message: err?.message || "Failed to approve volunteer", type: "error" });
       setVolunteerList(volunteers);
     } finally {
       setLoadingId(null);
@@ -98,23 +106,22 @@ export function VolunteerManager({ volunteers }: VolunteerManagerProps) {
   }
 
   async function handleVerify(id: string) {
-    if (!confirm("Mark this credential as officially verified for live event operations?")) return;
-
     setLoadingId(id);
     setVolunteerList((prev) =>
       prev.map((v) => (v.id === id ? { ...v, status: "verified" } : v))
     );
+    setToast({ message: "Volunteer marked as verified for live operations", type: "success" });
 
     try {
       const res = await verifyVolunteer(id);
       if (!res.success) {
-        alert(res.error || "Failed to verify volunteer");
+        setToast({ message: res.error || "Failed to verify volunteer", type: "error" });
         setVolunteerList(volunteers);
       } else {
         router.refresh();
       }
     } catch (err: any) {
-      alert(err?.message || "Failed to verify volunteer");
+      setToast({ message: err?.message || "Failed to verify volunteer", type: "error" });
       setVolunteerList(volunteers);
     } finally {
       setLoadingId(null);
@@ -122,23 +129,22 @@ export function VolunteerManager({ volunteers }: VolunteerManagerProps) {
   }
 
   async function handleRevoke(id: string) {
-    if (!confirm("Revoke this credential? The credential will immediately show 'REVOKED'.")) return;
-
     setLoadingId(id);
     setVolunteerList((prev) =>
       prev.map((v) => (v.id === id ? { ...v, status: "revoked" } : v))
     );
+    setToast({ message: "Volunteer credential revoked", type: "info" });
 
     try {
       const res = await revokeVolunteer(id);
       if (!res.success) {
-        alert(res.error || "Failed to revoke volunteer");
+        setToast({ message: res.error || "Failed to revoke volunteer", type: "error" });
         setVolunteerList(volunteers);
       } else {
         router.refresh();
       }
     } catch (err: any) {
-      alert(err?.message || "Failed to revoke volunteer");
+      setToast({ message: err?.message || "Failed to revoke volunteer", type: "error" });
       setVolunteerList(volunteers);
     } finally {
       setLoadingId(null);
@@ -179,9 +185,10 @@ export function VolunteerManager({ volunteers }: VolunteerManagerProps) {
 
     try {
       await updateVolunteerSocials(id, jsonStr);
+      setToast({ message: "Social handles updated successfully", type: "success" });
       router.refresh();
     } catch (err: any) {
-      alert(err?.message || "Failed to update socials");
+      setToast({ message: err?.message || "Failed to update socials", type: "error" });
       setVolunteerList(volunteers);
     }
   }
@@ -204,12 +211,13 @@ export function VolunteerManager({ volunteers }: VolunteerManagerProps) {
           prev.map((v) => (v.id === id ? { ...v, photo: data.url } : v))
         );
         await updateVolunteerPhoto(id, data.url);
+        setToast({ message: "Badge photo uploaded successfully", type: "success" });
         router.refresh();
       } else {
-        alert(data.error || "Failed to upload image");
+        setToast({ message: data.error || "Failed to upload image", type: "error" });
       }
     } catch (err: any) {
-      alert("Upload failed: " + err.message);
+      setToast({ message: "Upload failed: " + err.message, type: "error" });
     } finally {
       setUploadingId(null);
     }
@@ -434,6 +442,9 @@ export function VolunteerManager({ volunteers }: VolunteerManagerProps) {
           </div>
         </div>
       )}
+
+      {/* Toast Notification Overlay */}
+      <ToastNotification toast={toast} onClose={() => setToast(null)} />
     </div>
   );
 }

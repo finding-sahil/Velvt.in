@@ -10,6 +10,7 @@ import {
   togglePressPublish,
   deletePressMention,
 } from "@/app/actions";
+import { ToastNotification, ToastMessage } from "@/components/ui/ToastNotification";
 
 interface PartnersManagerProps {
   partners: any[];
@@ -25,6 +26,7 @@ export function PartnersManager({ partners, pressMentions, events }: PartnersMan
   const [showPartnerModal, setShowPartnerModal] = useState(false);
   const [showPressModal, setShowPressModal] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [toast, setToast] = useState<ToastMessage | null>(null);
 
   useEffect(() => {
     setPartnerList(partners);
@@ -71,9 +73,10 @@ export function PartnersManager({ partners, pressMentions, events }: PartnersMan
     if (res.success) {
       setShowPartnerModal(false);
       setPartnerForm({ name: "", logo: "", website: "", type: "partner", eventId: "", isActive: true });
+      setToast({ message: "Partner created successfully", type: "success" });
       router.refresh();
     } else {
-      alert(res.error || "Failed to create partner");
+      setToast({ message: res.error || "Failed to create partner", type: "error" });
     }
   }
 
@@ -94,9 +97,10 @@ export function PartnersManager({ partners, pressMentions, events }: PartnersMan
     if (res.success) {
       setShowPressModal(false);
       setPressForm({ title: "", publication: "", url: "", excerpt: "", isPublished: true });
+      setToast({ message: "Press mention created successfully", type: "success" });
       router.refresh();
     } else {
-      alert(res.error || "Failed to create press mention");
+      setToast({ message: res.error || "Failed to create press mention", type: "error" });
     }
   }
 
@@ -194,13 +198,14 @@ export function PartnersManager({ partners, pressMentions, events }: PartnersMan
                       try {
                         const res = await togglePartnerActive(p.id, !p.isActive);
                         if (!res.success) {
-                          alert(res.error || "Failed to update partner status");
+                          setToast({ message: res.error || "Failed to update partner status", type: "error" });
                           setPartnerList(partners);
                         } else {
+                          setToast({ message: !p.isActive ? "Partner enabled" : "Partner disabled", type: "success" });
                           router.refresh();
                         }
                       } catch (err: any) {
-                        alert(err?.message || "Failed to update partner status");
+                        setToast({ message: err?.message || "Failed to update partner status", type: "error" });
                         setPartnerList(partners);
                       }
                     }}
@@ -210,19 +215,24 @@ export function PartnersManager({ partners, pressMentions, events }: PartnersMan
                   </button>
                   <button
                     onClick={async () => {
-                      if (!confirm("Delete this partner?")) return;
                       const prevList = partnerList;
                       setPartnerList((prev) => prev.filter((item) => item.id !== p.id));
+                      setToast({
+                        message: "Partner deleted",
+                        type: "success",
+                        actionLabel: "Undo",
+                        onAction: () => setPartnerList(prevList),
+                      });
                       try {
                         const res = await deletePartner(p.id);
                         if (!res.success) {
-                          alert(res.error || "Failed to delete partner");
+                          setToast({ message: res.error || "Failed to delete partner", type: "error" });
                           setPartnerList(prevList);
                         } else {
                           router.refresh();
                         }
                       } catch (err: any) {
-                        alert(err?.message || "Failed to delete partner");
+                        setToast({ message: err?.message || "Failed to delete partner", type: "error" });
                         setPartnerList(prevList);
                       }
                     }}
@@ -270,13 +280,14 @@ export function PartnersManager({ partners, pressMentions, events }: PartnersMan
                       try {
                         const res = await togglePressPublish(pm.id, !pm.isPublished);
                         if (!res.success) {
-                          alert(res.error || "Failed to update press mention status");
+                          setToast({ message: res.error || "Failed to update press mention status", type: "error" });
                           setPressList(pressMentions);
                         } else {
+                          setToast({ message: !pm.isPublished ? "Press mention published" : "Press mention hidden", type: "success" });
                           router.refresh();
                         }
                       } catch (err: any) {
-                        alert(err?.message || "Failed to update press mention status");
+                        setToast({ message: err?.message || "Failed to update press mention status", type: "error" });
                         setPressList(pressMentions);
                       }
                     }}
@@ -286,19 +297,24 @@ export function PartnersManager({ partners, pressMentions, events }: PartnersMan
                   </button>
                   <button
                     onClick={async () => {
-                      if (!confirm("Delete this press mention?")) return;
                       const prevList = pressList;
                       setPressList((prev) => prev.filter((item) => item.id !== pm.id));
+                      setToast({
+                        message: "Press mention deleted",
+                        type: "success",
+                        actionLabel: "Undo",
+                        onAction: () => setPressList(prevList),
+                      });
                       try {
                         const res = await deletePressMention(pm.id);
                         if (!res.success) {
-                          alert(res.error || "Failed to delete press mention");
+                          setToast({ message: res.error || "Failed to delete press mention", type: "error" });
                           setPressList(prevList);
                         } else {
                           router.refresh();
                         }
                       } catch (err: any) {
-                        alert(err?.message || "Failed to delete press mention");
+                        setToast({ message: err?.message || "Failed to delete press mention", type: "error" });
                         setPressList(prevList);
                       }
                     }}
@@ -490,6 +506,9 @@ export function PartnersManager({ partners, pressMentions, events }: PartnersMan
           </div>
         </div>
       )}
+
+      {/* Toast Notification Overlay */}
+      <ToastNotification toast={toast} onClose={() => setToast(null)} />
     </div>
   );
 }

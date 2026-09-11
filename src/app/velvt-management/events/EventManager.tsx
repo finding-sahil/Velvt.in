@@ -15,6 +15,7 @@ import {
 import { StatusBadge } from "@/components/ui/StatusBadge";
 import { formatDateShort, formatPrice } from "@/lib/utils";
 import { ImageUploader } from "@/components/ui/ImageUploader";
+import { ToastNotification, ToastMessage } from "@/components/ui/ToastNotification";
 
 interface EventManagerProps {
   events: any[];
@@ -28,6 +29,7 @@ export function EventManager({ events }: EventManagerProps) {
   const [managingTicketsFor, setManagingTicketsFor] = useState<any | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [toast, setToast] = useState<ToastMessage | null>(null);
 
   useEffect(() => {
     setEventList(events);
@@ -165,40 +167,51 @@ export function EventManager({ events }: EventManagerProps) {
   }
 
   async function handleArchive(eventId: string) {
-    if (!confirm("Are you sure you want to archive this event?")) return;
+    // Instant optimistic update (0ms)
     setEventList((prev) =>
       prev.map((e) => (e.id === eventId ? { ...e, status: "archived" } : e))
     );
+    setToast({ message: "Event marked as archived", type: "info" });
+
     try {
       const res = await archiveEvent(eventId);
       if (!res.success) {
-        alert(res.error || "Failed to archive event");
+        setToast({ message: res.error || "Failed to archive event", type: "error" });
         setEventList(events);
       } else {
         router.refresh();
       }
     } catch (err: any) {
-      alert(err?.message || "Failed to archive event");
+      setToast({ message: err?.message || "Failed to archive event", type: "error" });
       setEventList(events);
     }
   }
 
   async function handleDelete(eventId: string) {
-    if (!confirm("Permanently delete this event and its ticket tiers?")) return;
-    // Instant optimistic deletion from UI
+    // Instant optimistic deletion from UI (0ms)
     const prevEvents = eventList;
     setEventList((prev) => prev.filter((e) => e.id !== eventId));
+
+    // Bottom notification overlay (no popups)
+    setToast({
+      message: "Event and ticket tiers deleted",
+      type: "success",
+      actionLabel: "Undo",
+      onAction: () => {
+        setEventList(prevEvents);
+      },
+    });
 
     try {
       const res = await deleteEvent(eventId);
       if (!res.success) {
-        alert(res.error || "Failed to delete event");
+        setToast({ message: res.error || "Failed to delete event", type: "error" });
         setEventList(prevEvents); // revert on failure
       } else {
         router.refresh();
       }
     } catch (err: any) {
-      alert(err?.message || "Failed to delete event");
+      setToast({ message: err?.message || "Failed to delete event", type: "error" });
       setEventList(prevEvents);
     }
   }
@@ -247,9 +260,10 @@ export function EventManager({ events }: EventManagerProps) {
             : e
         )
       );
+      setToast({ message: `Ticket tier "${newTicket.name}" added`, type: "success" });
       router.refresh();
     } else {
-      alert(res.error || "Failed to add ticket tier");
+      setToast({ message: res.error || "Failed to add ticket tier", type: "error" });
     }
   }
 
@@ -277,19 +291,21 @@ export function EventManager({ events }: EventManagerProps) {
           : e
       )
     );
+    setToast({
+      message: !current ? "Ticket tier activated" : "Ticket tier disabled",
+      type: "info",
+    });
 
     try {
       await toggleTicketType(ticketId, !current);
       router.refresh();
     } catch (err: any) {
-      alert(err?.message || "Failed to update ticket tier");
+      setToast({ message: err?.message || "Failed to update ticket tier", type: "error" });
     }
   }
 
   async function handleDeleteTicket(ticketId: string) {
-    if (!confirm("Delete this ticket tier?")) return;
-
-    // Instant optimistic UI update
+    // Instant optimistic UI update (0ms, no popups)
     setManagingTicketsFor((prev: any) =>
       prev
         ? {
@@ -309,14 +325,16 @@ export function EventManager({ events }: EventManagerProps) {
       )
     );
 
+    setToast({ message: "Ticket tier deleted", type: "success" });
+
     try {
       const res = await deleteTicketType(ticketId);
       if (!res.success) {
-        alert(res.error || "Failed to delete ticket tier");
+        setToast({ message: res.error || "Failed to delete ticket tier", type: "error" });
       }
       router.refresh();
     } catch (err: any) {
-      alert(err?.message || "Failed to delete ticket tier");
+      setToast({ message: err?.message || "Failed to delete ticket tier", type: "error" });
     }
   }
 
@@ -1047,6 +1065,9 @@ export function EventManager({ events }: EventManagerProps) {
           </div>
         </div>
       )}
+
+      {/* Toast Notification Overlay */}
+      <ToastNotification toast={toast} onClose={() => setToast(null)} />
     </div>
   );
 }

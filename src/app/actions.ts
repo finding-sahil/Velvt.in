@@ -981,6 +981,89 @@ export async function deleteGalleryItem(id: string) {
   }
 }
 
+export async function bulkDeleteGalleryItems(ids: string[]) {
+  try {
+    await requireAdmin();
+    if (!ids || ids.length === 0) return { success: true, count: 0 };
+
+    const res = await prisma.galleryItem.deleteMany({
+      where: { id: { in: ids } },
+    });
+
+    revalidatePath("/");
+    revalidatePath("/gallery");
+    revalidatePath("/velvt-management/gallery");
+    return { success: true, count: res.count };
+  } catch (error: any) {
+    console.error("Bulk delete gallery items error:", error);
+    return { success: false, error: error?.message || "Failed to delete selected items." };
+  }
+}
+
+export async function bulkUpdateGalleryItems(
+  ids: string[],
+  updates: { year?: number; eventId?: string | null; isPublished?: boolean }
+) {
+  try {
+    await requireAdmin();
+    if (!ids || ids.length === 0) return { success: true, count: 0 };
+
+    const data: any = {};
+    if (updates.year !== undefined) data.year = updates.year;
+    if (updates.eventId !== undefined) data.eventId = updates.eventId || null;
+    if (updates.isPublished !== undefined) data.isPublished = updates.isPublished;
+
+    const res = await prisma.galleryItem.updateMany({
+      where: { id: { in: ids } },
+      data,
+    });
+
+    revalidatePath("/");
+    revalidatePath("/gallery");
+    revalidatePath("/velvt-management/gallery");
+    return { success: true, count: res.count };
+  } catch (error: any) {
+    console.error("Bulk update gallery items error:", error);
+    return { success: false, error: error?.message || "Failed to update selected items." };
+  }
+}
+
+export async function bulkCreateGalleryItems(
+  items: Array<{
+    url: string;
+    caption?: string | null;
+    type?: string;
+    year?: number;
+    eventId?: string | null;
+    isPublished?: boolean;
+  }>
+) {
+  try {
+    await requireAdmin();
+    if (!items || items.length === 0) return { success: true, count: 0 };
+
+    const created = await prisma.galleryItem.createMany({
+      data: items.map((it, idx) => ({
+        url: it.url,
+        caption: it.caption || null,
+        type: it.type || "image",
+        year: it.year || new Date().getFullYear(),
+        eventId: it.eventId || null,
+        displayOrder: idx,
+        isPublished: it.isPublished !== false,
+      })),
+    });
+
+    revalidatePath("/");
+    revalidatePath("/gallery");
+    revalidatePath("/velvt-management/gallery");
+    return { success: true, count: created.count };
+  } catch (error: any) {
+    console.error("Bulk create gallery items error:", error);
+    return { success: false, error: error?.message || "Failed to add media items." };
+  }
+}
+
 // ─── Admin: Partners & Sponsors ───────────────────────────────────────────────
 
 export async function createPartner(formData: FormData) {

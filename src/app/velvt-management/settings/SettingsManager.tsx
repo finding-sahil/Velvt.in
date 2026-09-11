@@ -4,6 +4,7 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { updateSiteSettings, changeAdminPassword } from "@/app/actions";
 import { defaultPillars, ExperienceHighlightItem } from "@/app/sections/HalloweenExperienceSection";
+import { ToastNotification, ToastState } from "@/components/ui/ToastNotification";
 
 interface SettingsManagerProps {
   settings: Record<string, string>;
@@ -16,6 +17,7 @@ export function SettingsManager({ settings, events }: SettingsManagerProps) {
   const router = useRouter();
   const [loading, setLoading] = useState(false);
   const [saved, setSaved] = useState(false);
+  const [toast, setToast] = useState<ToastState | null>(null);
   const [activeTab, setActiveTab] = useState<"highlights" | "hero" | "story" | "socials" | "event_cta" | "security">("highlights");
 
   // Security / Password Change State
@@ -101,7 +103,7 @@ export function SettingsManager({ settings, events }: SettingsManagerProps) {
 
   function removeHighlight(index: number) {
     if (highlights.length <= 1) {
-      alert("You must keep at least 1 highlight card.");
+      setToast({ message: "You must keep at least 1 highlight card", type: "error" });
       return;
     }
     setHighlights(highlights.filter((_, i) => i !== index));
@@ -131,10 +133,11 @@ export function SettingsManager({ settings, events }: SettingsManagerProps) {
 
     if (res.success) {
       setSaved(true);
+      setToast({ message: "Site settings saved & live site revalidated", type: "success" });
       setTimeout(() => setSaved(false), 4000);
       router.refresh();
     } else {
-      alert("Failed to update settings: " + (res.error || "Unknown error"));
+      setToast({ message: "Failed to update settings: " + (res.error || "Unknown error"), type: "error" });
     }
   }
 
@@ -886,6 +889,9 @@ export function SettingsManager({ settings, events }: SettingsManagerProps) {
           </button>
         </div>
       </form>
+
+      {/* Toast Notification Overlay */}
+      <ToastNotification toast={toast} onClose={() => setToast(null)} />
     </div>
   );
 }

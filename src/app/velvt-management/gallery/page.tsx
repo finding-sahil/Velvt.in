@@ -15,10 +15,10 @@ export default async function AdminGalleryPage() {
   const [items, events] = await Promise.all([
     prisma.galleryItem.findMany({
       orderBy: { createdAt: "desc" },
-      include: { event: { select: { id: true, name: true } } },
+      include: { event: { select: { id: true, name: true, date: true, status: true } } },
     }),
     prisma.event.findMany({
-      select: { id: true, name: true },
+      select: { id: true, name: true, date: true, status: true },
       orderBy: { date: "desc" },
     }),
   ]);

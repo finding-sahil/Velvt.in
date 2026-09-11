@@ -29,17 +29,25 @@ const CATEGORIES = [
 ];
 
 export function InteractiveGallery({ items }: InteractiveGalleryProps) {
+  const [selectedTimeline, setSelectedTimeline] = useState<string>("current");
   const [activeCategory, setActiveCategory] = useState("all");
   const [searchQuery, setSearchQuery] = useState("");
   const [visibleCount, setVisibleCount] = useState(24);
   const [lightboxIndex, setLightboxIndex] = useState<number | null>(null);
 
-  // Filter items based on category and search query
+  // Filter items based on timeline, category and search query
   const filteredItems = useMemo(() => {
     return items.filter((item) => {
       const caption = (item.caption || "").toLowerCase();
       const url = item.url.toLowerCase();
       const eventName = (item.event?.name || "").toLowerCase();
+
+      // Timeline filter (default: current timeline, e.g. 2026)
+      if (selectedTimeline === "current") {
+        if (item.year && item.year !== 2026) return false;
+      } else if (selectedTimeline !== "all") {
+        if (String(item.year) !== selectedTimeline) return false;
+      }
 
       // Category filter
       let matchesCategory = true;
@@ -78,12 +86,12 @@ export function InteractiveGallery({ items }: InteractiveGalleryProps) {
 
       return matchesCategory && matchesSearch;
     });
-  }, [items, activeCategory, searchQuery]);
+  }, [items, selectedTimeline, activeCategory, searchQuery]);
 
   // Reset pagination when filter changes
   useEffect(() => {
     setVisibleCount(24);
-  }, [activeCategory, searchQuery]);
+  }, [selectedTimeline, activeCategory, searchQuery]);
 
   // Lightbox keyboard navigation
   const handleKeyDown = useCallback(
@@ -122,7 +130,49 @@ export function InteractiveGallery({ items }: InteractiveGalleryProps) {
     lightboxIndex !== null ? filteredItems[lightboxIndex] : null;
 
   return (
-    <div className="space-y-10">
+    <div className="space-y-8">
+      {/* ─── Timeline Archive Filter (Default: Current Timeline) ─── */}
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-white/[0.02] border border-white/[0.08] p-3 rounded-2xl">
+        <div className="flex items-center gap-2">
+          <span className="text-[11px] font-mono text-muted uppercase tracking-widest flex items-center gap-1.5">
+            <span className="w-2 h-2 rounded-full bg-primary animate-pulse" />
+            Timeline Archive:
+          </span>
+        </div>
+        <div className="flex flex-wrap items-center gap-1.5 p-1 bg-black/40 rounded-xl border border-white/10">
+          <button
+            onClick={() => setSelectedTimeline("current")}
+            className={`px-3.5 py-1.5 rounded-lg text-xs font-mono uppercase tracking-wider transition-all cursor-pointer ${
+              selectedTimeline === "current"
+                ? "bg-primary text-white font-bold shadow-[0_0_15px_rgba(200,16,46,0.35)]"
+                : "text-white/70 hover:text-white hover:bg-white/[0.05]"
+            }`}
+          >
+            ● Current Timeline (2026)
+          </button>
+          <button
+            onClick={() => setSelectedTimeline("2025")}
+            className={`px-3.5 py-1.5 rounded-lg text-xs font-mono uppercase tracking-wider transition-all cursor-pointer ${
+              selectedTimeline === "2025"
+                ? "bg-primary text-white font-bold shadow-[0_0_15px_rgba(200,16,46,0.35)]"
+                : "text-white/70 hover:text-white hover:bg-white/[0.05]"
+            }`}
+          >
+            2025 Archive
+          </button>
+          <button
+            onClick={() => setSelectedTimeline("all")}
+            className={`px-3.5 py-1.5 rounded-lg text-xs font-mono uppercase tracking-wider transition-all cursor-pointer ${
+              selectedTimeline === "all"
+                ? "bg-primary text-white font-bold shadow-[0_0_15px_rgba(200,16,46,0.35)]"
+                : "text-white/70 hover:text-white hover:bg-white/[0.05]"
+            }`}
+          >
+            All Archives
+          </button>
+        </div>
+      </div>
+
       {/* ─── Filter & Search Controls ─── */}
       <div className="flex flex-col md:flex-row gap-4 items-stretch md:items-center justify-between border-b border-white/10 pb-6">
         {/* Category Pills */}
@@ -183,7 +233,7 @@ export function InteractiveGallery({ items }: InteractiveGalleryProps) {
         <span>
           Showing {Math.min(visibleCount, filteredItems.length)} of {filteredItems.length} Visuals
         </span>
-        <span className="text-primary font-bold">98 Master WebP Assets</span>
+        <span className="text-primary font-bold">{items.length} Master WebP Assets</span>
       </div>
 
       {/* ─── Visual Grid ─── */}
@@ -192,10 +242,11 @@ export function InteractiveGallery({ items }: InteractiveGalleryProps) {
           <p className="text-white/60 font-mono text-sm">No captures matched your filter.</p>
           <button
             onClick={() => {
+              setSelectedTimeline("current");
               setActiveCategory("all");
               setSearchQuery("");
             }}
-            className="mt-4 text-xs font-mono text-primary underline underline-offset-4"
+            className="mt-4 text-xs font-mono text-primary underline underline-offset-4 cursor-pointer"
           >
             Reset Filters
           </button>

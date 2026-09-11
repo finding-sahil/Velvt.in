@@ -77,7 +77,6 @@ export function VolunteerActions({
   }
 
   async function handleVerify() {
-    if (!confirm("Mark this credential as officially verified for live event operations?")) return;
     setLoading(true);
     await verifyVolunteer(id);
     setLoading(false);
@@ -85,7 +84,6 @@ export function VolunteerActions({
   }
 
   async function handleRevoke() {
-    if (!confirm("Revoke this credential? The credential status will immediately show 'REVOKED' on public verification.")) return;
     setLoading(true);
     await revokeVolunteer(id);
     setLoading(false);
