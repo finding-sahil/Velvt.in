@@ -6,6 +6,7 @@ import { writeFile, mkdir } from "fs/promises";
 import { existsSync } from "fs";
 import path from "path";
 import { cookies } from "next/headers";
+import sharp from "sharp";
 import { checkRateLimit, RATE_LIMITS } from "@/lib/rate-limit";
 
 // File magic bytes for validation
@@ -93,10 +94,10 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    // Validate size: 5MB for admin, 2MB for volunteer badge
-    const MAX_SIZE = isAdmin ? 5 * 1024 * 1024 : 2 * 1024 * 1024;
+    // Validate size: 10MB raw limit (sharp will compress it down significantly)
+    const MAX_SIZE = isAdmin ? 10 * 1024 * 1024 : 5 * 1024 * 1024;
     if (file.size > MAX_SIZE) {
-      const maxMb = isAdmin ? "5MB" : "2MB";
+      const maxMb = isAdmin ? "10MB" : "5MB";
       return NextResponse.json(
         { success: false, error: `File size exceeds ${maxMb} limit.` },
         { status: 400 }
@@ -120,23 +121,26 @@ export async function POST(req: NextRequest) {
       await mkdir(uploadsDir, { recursive: true });
     }
 
-    // Generate clean unique filename — aggressive sanitization + path traversal protection
-    const ext = path.extname(file.name).toLowerCase().replace(/[^a-z.]/g, "") || ".jpg";
-    const allowedExts = [".jpg", ".jpeg", ".png", ".webp", ".gif"];
-    if (!allowedExts.includes(ext)) {
-      return NextResponse.json(
-        { success: false, error: "Invalid file extension." },
-        { status: 400 }
-      );
-    }
+    // ─── WebP Conversion & Compression Pipeline ───────────────────────────
+    // Downscale oversized images while preserving retina clarity (1920px max for admin, 1000px for badge)
+    const maxDimension = isVolunteerBadge ? 1000 : 1920;
+    const webpBuffer = await sharp(buffer)
+      .rotate() // Auto-orient phone camera photos via EXIF
+      .resize(maxDimension, maxDimension, {
+        fit: "inside",
+        withoutEnlargement: true,
+      })
+      .webp({ quality: 82, effort: 4 })
+      .toBuffer();
 
+    // Generate clean unique filename with .webp extension
     const cleanBase = path
       .basename(file.name, path.extname(file.name))
       .replace(/[^a-zA-Z0-9_-]/g, "_")
       .replace(/_{2,}/g, "_")
       .slice(0, 30);
     const uniqueSuffix = `${Date.now()}-${crypto.randomUUID().slice(0, 8)}`;
-    const filename = `${cleanBase}-${uniqueSuffix}${ext}`;
+    const filename = `${cleanBase}-${uniqueSuffix}.webp`;
 
     // Path traversal protection — ensure final path is within uploads dir
     const filePath = path.resolve(uploadsDir, filename);
@@ -147,7 +151,7 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    await writeFile(filePath, buffer);
+    await writeFile(filePath, webpBuffer);
 
     const publicUrl = `/uploads/${filename}`;
 
@@ -155,11 +159,14 @@ export async function POST(req: NextRequest) {
       success: true,
       url: publicUrl,
       filename,
+      originalSize: file.size,
+      compressedSize: webpBuffer.length,
+      format: "webp",
     });
-  } catch {
-    console.error("Upload error occurred");
+  } catch (error) {
+    console.error("Upload error occurred:", error);
     return NextResponse.json(
-      { success: false, error: "Failed to process upload." },
+      { success: false, error: "Failed to process and optimize image upload." },
       { status: 500 }
     );
   }

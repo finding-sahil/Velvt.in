@@ -11,6 +11,15 @@ const securityHeaders = [
 const nextConfig: NextConfig = {
   poweredByHeader: false,
   productionBrowserSourceMaps: false,
+  async redirects() {
+    return [
+      {
+        source: "/archive",
+        destination: "/gallery",
+        permanent: true,
+      },
+    ];
+  },
   async headers() {
     return [
       {

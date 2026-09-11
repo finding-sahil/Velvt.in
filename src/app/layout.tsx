@@ -39,6 +39,15 @@ export const metadata: Metadata = {
     card: "summary_large_image",
     title: "VELVT — It starts as a thought, ends as a memory",
   },
+  icons: {
+    icon: [
+      { url: "/icon.png", sizes: "512x512", type: "image/png" },
+      { url: "/favicon.ico", sizes: "32x32" },
+    ],
+    apple: [
+      { url: "/apple-touch-icon.png", sizes: "180x180", type: "image/png" },
+    ],
+  },
 };
 
 export default function RootLayout({
