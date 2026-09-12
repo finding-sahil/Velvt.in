@@ -18,10 +18,49 @@ export function HalloweenAtmosphere() {
   const pathname = usePathname();
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
   const isAdmin = pathname?.startsWith("/velvt-management");
-  const [isActive, setIsActive] = useState(!isAdmin);
+  const [currentTheme, setCurrentTheme] = useState<string>("legacy");
+
+  // Track active theme dynamically from html[data-theme] and events
+  useEffect(() => {
+    const updateTheme = () => {
+      const themeAttr = document.documentElement.getAttribute("data-theme") || "legacy";
+      setCurrentTheme(themeAttr);
+    };
+
+    updateTheme();
+
+    const handleThemeChange = (e: Event) => {
+      const customEvent = e as CustomEvent<string>;
+      if (customEvent.detail) {
+        setCurrentTheme(customEvent.detail);
+      } else {
+        updateTheme();
+      }
+    };
+
+    window.addEventListener("velvt-theme-change", handleThemeChange);
+
+    // MutationObserver to watch html[data-theme] changes
+    const observer = new MutationObserver((mutations) => {
+      for (const mutation of mutations) {
+        if (mutation.type === "attributes" && mutation.attributeName === "data-theme") {
+          updateTheme();
+        }
+      }
+    });
+
+    observer.observe(document.documentElement, { attributes: true });
+
+    return () => {
+      window.removeEventListener("velvt-theme-change", handleThemeChange);
+      observer.disconnect();
+    };
+  }, []);
+
+  const isHalloweenActive = !isAdmin && currentTheme !== "legacy";
 
   useEffect(() => {
-    if (!isActive) return;
+    if (!isHalloweenActive) return;
 
     const canvas = canvasRef.current;
     if (!canvas) return;
@@ -45,26 +84,51 @@ export function HalloweenAtmosphere() {
 
     window.addEventListener("resize", handleResize);
 
-    // Warm embers & spectral crimson sparks
-    const colors = [
-      "rgba(255, 107, 53,",   // Burnt pumpkin
-      "rgba(229, 169, 60,",   // Candleglow amber
-      "rgba(184, 29, 46,",    // Blood velvt
-      "rgba(255, 140, 66,",   // Jack-o'-lantern flare
+    // Palette dynamically adapts to the current theme
+    let colors = [
+      "rgba(220, 38, 38,",   // Crimson
+      "rgba(180, 20, 30,",   // Dark arterial
+      "rgba(255, 60, 60,",   // Spark
     ];
 
-    const particleCount = Math.min(28, Math.floor(width / 45));
+    if (currentTheme === "halloween_pumpkin") {
+      colors = [
+        "rgba(255, 107, 0,",   // Burnt pumpkin
+        "rgba(245, 158, 11,",  // Candleglow amber
+        "rgba(234, 88, 12,",   // Harvest flame
+      ];
+    } else if (currentTheme === "phantom_ghost") {
+      colors = [
+        "rgba(0, 255, 157,",   // Spectral neon
+        "rgba(6, 182, 212,",   // Cyan ectoplasm
+        "rgba(16, 185, 129,",  // Emerald mist
+      ];
+    } else if (currentTheme === "witch_coven") {
+      colors = [
+        "rgba(168, 85, 247,",  // Poison violet
+        "rgba(192, 132, 252,", // Amethyst flame
+        "rgba(126, 34, 206,",  // Occult purple
+      ];
+    } else if (currentTheme === "halloween_mix") {
+      colors = [
+        "rgba(220, 38, 38,",
+        "rgba(245, 158, 11,",
+        "rgba(168, 85, 247,",
+      ];
+    }
+
+    const particleCount = Math.min(24, Math.floor(width / 55));
     const particles: Particle[] = [];
 
     function createParticle(resetToBottom = false): Particle {
       return {
         x: Math.random() * width,
         y: resetToBottom ? height + Math.random() * 20 : Math.random() * height,
-        size: Math.random() * 2.2 + 0.8,
-        speedY: -(Math.random() * 0.7 + 0.3),
-        speedX: (Math.random() - 0.5) * 0.5,
-        opacity: Math.random() * 0.7 + 0.2,
-        fadeSpeed: Math.random() * 0.006 + 0.002,
+        size: Math.random() * 2.0 + 0.6,
+        speedY: -(Math.random() * 0.5 + 0.25),
+        speedX: (Math.random() - 0.5) * 0.4,
+        opacity: Math.random() * 0.6 + 0.15,
+        fadeSpeed: Math.random() * 0.005 + 0.002,
         color: colors[Math.floor(Math.random() * colors.length)],
       };
     }
@@ -86,7 +150,7 @@ export function HalloweenAtmosphere() {
         for (let i = 0; i < particles.length; i++) {
           const p = particles[i];
           p.y += p.speedY;
-          p.x += p.speedX + Math.sin(p.y * 0.01) * 0.2;
+          p.x += p.speedX + Math.sin(p.y * 0.008) * 0.25;
           p.opacity -= p.fadeSpeed;
 
           if (p.opacity <= 0 || p.y < -10) {
@@ -111,15 +175,64 @@ export function HalloweenAtmosphere() {
       document.removeEventListener("visibilitychange", handleVisibilityChange);
       cancelAnimationFrame(animationFrameId);
     };
-  }, [isActive]);
+  }, [isHalloweenActive, currentTheme]);
 
-  if (isAdmin || !isActive) return null;
+  // Strictly return null for legacy or admin (100% untouched VELVT)
+  if (!isHalloweenActive) return null;
 
   return (
-    <canvas
-      ref={canvasRef}
-      aria-hidden="true"
-      className="fixed inset-0 pointer-events-none z-[1] opacity-40 transition-opacity duration-1000"
-    />
+    <>
+      {/* Editorial Floating Atmospheric Particles */}
+      <canvas
+        ref={canvasRef}
+        aria-hidden="true"
+        className="fixed inset-0 pointer-events-none z-[2] opacity-50 transition-opacity duration-700"
+      />
+
+      {/* Hairline Editorial Gothic Corner Cobwebs (Top Left & Top Right) */}
+      <div
+        className="editorial-corner-web fixed top-0 left-0 w-36 h-36 sm:w-48 sm:h-48 pointer-events-none z-[3]"
+        aria-hidden="true"
+      >
+        <svg
+          viewBox="0 0 100 100"
+          className="w-full h-full text-white fill-none stroke-current opacity-30 drop-shadow-[0_0_8px_rgba(0,0,0,0.8)]"
+          style={{ strokeWidth: "0.55" }}
+        >
+          {/* Main radial anchor lines */}
+          <line x1="0" y1="0" x2="100" y2="0" />
+          <line x1="0" y1="0" x2="92" y2="38" />
+          <line x1="0" y1="0" x2="70" y2="70" />
+          <line x1="0" y1="0" x2="38" y2="92" />
+          <line x1="0" y1="0" x2="0" y2="100" />
+          {/* Concentric curved connecting threads */}
+          <path d="M 22 0 Q 20 8 18 18 Q 8 20 0 22" />
+          <path d="M 44 0 Q 40 16 34 34 Q 16 40 0 44" />
+          <path d="M 68 0 Q 60 25 50 50 Q 25 60 0 68" />
+          <path d="M 94 0 Q 82 35 68 68 Q 35 82 0 94" />
+        </svg>
+      </div>
+
+      <div
+        className="editorial-corner-web fixed top-0 right-0 w-36 h-36 sm:w-48 sm:h-48 pointer-events-none z-[3] -scale-x-100"
+        aria-hidden="true"
+      >
+        <svg
+          viewBox="0 0 100 100"
+          className="w-full h-full text-white fill-none stroke-current opacity-30 drop-shadow-[0_0_8px_rgba(0,0,0,0.8)]"
+          style={{ strokeWidth: "0.55" }}
+        >
+          <line x1="0" y1="0" x2="100" y2="0" />
+          <line x1="0" y1="0" x2="92" y2="38" />
+          <line x1="0" y1="0" x2="70" y2="70" />
+          <line x1="0" y1="0" x2="38" y2="92" />
+          <line x1="0" y1="0" x2="0" y2="100" />
+          <path d="M 22 0 Q 20 8 18 18 Q 8 20 0 22" />
+          <path d="M 44 0 Q 40 16 34 34 Q 16 40 0 44" />
+          <path d="M 68 0 Q 60 25 50 50 Q 25 60 0 68" />
+          <path d="M 94 0 Q 82 35 68 68 Q 35 82 0 94" />
+        </svg>
+      </div>
+    </>
   );
 }

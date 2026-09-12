@@ -1312,7 +1312,7 @@ export function EventManager({ events }: EventManagerProps) {
                   <input
                     type="text"
                     required
-                    placeholder="e.g. What is the dress code for Velvet Curse?"
+                    placeholder="e.g. What is the dress code for VELVT Curse?"
                     value={faqForm.question}
                     onChange={(e) => setFaqForm({ ...faqForm, question: e.target.value })}
                     className="w-full bg-black/50 border border-white/10 rounded-lg p-2.5 text-white placeholder:text-g5/40 focus:outline-none focus:border-purple-500 font-sans"

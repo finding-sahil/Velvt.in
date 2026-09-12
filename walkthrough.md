@@ -12,7 +12,7 @@
     - Pre-renders a scannable high-resolution QR code (error correction level `H` for rapid low-light scanning).
     - Saves ticket to PostgreSQL database (`IssuedTicket` model).
 - **Luxury Digital Pass Modal**:
-  - Displays dark velvet pass with gold/crimson accents, attendee name, pass category, serial number, and scannable QR code.
+  - Displays dark velvt pass with gold/crimson accents, attendee name, pass category, serial number, and scannable QR code.
   - Quick action buttons: **Copy Verification Link**, **Download QR Pass Image (PNG)**, and **Test Scan Link**.
 
 ---

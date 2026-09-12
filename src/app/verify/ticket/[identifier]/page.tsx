@@ -13,8 +13,8 @@ interface PageProps {
 export async function generateMetadata({ params }: PageProps): Promise<Metadata> {
   const { identifier } = await params;
   return {
-    title: `Ticket Pass Verification | VELVET`,
-    description: `Official digital pass and ticket verification for VELVET events.`,
+    title: `Ticket Pass Verification | VELVT`,
+    description: `Official digital pass and ticket verification for VELVT events.`,
     robots: {
       index: false,
       follow: false,

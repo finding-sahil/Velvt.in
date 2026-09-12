@@ -146,7 +146,7 @@ export function TicketVerifier({
         </div>
 
         <p className="text-xs text-g5 mt-4">
-          This ticket has been revoked by VELVET management. Do not admit holder.
+          This ticket has been revoked by VELVT management. Do not admit holder.
         </p>
       </div>
     );
@@ -306,10 +306,10 @@ export function TicketVerifier({
             <div className="p-4 rounded-xl bg-white/[0.04] border border-white/[0.1] text-center space-y-2">
               <div className="text-xs font-mono text-emerald-400 font-bold uppercase tracking-wider flex items-center justify-center gap-1.5">
                 <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
-                <span>Official VELVET Digital Pass</span>
+                <span>Official VELVT Digital Pass</span>
               </div>
               <p className="text-[11px] text-g4 font-mono leading-relaxed">
-                Present this pass at the gate. Admission must be scanned and authorized by official VELVET Gate Staff.
+                Present this pass at the gate. Admission must be scanned and authorized by official VELVT Gate Staff.
               </p>
               <div className="pt-2 border-t border-white/[0.06]">
                 <Link

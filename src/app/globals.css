@@ -67,6 +67,13 @@
   --red-dim: rgba(200, 16, 46, 0.15);
   --red-glow: rgba(200, 16, 46, 0.35);
 
+  --theme-primary: #c8102e;
+  --theme-accent: #c8102e;
+  --theme-glow: rgba(200, 16, 46, 0.35);
+  --theme-glow-soft: rgba(200, 16, 46, 0.08);
+  --theme-bg: #000000;
+  --theme-dot: rgba(255, 255, 255, 0.08);
+
   --glass-bg: rgba(255, 255, 255, 0.05);
   --glass-bg-md: rgba(255, 255, 255, 0.08);
   --glass-bg-hv: rgba(255, 255, 255, 0.11);
@@ -84,6 +91,90 @@
   --radius-pill: 999px;
 }
 
+/* ═══════════════════════════════════════════════════════════════════════════════
+   THEME DEFINITIONS (Adaptive Editorial System)
+   ═══════════════════════════════════════════════════════════════════════════════ */
+
+/* 1. LEGACY VELVT (Untouched Signature: #000000 bg · #c8102e crimson · clean) */
+html[data-theme="legacy"] {
+  --theme-primary: #c8102e;
+  --theme-accent: #c8102e;
+  --theme-glow: rgba(200, 16, 46, 0.35);
+  --theme-glow-soft: rgba(200, 16, 46, 0.08);
+  --theme-bg: #000000;
+  --theme-dot: rgba(255, 255, 255, 0.08);
+  --red: #c8102e;
+  --red-dim: rgba(200, 16, 46, 0.15);
+  --red-glow: rgba(200, 16, 46, 0.35);
+}
+
+/* 2. BLOOD MOON / VAMPIRE CURSE (Visceral Arterial Crimson: #050406 bg · #dc2626) */
+html[data-theme="blood_moon"],
+html[data-theme="curse"],
+html[data-theme="halloween"] {
+  --theme-primary: #dc2626;
+  --theme-accent: #dc2626;
+  --theme-glow: rgba(220, 38, 38, 0.45);
+  --theme-glow-soft: rgba(220, 38, 38, 0.12);
+  --theme-bg: #050406;
+  --theme-dot: rgba(220, 38, 38, 0.22);
+  --red: #dc2626;
+  --red-dim: rgba(220, 38, 38, 0.2);
+  --red-glow: rgba(220, 38, 38, 0.5);
+}
+
+/* 3. WICKED PUMPKIN (Harvest Twilight / Amber Embers: #070402 bg · #ff6b00) */
+html[data-theme="halloween_pumpkin"] {
+  --theme-primary: #ff6b00;
+  --theme-accent: #ff6b00;
+  --theme-glow: rgba(255, 107, 0, 0.45);
+  --theme-glow-soft: rgba(255, 107, 0, 0.12);
+  --theme-bg: #070402;
+  --theme-dot: rgba(255, 107, 0, 0.22);
+  --red: #ff6b00;
+  --red-dim: rgba(255, 107, 0, 0.2);
+  --red-glow: rgba(255, 107, 0, 0.5);
+}
+
+/* 4. PHANTOM GHOST (Spectral Crypt / Ectoplasm Cyan: #020705 bg · #00ff9d) */
+html[data-theme="phantom_ghost"] {
+  --theme-primary: #00ff9d;
+  --theme-accent: #00ff9d;
+  --theme-glow: rgba(0, 255, 157, 0.4);
+  --theme-glow-soft: rgba(0, 255, 157, 0.1);
+  --theme-bg: #020705;
+  --theme-dot: rgba(0, 255, 157, 0.18);
+  --red: #00ff9d;
+  --red-dim: rgba(0, 255, 157, 0.16);
+  --red-glow: rgba(0, 255, 157, 0.45);
+}
+
+/* 5. WITCH COVEN (Poison Sorcery / Midnight Amethyst: #07030c bg · #a855f7) */
+html[data-theme="witch_coven"] {
+  --theme-primary: #a855f7;
+  --theme-accent: #a855f7;
+  --theme-glow: rgba(168, 85, 247, 0.45);
+  --theme-glow-soft: rgba(168, 85, 247, 0.12);
+  --theme-bg: #07030c;
+  --theme-dot: rgba(168, 85, 247, 0.22);
+  --red: #a855f7;
+  --red-dim: rgba(168, 85, 247, 0.2);
+  --red-glow: rgba(168, 85, 247, 0.5);
+}
+
+/* 6. HALLOWEEN MIX (Grand Fusion: #060307 bg · #ea580c) */
+html[data-theme="halloween_mix"] {
+  --theme-primary: #ea580c;
+  --theme-accent: #ea580c;
+  --theme-glow: rgba(234, 88, 12, 0.45);
+  --theme-glow-soft: rgba(234, 88, 12, 0.12);
+  --theme-bg: #060307;
+  --theme-dot: rgba(245, 158, 11, 0.2);
+  --red: #ea580c;
+  --red-dim: rgba(234, 88, 12, 0.2);
+  --red-glow: rgba(234, 88, 12, 0.5);
+}
+
 /* ─── Embedded Text Blood Drips (Active Only in Thematic/Curse Themes, Hidden on Legacy) ─── */
 .text-blood-drips {
   display: none !important;
@@ -91,11 +182,42 @@
 }
 
 html[data-theme="blood_moon"] .text-blood-drips,
+html[data-theme="halloween_pumpkin"] .text-blood-drips,
+html[data-theme="phantom_ghost"] .text-blood-drips,
+html[data-theme="witch_coven"] .text-blood-drips,
+html[data-theme="halloween_mix"] .text-blood-drips,
 html[data-theme="halloween"] .text-blood-drips,
 html[data-theme="curse"] .text-blood-drips {
   display: block !important;
   transform-origin: top center;
   animation: viscous-drip-flow 4.5s ease-in-out infinite alternate;
+}
+
+html[data-theme="legacy"] .text-blood-drips,
+html:not([data-theme]) .text-blood-drips {
+  display: none !important;
+}
+
+/* Theme-adaptive drip color */
+.text-blood-drips svg {
+  fill: currentColor;
+}
+html[data-theme="blood_moon"] .text-blood-drips svg,
+html[data-theme="curse"] .text-blood-drips svg,
+html[data-theme="halloween"] .text-blood-drips svg {
+  color: #880808;
+}
+html[data-theme="halloween_pumpkin"] .text-blood-drips svg {
+  color: #c2410c;
+}
+html[data-theme="phantom_ghost"] .text-blood-drips svg {
+  color: #0d9488;
+}
+html[data-theme="witch_coven"] .text-blood-drips svg {
+  color: #7e22ce;
+}
+html[data-theme="halloween_mix"] .text-blood-drips svg {
+  color: #b45309;
 }
 
 @keyframes viscous-drip-flow {
@@ -108,6 +230,50 @@ html[data-theme="curse"] .text-blood-drips {
   100% {
     transform: scaleY(0.96) scaleX(1);
   }
+}
+
+/* Editorial Horror Distressed Title (Active only in seasonal themes, clean in legacy) */
+.editorial-title-distress {
+  position: relative;
+  display: inline-block;
+}
+
+html:not([data-theme="legacy"]) .editorial-title-distress::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background-image: repeating-linear-gradient(
+    0deg,
+    transparent,
+    transparent 3px,
+    rgba(0, 0, 0, 0.35) 3px,
+    rgba(0, 0, 0, 0.35) 4px
+  );
+  mix-blend-mode: overlay;
+  opacity: 0.65;
+}
+
+html[data-theme="legacy"] .editorial-title-distress::after {
+  display: none !important;
+}
+
+/* Hairline Gothic Editorial Cobweb Corners (Non-intrusive seasonal accent) */
+.editorial-corner-web {
+  display: none;
+  position: absolute;
+  pointer-events: none;
+  z-index: 1;
+  opacity: 0.24;
+  transition: opacity 0.3s ease;
+}
+
+html:not([data-theme="legacy"]) .editorial-corner-web {
+  display: block;
+}
+
+html[data-theme="legacy"] .editorial-corner-web {
+  display: none !important;
 }
 
 /* ─── Reset & Base ───────────────────────────────────────────────────────────── */
@@ -123,7 +289,7 @@ html {
 }
 
 body {
-  background: var(--black);
+  background: var(--theme-bg, var(--black));
   color: var(--white);
   font-family: var(--font-body);
   font-size: 0.95rem;
@@ -131,13 +297,14 @@ body {
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
   overflow-x: hidden;
+  transition: background-color 0.4s ease;
   
-  /* ─ UNTOLDSURI Rich Dot-Grid + Deep Red Ambient Halos over Pure Black ─ */
+  /* Dynamic Atmospheric Ambient Halos & Dot Matrix */
   background-image:
-    radial-gradient(circle at 70% 15%, rgba(200, 16, 46, 0.09) 0%, transparent 55%),
-    radial-gradient(circle at 15% 80%, rgba(200, 16, 46, 0.07) 0%, transparent 45%),
-    radial-gradient(circle at 50% 50%, rgba(130, 20, 35, 0.12) 0%, transparent 70%),
-    radial-gradient(rgba(255, 255, 255, 0.08) 1px, transparent 1px);
+    radial-gradient(circle at 70% 15%, var(--theme-glow-soft, rgba(200, 16, 46, 0.09)) 0%, transparent 55%),
+    radial-gradient(circle at 15% 80%, var(--theme-glow-soft, rgba(200, 16, 46, 0.07)) 0%, transparent 45%),
+    radial-gradient(circle at 50% 50%, var(--theme-glow-soft, rgba(130, 20, 35, 0.12)) 0%, transparent 70%),
+    radial-gradient(var(--theme-dot, rgba(255, 255, 255, 0.08)) 1px, transparent 1px);
   background-size: 100% 100%, 100% 100%, 100% 100%, 28px 28px;
   background-attachment: fixed, fixed, fixed, fixed;
 }

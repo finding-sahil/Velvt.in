@@ -217,7 +217,7 @@ export function TicketManager({ initialTickets, events }: TicketManagerProps) {
     const encodedUri = encodeURI(csvContent);
     const link = document.createElement("a");
     link.setAttribute("href", encodedUri);
-    link.setAttribute("download", `VELVET_Gateman_Guestlist_${new Date().toISOString().split("T")[0]}.csv`);
+    link.setAttribute("download", `VELVT_Gateman_Guestlist_${new Date().toISOString().split("T")[0]}.csv`);
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
@@ -235,7 +235,7 @@ export function TicketManager({ initialTickets, events }: TicketManagerProps) {
       <!DOCTYPE html>
       <html>
       <head>
-        <title>VELVET Door & Gate Check Sheet</title>
+        <title>VELVT Door & Gate Check Sheet</title>
         <style>
           body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; padding: 24px; color: #111; }
           h1 { margin: 0 0 4px 0; font-size: 22px; text-transform: uppercase; letter-spacing: 2px; }
@@ -253,7 +253,7 @@ export function TicketManager({ initialTickets, events }: TicketManagerProps) {
         </style>
       </head>
       <body>
-        <h1>VELVET &mdash; GATE CHECK-IN LIST</h1>
+        <h1>VELVT &mdash; GATE CHECK-IN LIST</h1>
         <p>Generated: ${new Date().toLocaleString("en-IN")} | Total Passes: ${filteredTickets.length} | Admitted: ${checkedInCount} | Pending: ${pendingCount}</p>
         <button onclick="window.print()" style="margin-bottom: 16px; padding: 8px 16px; background: #000; color: #fff; border: none; cursor: pointer; border-radius: 4px;">Print List</button>
         <table>
@@ -849,7 +849,7 @@ export function TicketManager({ initialTickets, events }: TicketManagerProps) {
             {/* Pass Design Header */}
             <div className="relative text-center border-b border-white/[0.1] pb-5">
               <div className="text-[10px] font-mono uppercase tracking-[0.3em] text-red mb-1">
-                Official Velvet Pass Permit
+                Official VELVT Pass Permit
               </div>
               <h3 className="font-heading text-xl uppercase tracking-widest text-white">
                 {selectedPass.event.name}
@@ -965,7 +965,7 @@ export function TicketManager({ initialTickets, events }: TicketManagerProps) {
               {selectedPass.qrCodeDataUrl && (
                 <a
                   href={selectedPass.qrCodeDataUrl}
-                  download={`VELVET_PASS_${selectedPass.ticketNumber}.png`}
+                  download={`VELVT_PASS_${selectedPass.ticketNumber}.png`}
                   className="w-full block text-center px-4 py-2.5 rounded-lg bg-red text-white text-xs font-mono uppercase font-bold tracking-wider hover:bg-red-hover transition-all shadow-[0_0_15px_rgba(200,16,46,0.35)]"
                 >
                   Download QR Pass Image (PNG)

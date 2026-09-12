@@ -37,44 +37,44 @@ export function HeroSection({
             title
           ) : (
             <>
-              <span className="relative inline-block">
+              <span className="relative inline-block editorial-title-distress">
                 {title}
                 {/* Embedded realistic blood drip on 'V' (active in thematic themes, hidden in legacy) */}
                 <span
-                  className="text-blood-drips absolute -bottom-3.5 left-[10%] pointer-events-none"
+                  className="text-blood-drips absolute -bottom-4 left-[9%] pointer-events-none"
                   aria-hidden="true"
                 >
                   <svg
-                    viewBox="0 0 12 24"
-                    className="w-2.5 sm:w-3.5 h-5 sm:h-7 text-[#880808] fill-current filter drop-shadow-[0_2px_4px_rgba(0,0,0,0.8)]"
+                    viewBox="0 0 16 34"
+                    className="w-3 sm:w-4 h-6 sm:h-8 fill-current filter drop-shadow-[0_2px_5px_rgba(0,0,0,0.85)]"
                   >
-                    <path d="M6 0 C6 0 7.5 7 7.5 13 C7.5 17 8.5 19 8.5 21 C8.5 23.2 7 24 5.5 24 C4 24 2.5 23.2 2.5 21 C2.5 19 3.5 17 3.5 13 C3.5 7 5 0 6 0 Z" />
-                    <circle cx="5.5" cy="21" r="1.5" fill="#b30000" opacity="0.8" />
+                    <path d="M8 0 C8 0 10 9 10 17 C10 22 11.5 25 11.5 28 C11.5 31 9.5 33 8 33 C6.5 33 4.5 31 4.5 28 C4.5 25 6 22 6 17 C6 9 8 0 8 0 Z" />
+                    <circle cx="8" cy="28" r="2.2" opacity="0.85" />
                   </svg>
                 </span>
               </span>
-              <span className="relative inline-block text-red drop-shadow-[0_0_25px_rgba(200,16,46,0.9)]">
+              <span className="relative inline-block text-red drop-shadow-[0_0_25px_var(--theme-glow,rgba(200,16,46,0.9))]">
                 .in
                 {/* Embedded realistic blood drips hanging from .in (active in thematic themes, hidden in legacy) */}
                 <span
-                  className="text-blood-drips absolute -bottom-4 left-0 right-0 pointer-events-none"
+                  className="text-blood-drips absolute -bottom-5 left-0 right-0 pointer-events-none"
                   aria-hidden="true"
                 >
                   <svg
-                    viewBox="0 0 80 28"
+                    viewBox="0 0 84 32"
                     preserveAspectRatio="none"
-                    className="w-full h-5 sm:h-7 text-[#880808] fill-current filter drop-shadow-[0_2px_4px_rgba(0,0,0,0.8)]"
+                    className="w-full h-5 sm:h-8 fill-current filter drop-shadow-[0_2px_6px_rgba(0,0,0,0.85)]"
                   >
                     {/* Drip under '.' */}
-                    <path d="M 8 0 C 8 0 10 3 10 8 C 10 11 11 13 11 15 C 11 17 9.5 18 8 18 C 6.5 18 5 17 5 15 C 5 13 6 11 6 8 C 6 3 8 0 8 0 Z" />
-                    <circle cx="8" cy="15" r="1.5" fill="#b30000" opacity="0.8" />
+                    <path d="M 9 0 C 9 0 11.5 4 11.5 10 C 11.5 14 12.5 17 12.5 20 C 12.5 22.8 10.8 24.5 9 24.5 C 7.2 24.5 5.5 22.8 5.5 20 C 5.5 17 6.5 14 6.5 10 C 6.5 4 9 0 9 0 Z" />
+                    <circle cx="9" cy="20" r="2" opacity="0.85" />
                     {/* Drip under 'i' */}
-                    <path d="M 32 0 C 32 0 34 4 34 10 C 34 14 35 17 35 20 C 35 22.5 33.5 24 32 24 C 30.5 24 29 22.5 29 20 C 29 17 30 14 30 10 C 30 4 32 0 32 0 Z" />
-                    <circle cx="32" cy="20" r="1.5" fill="#b30000" opacity="0.8" />
+                    <path d="M 33 0 C 33 0 35.5 5 35.5 12 C 35.5 17 37 21 37 24 C 37 27.2 35 29.5 33 29.5 C 31 29.5 29 27.2 29 24 C 29 21 30.5 17 30.5 12 C 30.5 5 33 0 33 0 Z" />
+                    <circle cx="33" cy="24" r="2.4" opacity="0.85" />
                     {/* Drips under 'n' */}
-                    <path d="M 52 0 C 52 0 54 3 54 8 C 54 11 55 13 55 15 C 55 17 53.5 18 52 18 C 50.5 18 49 17 49 15 C 49 13 50 11 50 8 C 50 3 52 0 52 0 Z" />
-                    <path d="M 70 0 C 70 0 72 5 72 13 C 72 18 73 22 73 24 C 73 26.2 71.5 27.5 70 27.5 C 68.5 27.5 67 26.2 67 24 C 67 22 68 18 68 13 C 68 5 70 0 70 0 Z" />
-                    <circle cx="70" cy="24" r="1.6" fill="#b30000" opacity="0.8" />
+                    <path d="M 54 0 C 54 0 56.5 4 56.5 10 C 56.5 14 57.5 17 57.5 19 C 57.5 21.5 55.8 23 54 23 C 52.2 23 50.5 21.5 50.5 19 C 50.5 17 51.5 14 51.5 10 C 51.5 4 54 0 54 0 Z" />
+                    <path d="M 73 0 C 73 0 75.5 6 75.5 15 C 75.5 21 77 25 77 28 C 77 31 75 33 73 33 C 71 33 69 31 69 28 C 69 25 70.5 21 70.5 15 C 70.5 6 73 0 73 0 Z" />
+                    <circle cx="73" cy="28" r="2.4" opacity="0.85" />
                   </svg>
                 </span>
               </span>

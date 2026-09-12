@@ -262,13 +262,13 @@ export function SettingsManager({ settings, events }: SettingsManagerProps) {
     },
     {
       id: "legacy",
-      name: "Legacy Velvet",
-      tagline: "Preserved Original — Classic velvet crimson, monochrome luxury & zero spooky artifacts",
-      description: "The 100% untouched original Velvet aesthetic: deep obsidian black, classic velvet crimson accents, elegant borders, white dot matrix, with ZERO pumpkins, blood, or horror elements.",
+      name: "Legacy VELVT",
+      tagline: "Preserved Original — Classic VELVT crimson, monochrome luxury & zero spooky artifacts",
+      description: "The 100% untouched original VELVT aesthetic: deep obsidian black, classic VELVT crimson accents, elegant borders, white dot matrix, with ZERO pumpkins, blood, or horror elements.",
       accentColor: "#c8102e",
       dotColor: "rgba(255, 255, 255, 0.2)",
       bgColor: "#000000",
-      badge: "Untouched Classic Velvet",
+      badge: "Untouched Classic VELVT",
     },
   ];
 

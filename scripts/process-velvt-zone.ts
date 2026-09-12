@@ -5,7 +5,7 @@ import { PrismaClient } from "@prisma/client";
 
 const prisma = new PrismaClient();
 
-const SOURCE_DIR = path.resolve("C:/Users/Sahil Mazumder/Desktop/VELVET.in/velvet-web/VELVET ZONE");
+const SOURCE_DIR = path.resolve(process.cwd(), "VELVT ZONE");
 const DEST_DIR = path.resolve(process.cwd(), "public/gallery");
 
 function sanitizeFilename(rawName: string): string {

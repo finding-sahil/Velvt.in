@@ -2380,6 +2380,7 @@ export async function updateSiteTheme(theme: string) {
         actor: { id: session.userId, email: session.user.email },
       });
 
+      revalidatePath("/", "layout");
       return { success: true, theme: normalizedTheme, persisted: true };
     }
     return { success: true, theme: normalizedTheme, localOnly: true };

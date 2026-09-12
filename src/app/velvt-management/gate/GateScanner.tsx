@@ -368,22 +368,60 @@ export function GateScanner({
 
   // ─── Camera Scanner Lifecycle ───────────────────────────────────────────────
 
+  const executeCheckInRef = useRef(executeCheckIn);
+  useEffect(() => {
+    executeCheckInRef.current = executeCheckIn;
+  }, [executeCheckIn]);
+  const isTransitioningRef = useRef(false);
+
+  const stopScanner = useCallback(async () => {
+    if (!html5QrCodeRef.current) {
+      setIsScannerRunning(false);
+      return;
+    }
+    try {
+      if (html5QrCodeRef.current.isScanning) {
+        await html5QrCodeRef.current.stop();
+      }
+    } catch {
+      // ignore
+    } finally {
+      setIsScannerRunning(false);
+    }
+  }, []);
+
   const startScanner = useCallback(async () => {
+    if (isTransitioningRef.current) return;
+    isTransitioningRef.current = true;
     setCameraError(null);
+
     try {
       const qrRegionId = "velvt-gate-reader";
       const elem = document.getElementById(qrRegionId);
       if (!elem) return;
 
-      if (!html5QrCodeRef.current) {
+      if (html5QrCodeRef.current) {
+        if (html5QrCodeRef.current.isScanning) {
+          try {
+            await html5QrCodeRef.current.stop();
+          } catch {
+            // ignore
+          }
+        }
+      } else {
         html5QrCodeRef.current = new Html5Qrcode(qrRegionId);
       }
 
-      const devices = await Html5Qrcode.getCameras();
-      if (devices && devices.length > 0) {
-        setAvailableCameras(
-          devices.map((d) => ({ id: d.id, label: d.label || `Camera ${d.id.slice(0, 5)}` }))
-        );
+      // Try camera enumeration gracefully without failing startup if permission is still pending
+      try {
+        const devices = await Html5Qrcode.getCameras();
+        if (devices && devices.length > 0) {
+          setAvailableCameras(
+            devices.map((d) => ({ id: d.id, label: d.label || `Camera ${d.id.slice(0, 5)}` }))
+          );
+        }
+      } catch {
+        // Enumerate devices may throw before user grants permission — proceed with start() directly
       }
 
       // Prioritize environment/back camera
@@ -394,7 +432,7 @@ export function GateScanner({
       await html5QrCodeRef.current.start(
         cameraConfig,
         {
-          fps: 20, // 20 frames per second for ultra-fast response
+          fps: 15,
           qrbox: (viewfinderWidth, viewfinderHeight) => {
             const minEdge = Math.min(viewfinderWidth, viewfinderHeight);
             const qrboxSize = Math.floor(minEdge * 0.72);
@@ -408,7 +446,7 @@ export function GateScanner({
         (decodedText) => {
           // On QR Code detected!
           if (!isProcessingRef.current) {
-            executeCheckIn(decodedText);
+            executeCheckInRef.current(decodedText);
           }
         },
         () => {
@@ -418,25 +456,20 @@ export function GateScanner({
 
       setIsScannerRunning(true);
     } catch (err: any) {
+      if (err?.message?.includes("Cannot clear while scan is ongoing")) {
+        setIsScannerRunning(true);
+        return;
+      }
       console.error("Camera startup error:", err);
       setIsScannerRunning(false);
       setCameraError(
         err?.message ||
           "Unable to access camera. Please allow camera permissions in your browser or type serial code manually below."
       );
+    } finally {
+      isTransitioningRef.current = false;
     }
-  }, [executeCheckIn, selectedCameraId]);
-
-  const stopScanner = useCallback(async () => {
-    if (html5QrCodeRef.current && isScannerRunning) {
-      try {
-        await html5QrCodeRef.current.stop();
-        setIsScannerRunning(false);
-      } catch (err) {
-        console.error("Failed to stop scanner:", err);
-      }
-    }
-  }, [isScannerRunning]);
+  }, [selectedCameraId]);
 
   // Toggle Torch
   const handleToggleTorch = async () => {
@@ -479,7 +512,7 @@ export function GateScanner({
             </span>
           </div>
           <h1 className="font-heading text-xl sm:text-2xl uppercase tracking-wider text-white mt-0.5">
-            VELVET Gate Admission Scanner
+            VELVT Gate Admission Scanner
           </h1>
           <p className="text-xs text-g5 font-mono">
             Station Operator: <strong className="text-white">{currentUser.name}</strong>
@@ -678,18 +711,30 @@ export function GateScanner({
 
             {/* Error Overlay */}
             {cameraError && (
-              <div className="absolute inset-0 bg-black/90 p-6 flex flex-col items-center justify-center text-center space-y-3 z-20">
+              <div className="absolute inset-0 bg-black/95 p-6 flex flex-col items-center justify-center text-center space-y-4 z-20">
                 <div className="w-12 h-12 rounded-full bg-red/20 border border-red flex items-center justify-center text-red">
                   ⚠️
                 </div>
                 <h3 className="font-heading text-lg uppercase text-white">Camera Access Required</h3>
-                <p className="text-xs text-g4 font-mono max-w-xs">{cameraError}</p>
-                <button
-                  onClick={startScanner}
-                  className="px-4 py-2 rounded-lg bg-emerald-500 hover:bg-emerald-400 text-black text-xs font-mono font-bold uppercase tracking-wider cursor-pointer"
-                >
-                  Retry Camera
-                </button>
+                <p className="text-xs text-g5 font-mono max-w-sm leading-relaxed">
+                  {cameraError.includes("Permission") || cameraError.includes("NotAllowed")
+                    ? "Camera permission was denied. Click the lock or camera icon in your browser address bar to allow camera access, or switch to manual serial code entry."
+                    : cameraError}
+                </p>
+                <div className="flex flex-wrap items-center justify-center gap-3 pt-2">
+                  <button
+                    onClick={startScanner}
+                    className="px-4 py-2 rounded-lg bg-emerald-500 hover:bg-emerald-400 text-black text-xs font-mono font-bold uppercase tracking-wider cursor-pointer transition-colors"
+                  >
+                    Retry Camera
+                  </button>
+                  <button
+                    onClick={() => setActiveTab("search")}
+                    className="px-4 py-2 rounded-lg bg-white/10 hover:bg-white/20 border border-white/20 text-white text-xs font-mono font-bold uppercase tracking-wider cursor-pointer transition-colors"
+                  >
+                    Type Serial Code &rarr;
+                  </button>
+                </div>
               </div>
             )}
 

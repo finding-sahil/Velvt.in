@@ -6,6 +6,8 @@ import { CustomCursor } from "@/components/ui/CustomCursor";
 import { HalloweenAtmosphere } from "@/components/ui/HalloweenAtmosphere";
 import { ScrollToTop } from "@/components/ui/ScrollToTop";
 import { AppShell } from "@/components/layout/AppShell";
+import { prisma } from "@/lib/db";
+import { cookies } from "next/headers";
 import "./globals.css";
 
 const barlowCondensed = Barlow_Condensed({
@@ -57,8 +59,38 @@ export default async function RootLayout({
 }: Readonly<{
   children: React.ReactNode;
 }>) {
+  let siteTheme = "legacy";
+  try {
+    const cookieStore = await cookies();
+    const cookieTheme = cookieStore.get("velvt_theme")?.value;
+    if (cookieTheme) {
+      siteTheme = cookieTheme;
+    } else {
+      const setting = await prisma.siteSetting.findUnique({
+        where: { key: "site_theme" },
+      });
+      if (setting?.value) {
+        siteTheme = setting.value;
+      }
+    }
+  } catch {
+    // fallback to legacy
+  }
+
   return (
-    <html lang="en" className={`${barlowCondensed.variable} ${inter.variable}`}>
+    <html
+      lang="en"
+      data-theme={siteTheme}
+      suppressHydrationWarning
+      className={`${barlowCondensed.variable} ${inter.variable}`}
+    >
+      <head>
+        <script
+          dangerouslySetInnerHTML={{
+            __html: `(function(){try{var m=document.cookie.match(/velvt_theme=([^;]+)/);var s=(m&&m[1])||localStorage.getItem('velvt_theme');if(s){document.documentElement.setAttribute('data-theme',s);}}catch(e){}})();`,
+          }}
+        />
+      </head>
       <body className="min-h-screen flex flex-col bg-black text-white relative">
         {/* UNTOLDSURI Texture Layers: Film Grain & Scanlines */}
         <div className="film-grain" aria-hidden="true" />
