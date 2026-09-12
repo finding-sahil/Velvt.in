@@ -2337,6 +2337,147 @@ export async function refreshLegacyTicketQRCodes() {
   }
 }
 
+// ─── Theme Switcher System ──────────────────────────────────────────────────
+
+export async function updateSiteTheme(theme: string) {
+  const session = await requireAdmin();
+  if (session.user.role !== "admin" && session.user.role !== "founder") {
+    return { success: false, error: "Only Main Admin / Founder can switch themes." };
+  }
+
+  const validThemes = ["halloween", "legacy", "nocturnal_gold", "cyber_crimson"];
+  if (!validThemes.includes(theme)) {
+    return { success: false, error: "Invalid theme identifier." };
+  }
+
+  try {
+    await prisma.siteSetting.upsert({
+      where: { key: "site_theme" },
+      create: { key: "site_theme", value: theme },
+      update: { value: theme },
+    });
+
+    await logAuditEvent({
+      action: "settings.theme_switch",
+      targetType: "SiteSetting",
+      metadata: { theme },
+      actor: { id: session.userId, email: session.user.email },
+    });
+
+    revalidatePath("/", "layout");
+    revalidatePath("/velvt-management/settings");
+    return { success: true, theme };
+  } catch (error: any) {
+    return { success: false, error: error?.message || "Failed to switch site theme." };
+  }
+}
+
+// ─── Core Team Credentials & Permissions ────────────────────────────────────
+
+export async function assignTeamCredentials(data: {
+  teamMemberId: string;
+  email: string;
+  password: string;
+  role?: "core_team" | "admin" | "founder";
+}) {
+  const session = await requireAdmin();
+  if (session.user.role !== "admin" && session.user.role !== "founder") {
+    return { success: false, error: "Unauthorized: Admin privileges required." };
+  }
+
+  const member = await prisma.teamMember.findUnique({
+    where: { id: data.teamMemberId },
+  });
+
+  if (!member) {
+    return { success: false, error: "Team member not found." };
+  }
+
+  const cleanEmail = data.email.trim().toLowerCase();
+  if (!cleanEmail || !cleanEmail.includes("@")) {
+    return { success: false, error: "Valid email address required." };
+  }
+
+  if (!data.password || data.password.length < 6) {
+    return { success: false, error: "Password must be at least 6 characters." };
+  }
+
+  try {
+    const passwordHash = await hashPassword(data.password);
+    const assignedRole = data.role || "core_team";
+
+    // Check if an AdminUser exists for this email or teamMemberId
+    const existing = await prisma.adminUser.findFirst({
+      where: {
+        OR: [{ email: cleanEmail }, { teamMemberId: member.id }],
+      },
+    });
+
+    if (existing) {
+      await prisma.adminUser.update({
+        where: { id: existing.id },
+        data: {
+          email: cleanEmail,
+          passwordHash,
+          name: member.name,
+          role: assignedRole,
+          teamMemberId: member.id,
+          isActive: true,
+        },
+      });
+    } else {
+      await prisma.adminUser.create({
+        data: {
+          email: cleanEmail,
+          passwordHash,
+          name: member.name,
+          role: assignedRole,
+          teamMemberId: member.id,
+          isActive: true,
+        },
+      });
+    }
+
+    await logAuditEvent({
+      action: "team.credentials_assigned",
+      targetType: "AdminUser",
+      targetId: member.id,
+      metadata: { memberName: member.name, email: cleanEmail, role: assignedRole },
+      actor: { id: session.userId, email: session.user.email },
+    });
+
+    revalidatePath("/velvt-management/team");
+    return { success: true };
+  } catch (error: any) {
+    return { success: false, error: error?.message || "Failed to assign credentials." };
+  }
+}
+
+export async function removeTeamCredentials(teamMemberId: string) {
+  const session = await requireAdmin();
+  if (session.user.role !== "admin" && session.user.role !== "founder") {
+    return { success: false, error: "Unauthorized: Admin privileges required." };
+  }
+
+  try {
+    await prisma.adminUser.deleteMany({
+      where: { teamMemberId },
+    });
+
+    await logAuditEvent({
+      action: "team.credentials_removed",
+      targetType: "AdminUser",
+      targetId: teamMemberId,
+      actor: { id: session.userId, email: session.user.email },
+    });
+
+    revalidatePath("/velvt-management/team");
+    return { success: true };
+  } catch (error: any) {
+    return { success: false, error: error?.message || "Failed to remove credentials." };
+  }
+}
+
 
 
 

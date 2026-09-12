@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { updateSiteSettings, changeAdminPassword } from "@/app/actions";
+import { updateSiteSettings, changeAdminPassword, updateSiteTheme } from "@/app/actions";
 import { defaultPillars, ExperienceHighlightItem } from "@/app/sections/HalloweenExperienceSection";
 import { ToastNotification, ToastState } from "@/components/ui/ToastNotification";
 import { CONTROLLED_PAGES, PageStatus } from "@/lib/page-status";
@@ -19,9 +19,11 @@ export function SettingsManager({ settings, events }: SettingsManagerProps) {
   const [loading, setLoading] = useState(false);
   const [saved, setSaved] = useState(false);
   const [toast, setToast] = useState<ToastState | null>(null);
+  const [currentTheme, setCurrentTheme] = useState(settings.site_theme || "halloween");
+  const [themeLoading, setThemeLoading] = useState(false);
   const [activeTab, setActiveTab] = useState<
-    "page_switches" | "highlights" | "hero" | "story" | "socials" | "event_cta" | "security"
-  >("page_switches");
+    "themes" | "page_switches" | "highlights" | "hero" | "story" | "socials" | "event_cta" | "security"
+  >("themes");
 
   // Security / Password Change State
   const [passwordForm, setPasswordForm] = useState({
@@ -207,6 +209,77 @@ export function SettingsManager({ settings, events }: SettingsManagerProps) {
     }
   }
 
+  const THEME_OPTIONS = [
+    {
+      id: "halloween",
+      name: "Halloween Curse",
+      tagline: "Active Edition — Glowing crimson, red dot matrix & embers",
+      description: "Matches the official Curse 2.O design: eerie blood crimson glow, radial atmospheric halo, red dot constellation background, and flickering ember accents.",
+      accentColor: "#dc2626",
+      dotColor: "rgba(220, 38, 38, 0.4)",
+      bgColor: "#050507",
+      badge: "Halloween Themed (Recommended)",
+    },
+    {
+      id: "legacy",
+      name: "Legacy Velvet",
+      tagline: "Preserved Original — Classic velvet crimson & monochrome",
+      description: "The original Velvet aesthetic: deep obsidian black, classic crimson highlights, minimalist borders, and white dot matrix overlay.",
+      accentColor: "#c8102e",
+      dotColor: "rgba(255, 255, 255, 0.2)",
+      bgColor: "#000000",
+      badge: "Legacy Velvet",
+    },
+    {
+      id: "nocturnal_gold",
+      name: "Nocturnal Gold",
+      tagline: "VIP Gala Edition — Champagne gold & royal obsidian",
+      description: "Luxury nightlife aesthetic featuring radiant champagne gold ambient lighting, golden starlight dots, and warm amber highlights for VIP events.",
+      accentColor: "#d4af37",
+      dotColor: "rgba(212, 175, 55, 0.4)",
+      bgColor: "#070705",
+      badge: "VIP Club Gala",
+    },
+    {
+      id: "cyber_crimson",
+      name: "Cyber Crimson",
+      tagline: "Techno Noir Edition — Electric ruby & cyber cyan",
+      description: "High-tech synthwave and underground techno energy with intense neon ruby lasers, cyan subtones, and razor-sharp digital gridlines.",
+      accentColor: "#ff0055",
+      dotColor: "rgba(255, 0, 85, 0.4)",
+      bgColor: "#030308",
+      badge: "Techno Noir",
+    },
+  ];
+
+  async function handleThemeSwitch(themeId: string) {
+    setThemeLoading(true);
+    try {
+      const res = await updateSiteTheme(themeId);
+      if (res.success) {
+        setCurrentTheme(themeId);
+        document.documentElement.setAttribute("data-theme", themeId);
+        setToast({
+          type: "success",
+          message: `Theme successfully switched to "${themeId.toUpperCase()}" live across VELVT!`,
+        });
+        router.refresh();
+      } else {
+        setToast({
+          type: "error",
+          message: res.error || "Failed to switch theme.",
+        });
+      }
+    } catch (err: any) {
+      setToast({
+        type: "error",
+        message: err?.message || "An unexpected error occurred.",
+      });
+    } finally {
+      setThemeLoading(false);
+    }
+  }
+
   return (
     <div className="space-y-6 max-w-4xl pb-16">
       {/* Top Header Bar with Save Button */}
@@ -255,6 +328,7 @@ export function SettingsManager({ settings, events }: SettingsManagerProps) {
       {/* Segmented Navigation Tabs */}
       <div className="flex flex-wrap gap-2 border-b border-white/10 pb-3">
         {[
+          { id: "themes", label: "🎨 Theme Switcher", badge: currentTheme.toUpperCase() },
           { id: "page_switches", label: "🎛️ Page Switches", badge: "Instant Control" },
           { id: "highlights", label: "✨ Experience Highlights", badge: `${highlights.length} cards` },
           { id: "hero", label: "⚡ Hero & Identity" },
@@ -284,6 +358,134 @@ export function SettingsManager({ settings, events }: SettingsManagerProps) {
       </div>
 
       <form onSubmit={handleSave} className="space-y-6 text-xs font-mono">
+        {/* TAB: THEME SWITCHER */}
+        {activeTab === "themes" && (
+          <div className="space-y-6 animate-fade-in">
+            <div className="p-6 bg-white/[0.03] border border-white/10 rounded-2xl space-y-6">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-4 border-b border-white/10">
+                <div>
+                  <div className="flex items-center gap-2">
+                    <span className="w-2.5 h-2.5 rounded-full bg-red animate-pulse" />
+                    <h3 className="font-display text-xl text-white font-bold uppercase tracking-wider">
+                      Dynamic Site Theme Engine
+                    </h3>
+                  </div>
+                  <p className="text-[11px] text-g5 mt-1">
+                    Switch the visual atmosphere of VELVT instantly. The selected theme dynamically updates colors, ambient glow halos, dot grid patterns, and page textures site-wide.
+                  </p>
+                </div>
+                <div className="flex items-center gap-2">
+                  <span className="text-[10px] font-mono uppercase tracking-widest px-3 py-1 rounded-full border border-red-glow bg-red-dim text-white font-bold">
+                    Active: {currentTheme.toUpperCase()}
+                  </span>
+                </div>
+              </div>
+
+              {/* Theme Selection Grid */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                {THEME_OPTIONS.map((theme) => {
+                  const isCurrent = currentTheme === theme.id;
+                  return (
+                    <div
+                      key={theme.id}
+                      style={{ borderColor: isCurrent ? theme.accentColor : undefined }}
+                      className={`p-5 rounded-2xl border transition-all duration-300 relative flex flex-col justify-between gap-4 ${
+                        isCurrent
+                          ? "bg-white/[0.06] shadow-[0_0_30px_rgba(0,0,0,0.8)] ring-1"
+                          : "bg-white/[0.02] border-white/10 hover:border-white/25 hover:bg-white/[0.04]"
+                      }`}
+                    >
+                      {/* Theme Card Header */}
+                      <div className="space-y-2">
+                        <div className="flex items-center justify-between">
+                          <span
+                            className="text-[10px] font-mono uppercase tracking-wider px-2.5 py-0.5 rounded-full font-bold"
+                            style={{
+                              backgroundColor: `${theme.accentColor}20`,
+                              color: theme.accentColor,
+                              border: `1px solid ${theme.accentColor}40`,
+                            }}
+                          >
+                            {theme.badge}
+                          </span>
+                          {isCurrent && (
+                            <span className="flex items-center gap-1 text-[10px] font-mono text-emerald-400 font-bold uppercase tracking-widest">
+                              <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
+                              LIVE ACTIVE
+                            </span>
+                          )}
+                        </div>
+
+                        {/* Theme Title */}
+                        <div>
+                          <h4 className="font-display font-black text-2xl text-white uppercase tracking-wide">
+                            {theme.name}
+                          </h4>
+                          <p className="text-[11px] text-g5 italic font-sans pt-0.5">
+                            {theme.tagline}
+                          </p>
+                        </div>
+
+                        <p className="text-[11px] text-g6 leading-relaxed font-sans pt-1">
+                          {theme.description}
+                        </p>
+                      </div>
+
+                      {/* Visual Color Palette Swatch Bar */}
+                      <div className="space-y-3 pt-3 border-t border-white/10">
+                        <div className="flex items-center gap-2">
+                          <span className="text-[10px] text-g5 uppercase tracking-wider">Palette:</span>
+                          <div className="flex items-center gap-1.5">
+                            <span
+                              className="w-5 h-5 rounded-full border border-white/20 shadow-sm"
+                              style={{ backgroundColor: theme.accentColor }}
+                              title="Primary Accent"
+                            />
+                            <span
+                              className="w-5 h-5 rounded-full border border-white/20 shadow-sm"
+                              style={{ backgroundColor: theme.bgColor }}
+                              title="Background Tone"
+                            />
+                            <span
+                              className="w-5 h-5 rounded-full border border-white/20 shadow-sm"
+                              style={{ backgroundColor: theme.dotColor }}
+                              title="Grid Dot Matrix"
+                            />
+                          </div>
+                        </div>
+
+                        {/* Switch Button */}
+                        <button
+                          type="button"
+                          disabled={themeLoading || isCurrent}
+                          onClick={() => handleThemeSwitch(theme.id)}
+                          style={{
+                            backgroundColor: isCurrent ? `${theme.accentColor}30` : theme.accentColor,
+                            borderColor: theme.accentColor,
+                          }}
+                          className={`w-full py-2.5 rounded-xl font-mono text-xs uppercase tracking-wider font-bold transition-all flex items-center justify-center gap-2 cursor-pointer ${
+                            isCurrent
+                              ? "text-white cursor-default border"
+                              : "text-white hover:opacity-90 shadow-[0_0_15px_rgba(0,0,0,0.5)]"
+                          }`}
+                        >
+                          {themeLoading ? (
+                            <span>Switching...</span>
+                          ) : isCurrent ? (
+                            <span>✓ Active Theme</span>
+                          ) : (
+                            <span>Activate {theme.name} &rarr;</span>
+                          )}
+                        </button>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          </div>
+        )}
+
         {/* TAB 0: PAGE SWITCHES & INSTANT CONTROL */}
         {activeTab === "page_switches" && (
           <div className="space-y-6 animate-fade-in">

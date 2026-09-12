@@ -2,24 +2,33 @@
 
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
+import Link from "next/link";
 import {
   createTeamMember,
   updateTeamMember,
   toggleTeamMemberPublish,
   deleteTeamMember,
+  assignTeamCredentials,
+  removeTeamCredentials,
 } from "@/app/actions";
 import DownloadQrButton from "@/components/ui/DownloadQrButton";
 import { ToastNotification, ToastMessage } from "@/components/ui/ToastNotification";
 
 interface TeamManagerProps {
   members: any[];
+  adminUsers?: any[];
+  currentUserRole?: string;
 }
 
-export function TeamManager({ members }: TeamManagerProps) {
+export function TeamManager({ members, adminUsers = [], currentUserRole = "admin" }: TeamManagerProps) {
   const router = useRouter();
   const [teamList, setTeamList] = useState(members);
+  const [userList, setUserList] = useState(adminUsers);
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [editingMember, setEditingMember] = useState<any | null>(null);
+  const [credentialsModalMember, setCredentialsModalMember] = useState<any | null>(null);
+  const [credForm, setCredForm] = useState({ email: "", password: "", role: "core_team" });
+  const [credLoading, setCredLoading] = useState(false);
   const [loading, setLoading] = useState(false);
   const [uploading, setUploading] = useState(false);
   const [toast, setToast] = useState<ToastMessage | null>(null);
@@ -213,6 +222,76 @@ export function TeamManager({ members }: TeamManagerProps) {
     }
   }
 
+  function handleOpenCredentials(member: any) {
+    const existingUser = userList.find((u) => u.teamMemberId === member.id);
+    setCredentialsModalMember(member);
+    setCredForm({
+      email: existingUser?.email || `${member.name.toLowerCase().replace(/\s+/g, ".")}@velvt.in`,
+      password: "",
+      role: existingUser?.role || (member.category?.toLowerCase().includes("founder") ? "founder" : "core_team"),
+    });
+  }
+
+  async function handleSaveCredentials(e: React.FormEvent) {
+    e.preventDefault();
+    if (!credentialsModalMember) return;
+    setCredLoading(true);
+    try {
+      const res = await assignTeamCredentials({
+        teamMemberId: credentialsModalMember.id,
+        email: credForm.email,
+        password: credForm.password,
+        role: credForm.role as any,
+      });
+
+      if (res.success) {
+        setToast({
+          type: "success",
+          message: `Login credentials configured for ${credentialsModalMember.name}!`,
+        });
+        setUserList((prev) => {
+          const filtered = prev.filter((u) => u.teamMemberId !== credentialsModalMember.id);
+          return [
+            ...filtered,
+            {
+              teamMemberId: credentialsModalMember.id,
+              email: credForm.email,
+              role: credForm.role,
+              name: credentialsModalMember.name,
+              isActive: true,
+            },
+          ];
+        });
+        setCredentialsModalMember(null);
+      } else {
+        setToast({ type: "error", message: res.error || "Failed to assign credentials." });
+      }
+    } catch (err: any) {
+      setToast({ type: "error", message: err?.message || "Failed to assign credentials." });
+    } finally {
+      setCredLoading(false);
+    }
+  }
+
+  async function handleRevokeCredentials(teamMemberId: string) {
+    if (!confirm("Are you sure you want to revoke staff login credentials for this member?")) return;
+    setCredLoading(true);
+    try {
+      const res = await removeTeamCredentials(teamMemberId);
+      if (res.success) {
+        setToast({ type: "success", message: "Staff credentials revoked." });
+        setUserList((prev) => prev.filter((u) => u.teamMemberId !== teamMemberId));
+        setCredentialsModalMember(null);
+      } else {
+        setToast({ type: "error", message: res.error || "Failed to revoke credentials." });
+      }
+    } catch (err: any) {
+      setToast({ type: "error", message: err?.message || "Failed to revoke credentials." });
+    } finally {
+      setCredLoading(false);
+    }
+  }
+
   return (
     <div className="space-y-6">
       {/* Header */}
@@ -246,6 +325,8 @@ export function TeamManager({ members }: TeamManagerProps) {
         ) : (
           teamList.map((m) => {
             const socials = parseSocials(m.socialLinks);
+            const existingUser = userList.find((u) => u.teamMemberId === m.id);
+
             return (
               <div
                 key={m.id}
@@ -282,6 +363,12 @@ export function TeamManager({ members }: TeamManagerProps) {
                       >
                         {m.isPublished ? "Published" : "Draft / Hidden"}
                       </span>
+                      {existingUser && (
+                        <span className="px-2 py-0.5 rounded-full bg-amber-500/10 text-amber-300 border border-amber-500/30 text-[10px] font-mono flex items-center gap-1">
+                          <span>🔑</span>
+                          <span>Staff Login ({existingUser.role})</span>
+                        </span>
+                      )}
                     </div>
                     {m.bio && (
                       <p className="text-xs text-g5 max-w-xl line-clamp-1">
@@ -344,7 +431,27 @@ export function TeamManager({ members }: TeamManagerProps) {
                   </div>
                 </div>
 
-                <div className="flex items-center gap-2 shrink-0">
+                <div className="flex flex-wrap items-center gap-2 shrink-0">
+                  <Link
+                    href={`/team/${m.id}`}
+                    target="_blank"
+                    className="px-3 py-1.5 text-xs font-mono rounded border border-white/10 text-g5 hover:text-white flex items-center gap-1 hover:border-red/40"
+                  >
+                    <span>Portfolio</span>
+                    <span>&nearr;</span>
+                  </Link>
+
+                  {(currentUserRole === "admin" || currentUserRole === "founder") && (
+                    <button
+                      type="button"
+                      onClick={() => handleOpenCredentials(m)}
+                      className="px-3 py-1.5 text-xs font-mono rounded border border-amber-500/30 bg-amber-500/10 text-amber-300 hover:bg-amber-500/20 flex items-center gap-1.5 cursor-pointer"
+                    >
+                      <span>🔑</span>
+                      <span>{existingUser ? "Credentials" : "Set Login"}</span>
+                    </button>
+                  )}
+
                   <DownloadQrButton
                     data={`/team#${encodeURIComponent(m.name.toLowerCase().replace(/\s+/g, "-"))}`}
                     filename={`VELVT-CoreTeam-${m.name.replace(/\s+/g, "_")}-Pass.png`}
@@ -859,6 +966,113 @@ export function TeamManager({ members }: TeamManagerProps) {
                 >
                   {loading ? "Saving..." : "Save Changes"}
                 </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* Staff Login Credentials Modal */}
+      {credentialsModalMember && (
+        <div className="fixed inset-0 z-50 bg-black/85 backdrop-blur-md flex items-center justify-center p-4">
+          <div className="bg-[#0e0e0e] border border-white/15 rounded-2xl max-w-md w-full p-6 space-y-4 shadow-2xl animate-fade-in">
+            <div className="flex justify-between items-center pb-3 border-b border-white/10">
+              <div className="space-y-0.5">
+                <span className="text-[10px] font-mono uppercase tracking-widest text-amber-400 font-bold flex items-center gap-1.5">
+                  <span>🔑</span> Staff Credentials
+                </span>
+                <h3 className="font-display font-bold text-2xl text-white uppercase tracking-wider">
+                  {credentialsModalMember.name}
+                </h3>
+              </div>
+              <button
+                type="button"
+                onClick={() => setCredentialsModalMember(null)}
+                className="text-g5 hover:text-white cursor-pointer"
+              >
+                ✕
+              </button>
+            </div>
+
+            <p className="text-xs text-g5">
+              Assign or update staff login credentials. Core Team members can view inquiries, manage volunteers, and curate their portfolio. Founders have full access.
+            </p>
+
+            <form onSubmit={handleSaveCredentials} className="space-y-4 text-xs font-mono">
+              <div className="space-y-1.5">
+                <label className="text-g5 uppercase tracking-wider block">
+                  Staff Email Address <span className="text-red">*</span>
+                </label>
+                <input
+                  type="email"
+                  required
+                  value={credForm.email}
+                  onChange={(e) => setCredForm({ ...credForm, email: e.target.value })}
+                  placeholder="e.g. member@velvt.in"
+                  className="w-full bg-black/60 border border-white/10 rounded-xl p-2.5 text-white focus:border-red focus:outline-none"
+                />
+              </div>
+
+              <div className="space-y-1.5">
+                <label className="text-g5 uppercase tracking-wider block">
+                  Password <span className="text-red">*</span>
+                </label>
+                <input
+                  type="password"
+                  required
+                  minLength={6}
+                  value={credForm.password}
+                  onChange={(e) => setCredForm({ ...credForm, password: e.target.value })}
+                  placeholder="At least 6 characters"
+                  className="w-full bg-black/60 border border-white/10 rounded-xl p-2.5 text-white focus:border-red focus:outline-none"
+                />
+              </div>
+
+              <div className="space-y-1.5">
+                <label className="text-g5 uppercase tracking-wider block">
+                  Permission Role
+                </label>
+                <select
+                  value={credForm.role}
+                  onChange={(e) => setCredForm({ ...credForm, role: e.target.value })}
+                  className="w-full bg-black/60 border border-white/10 rounded-xl p-2.5 text-white focus:border-red focus:outline-none"
+                >
+                  <option value="core_team">Core Team (Volunteers + Inquiries + Portfolio)</option>
+                  <option value="admin">Co-Admin (Events + Tickets + Content)</option>
+                  <option value="founder">Founder (Full Unrestricted Freedom)</option>
+                </select>
+              </div>
+
+              <div className="flex items-center justify-between pt-4 border-t border-white/10">
+                {userList.some((u) => u.teamMemberId === credentialsModalMember.id) ? (
+                  <button
+                    type="button"
+                    disabled={credLoading}
+                    onClick={() => handleRevokeCredentials(credentialsModalMember.id)}
+                    className="px-3.5 py-2 text-xs font-mono text-red hover:bg-red/10 rounded-xl border border-red/30 cursor-pointer"
+                  >
+                    Revoke Access
+                  </button>
+                ) : (
+                  <div />
+                )}
+
+                <div className="flex items-center gap-2">
+                  <button
+                    type="button"
+                    onClick={() => setCredentialsModalMember(null)}
+                    className="px-4 py-2 text-xs rounded-xl bg-white/[0.05] text-white hover:bg-white/10 cursor-pointer"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    type="submit"
+                    disabled={credLoading}
+                    className="px-5 py-2 text-xs font-bold font-mono uppercase tracking-wider rounded-xl bg-red text-white hover:bg-red-700 shadow-[0_0_15px_var(--red-glow)] cursor-pointer"
+                  >
+                    {credLoading ? "Saving..." : "Save Credentials"}
+                  </button>
+                </div>
               </div>
             </form>
           </div>

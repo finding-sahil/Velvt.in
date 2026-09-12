@@ -173,6 +173,7 @@ export interface SessionUser {
   name: string;
   role: string;
   assignedEventId: string | null;
+  teamMemberId: string | null;
   isActive: boolean;
 }
 
@@ -219,6 +220,7 @@ export async function getSession(): Promise<SessionData | null> {
         name: true,
         role: true,
         assignedEventId: true,
+        teamMemberId: true,
         isActive: true,
       },
     });
@@ -241,8 +243,31 @@ export async function requireAdmin() {
   if (!session) {
     throw new Error("Unauthorized");
   }
-  if (session.user.role !== "admin") {
+  if (session.user.role !== "admin" && session.user.role !== "founder") {
     throw new Error("Unauthorized: Admin access required");
+  }
+  return session;
+}
+
+export async function requireFounder() {
+  const session = await getSession();
+  if (!session) {
+    throw new Error("Unauthorized");
+  }
+  if (session.user.role !== "founder") {
+    throw new Error("Unauthorized: Founder access required");
+  }
+  return session;
+}
+
+export async function requireStaffOrAdmin() {
+  const session = await getSession();
+  if (!session) {
+    throw new Error("Unauthorized");
+  }
+  const allowed = ["founder", "admin", "core_team"];
+  if (!allowed.includes(session.user.role)) {
+    throw new Error("Unauthorized: Staff access required");
   }
   return session;
 }
@@ -252,7 +277,8 @@ export async function requireGatemanOrAdmin() {
   if (!session) {
     throw new Error("Unauthorized: Gatekeeper or Admin login required");
   }
-  if (session.user.role !== "admin" && session.user.role !== "gateman") {
+  const allowed = ["founder", "admin", "core_team", "gateman"];
+  if (!allowed.includes(session.user.role)) {
     throw new Error("Unauthorized: Gatekeeper access required");
   }
   return session;

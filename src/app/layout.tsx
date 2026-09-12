@@ -4,6 +4,7 @@ import { Navigation } from "@/components/layout/Navigation";
 import { Footer } from "@/components/layout/Footer";
 import { CustomCursor } from "@/components/ui/CustomCursor";
 import { HalloweenAtmosphere } from "@/components/ui/HalloweenAtmosphere";
+import { ScrollToTop } from "@/components/ui/ScrollToTop";
 import { prisma } from "@/lib/db";
 import "./globals.css";
 
@@ -56,30 +57,25 @@ export default async function RootLayout({
 }: Readonly<{
   children: React.ReactNode;
 }>) {
-  let featuredSlug = "velvt-curse-2-o";
-  let featuredLabel = "CURSE 2.O";
+  let siteTheme = "halloween";
 
   try {
-    const featured = await prisma.event.findFirst({
-      where: {
-        OR: [{ isFeatured: true }, { status: "upcoming" }],
-      },
-      orderBy: [{ isFeatured: "desc" }, { date: "asc" }],
-      select: { slug: true, name: true },
+    const themeSetting = await prisma.siteSetting.findUnique({
+      where: { key: "site_theme" },
     });
-    if (featured) {
-      featuredSlug = featured.slug;
-      featuredLabel =
-        featured.name.length > 14
-          ? `${featured.name.slice(0, 14)}...`
-          : featured.name;
+    if (themeSetting?.value) {
+      siteTheme = themeSetting.value;
     }
   } catch {
-    // Graceful fallback if database is not reachable at build time
+    // Fallback to halloween theme
   }
 
   return (
-    <html lang="en" className={`${barlowCondensed.variable} ${inter.variable}`}>
+    <html
+      lang="en"
+      data-theme={siteTheme}
+      className={`${barlowCondensed.variable} ${inter.variable}`}
+    >
       <body className="min-h-screen flex flex-col bg-black text-white relative">
         {/* UNTOLDSURI Texture Layers: Film Grain & Scanlines */}
         <div className="film-grain" aria-hidden="true" />
@@ -89,13 +85,16 @@ export default async function RootLayout({
         <CustomCursor />
 
         {/* Ambient Floating Embers (Halloween Touch) */}
-        <HalloweenAtmosphere />
+        {siteTheme === "halloween" && <HalloweenAtmosphere />}
 
         {/* Floating Pill Glass Navigation */}
-        <Navigation featuredSlug={featuredSlug} featuredLabel={featuredLabel} />
+        <Navigation />
 
         {/* Page Content */}
         <main className="flex-1 pt-24">{children}</main>
+
+        {/* Floating Scroll to Top Button */}
+        <ScrollToTop />
 
         <Footer />
       </body>

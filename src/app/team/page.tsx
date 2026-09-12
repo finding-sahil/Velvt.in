@@ -3,10 +3,10 @@ import { getPageStatus } from "@/lib/page-status";
 import { PageStatusGate } from "@/components/ui/PageStatusGate";
 import { SectionHeading } from "@/components/ui/SectionHeading";
 import { EmptyState } from "@/components/ui/EmptyState";
+import Link from "next/link";
 import type { Metadata } from "next";
 
-export const dynamic = "force-dynamic";
-export const revalidate = 0;
+export const revalidate = 60;
 
 export const metadata: Metadata = {
   title: "Core Team — VELVT",
@@ -162,7 +162,7 @@ export default async function TeamPage() {
                             )}
                           </div>
 
-                          {/* Bottom Action Bar: Consistent Across All Cards */}
+                          {/* Bottom Action Bar: Social Toolbar + Profile Link */}
                           <div className="pt-3 border-t border-white/10 flex items-center justify-between gap-2">
                             <div className="flex items-center gap-1.5">
                               <a
@@ -193,9 +193,13 @@ export default async function TeamPage() {
                               )}
                             </div>
 
-                            <span className="text-[9px] font-mono tracking-widest text-white/30 uppercase">
-                              VELVT
-                            </span>
+                            <Link
+                              href={`/team/${member.id}`}
+                              className="h-7 px-3 rounded-full bg-red/15 hover:bg-red text-red hover:text-white border border-red/40 hover:border-red flex items-center gap-1.5 text-[10px] font-mono tracking-wider font-semibold uppercase transition-all duration-200 shadow-[0_0_10px_var(--red-glow)]"
+                            >
+                              <span>Profile</span>
+                              <span>&rarr;</span>
+                            </Link>
                           </div>
                         </div>
                       </div>

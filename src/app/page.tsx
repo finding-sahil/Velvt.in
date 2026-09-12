@@ -10,7 +10,7 @@ import { VolunteerPreviewSection } from "./sections/VolunteerPreviewSection";
 import { PartnersPreviewSection } from "./sections/PartnersPreviewSection";
 import { FinalCTASection } from "./sections/FinalCTASection";
 
-export const revalidate = 0; // Dynamic on load
+export const revalidate = 60; // Instant cached serving with background ISR
 
 export default async function HomePage() {
   // Fetch initial queries in parallel to eliminate waterfall network latency

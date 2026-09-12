@@ -15,13 +15,29 @@ export default async function AdminTeamPage() {
     redirect("/velvt-management/gate");
   }
 
-  const members = await prisma.teamMember.findMany({
-    orderBy: { displayOrder: "asc" },
-  });
+  const [members, adminUsers] = await Promise.all([
+    prisma.teamMember.findMany({
+      orderBy: { displayOrder: "asc" },
+    }),
+    prisma.adminUser.findMany({
+      select: {
+        id: true,
+        email: true,
+        name: true,
+        role: true,
+        teamMemberId: true,
+        isActive: true,
+      },
+    }),
+  ]);
 
   return (
     <div className="space-y-8 animate-fade-in">
-      <TeamManager members={members} />
+      <TeamManager
+        members={members}
+        adminUsers={adminUsers}
+        currentUserRole={session.user.role}
+      />
     </div>
   );
 }

@@ -49,13 +49,23 @@ export default async function AdminLayout({
                   <div className="flex items-center justify-end gap-1.5">
                     <p className="text-xs font-semibold text-white">{session.user.name}</p>
                     <span
-                      className={`text-[9px] font-mono uppercase tracking-wider px-1.5 py-0.5 rounded font-bold ${
-                        session.user.role === "gateman"
+                      className={`text-[9px] font-mono uppercase tracking-wider px-2 py-0.5 rounded-full font-bold ${
+                        session.user.role === "founder"
+                          ? "bg-amber-500/20 text-amber-300 border border-amber-500/40 shadow-[0_0_10px_rgba(245,158,11,0.3)]"
+                          : session.user.role === "core_team"
+                          ? "bg-purple-500/20 text-purple-300 border border-purple-500/30"
+                          : session.user.role === "gateman"
                           ? "bg-emerald-500/20 text-emerald-300 border border-emerald-500/30"
                           : "bg-red-dim text-red border border-red-glow"
                       }`}
                     >
-                      {session.user.role === "gateman" ? "Gateman" : "Admin"}
+                      {session.user.role === "founder"
+                        ? "Founder"
+                        : session.user.role === "core_team"
+                        ? "Core Team"
+                        : session.user.role === "gateman"
+                        ? "Gateman"
+                        : "Main Admin"}
                     </span>
                   </div>
                   <p className="text-[10px] font-mono text-g5">
@@ -65,7 +75,7 @@ export default async function AdminLayout({
                 <form action={adminLogout}>
                   <button
                     type="submit"
-                    className="px-3 py-1 rounded-full text-xs font-mono uppercase tracking-wider border border-white/15 bg-white/[0.05] text-g5 hover:text-red hover:border-red/40 transition-all cursor-pointer"
+                    className="px-3.5 py-1.5 rounded-full text-xs font-mono uppercase tracking-wider border border-white/15 bg-white/[0.05] text-g5 hover:text-red hover:border-red/40 transition-all cursor-pointer"
                   >
                     Logout
                   </button>
@@ -74,7 +84,7 @@ export default async function AdminLayout({
             ) : (
               <Link
                 href={adminLoginPath()}
-                className="px-3 py-1 rounded-full text-xs font-mono uppercase tracking-wider border border-red-glow bg-red-dim text-white hover:bg-red/20 transition-all"
+                className="px-3.5 py-1.5 rounded-full text-xs font-mono uppercase tracking-wider border border-red-glow bg-red-dim text-white hover:bg-red/20 transition-all"
               >
                 Sign In
               </Link>
@@ -82,8 +92,10 @@ export default async function AdminLayout({
           </div>
         </div>
 
-        {/* Responsive Horizontal Admin Navigation Tabs (Admins Only) */}
-        {session && session.user.role === "admin" && <AdminNav />}
+        {/* Responsive Horizontal Admin Navigation Tabs (Admins & Staff) */}
+        {session && session.user.role !== "gateman" && (
+          <AdminNav role={session.user.role} />
+        )}
 
         {/* Dedicated Gateman Header Bar */}
         {session && session.user.role === "gateman" && (

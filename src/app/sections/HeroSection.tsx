@@ -31,14 +31,17 @@ export function HeroSection({
       </div>
 
       <div className="relative z-10 w-full max-w-4xl mx-auto flex flex-col items-center px-2 sm:px-4">
+        {/* Centered Atmospheric Ember Orb (Matching Screenshot) */}
+        <div className="w-2.5 h-2.5 rounded-full bg-red mx-auto mb-6 animate-pulse shadow-[0_0_16px_var(--red)] ring-4 ring-red/20" />
+
         {/* Main Brand Title — Bold & Commanding */}
         <h1 className="hero-title text-white tracking-tighter mb-4 animate-fade-in-up drop-shadow-[0_12px_45px_rgba(0,0,0,0.9)]">
           {title.includes(".") ? (
             title
           ) : (
             <>
-              {title}
-              <span className="text-red drop-shadow-[0_0_25px_rgba(200,16,46,0.9)]">.in</span>
+              <span>{title}</span>
+              <span className="text-red drop-shadow-[0_0_30px_var(--red)]">.IN</span>
             </>
           )}
         </h1>
@@ -58,14 +61,14 @@ export function HeroSection({
 
         {/* Action Buttons */}
         <div className="flex flex-wrap items-center justify-center gap-3 w-full sm:w-auto animate-fade-in-up animation-delay-400">
-          <Button href={primaryHref} variant="primary" size="md" className="w-full sm:w-auto">
+          <Button href={primaryHref} variant="primary" size="md" className="w-full sm:w-auto uppercase tracking-wider font-bold shadow-[0_0_25px_var(--red-glow)]">
             <span>{primaryCta}</span>
             <span>&rarr;</span>
           </Button>
-          <Button href="/tickets" variant="secondary" size="md" className="w-full sm:w-auto">
+          <Button href="/tickets" variant="secondary" size="md" className="w-full sm:w-auto uppercase tracking-wider">
             {secondaryCta}
           </Button>
-          <Button href="/volunteers" variant="outline" size="md" className="w-full sm:w-auto">
+          <Button href="/volunteers" variant="outline" size="md" className="w-full sm:w-auto uppercase tracking-wider">
             Join The Crew
           </Button>
         </div>

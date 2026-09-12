@@ -2,8 +2,7 @@ import type { Metadata } from "next";
 import { getPageStatus } from "@/lib/page-status";
 import { PageStatusGate } from "@/components/ui/PageStatusGate";
 
-export const dynamic = "force-dynamic";
-export const revalidate = 0;
+export const revalidate = 60;
 
 export const metadata: Metadata = {
   title: "About",

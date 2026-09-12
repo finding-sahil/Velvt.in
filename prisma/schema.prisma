@@ -18,8 +18,9 @@ model AdminUser {
   email           String   @unique
   passwordHash    String
   name            String
-  role            String   @default("admin") // "admin" | "gateman"
+  role            String   @default("admin") // "founder" | "admin" | "core_team" | "gateman"
   assignedEventId String?  // Optional: constrain gateman to a specific event
+  teamMemberId    String?  // Linked to TeamMember if role is core_team or founder
   isActive        Boolean  @default(true)
   createdAt       DateTime @default(now())
   updatedAt       DateTime @updatedAt
@@ -215,6 +216,9 @@ model TeamMember {
   portrait     String? // Portrait image URL/path
   socialLinks  String? // JSON string of social links
   portfolioUrl String?
+  quote        String? // Personal philosophy or statement
+  highlights   String? // JSON array or comma separated accomplishments/specialties
+  joinedYear   String? // e.g. "2024" or "Founding Member"
   displayOrder Int     @default(0)
   isPublished  Boolean @default(true)
   createdAt    DateTime @default(now())
