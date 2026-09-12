@@ -11,6 +11,9 @@ export default async function AdminVolunteersPage() {
   if (!session) {
     redirect("/velvt-management/login");
   }
+  if (session.user.role === "gateman") {
+    redirect("/velvt-management/gate");
+  }
 
   const [volunteers, events] = await Promise.all([
     prisma.volunteer.findMany({

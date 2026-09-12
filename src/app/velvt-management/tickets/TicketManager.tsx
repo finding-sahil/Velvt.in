@@ -2,13 +2,16 @@
 
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
+import Link from "next/link";
 import Image from "next/image";
 import {
   generateIssuedTicket,
   toggleTicketCheckIn,
   deleteIssuedTicket,
   checkInIssuedTicket,
+  refreshLegacyTicketQRCodes,
 } from "@/app/actions";
+import { adminPath } from "@/lib/admin-path";
 
 interface IssuedTicketItem {
   id: string;
@@ -296,8 +299,21 @@ export function TicketManager({ initialTickets, events }: TicketManagerProps) {
   };
 
   const getVerificationUrl = (pass: IssuedTicketItem) => {
-    if (typeof window === "undefined") return `/verify/ticket/${pass.securityToken}`;
-    return `${window.location.origin}/verify/ticket/${pass.securityToken}`;
+    if (typeof window !== "undefined" && !window.location.origin.includes("localhost")) {
+      return `${window.location.origin}/verify/ticket/${pass.securityToken}`;
+    }
+    return `https://velvt.in/verify/ticket/${pass.securityToken}`;
+  };
+
+  const handleRefreshQRCodes = async () => {
+    if (!window.confirm("Update all stored QR passes in database to production domain (https://velvt.in)?")) return;
+    startTransition(async () => {
+      const res = await refreshLegacyTicketQRCodes();
+      if (res.success) {
+        alert(`Successfully re-rendered ${res.count} QR codes to production!`);
+        router.refresh();
+      }
+    });
   };
 
   return (
@@ -308,18 +324,35 @@ export function TicketManager({ initialTickets, events }: TicketManagerProps) {
           <div className="flex items-center gap-2 mb-1.5">
             <span className="w-2 h-2 rounded-full bg-red animate-pulse" />
             <span className="text-[11px] font-mono tracking-widest text-red uppercase">
-              Internal Admin Tool &bull; Not Visible on Main Website
+              Internal Admin Tool &bull; Passes & Live Gate Operations
             </span>
           </div>
           <h1 className="font-heading text-2xl md:text-3xl tracking-wider uppercase text-white">
             VIP Passes & Ticket Generator
           </h1>
           <p className="text-sm text-g5 mt-1">
-            Issue unique scannable passes with QR codes, monitor live gate check-ins, and export verified lists for security.
+            Issue unique scannable passes with QR codes, assign gate staff, and monitor real-time check-ins.
           </p>
         </div>
 
         <div className="flex flex-wrap items-center gap-2.5">
+          <Link
+            href={adminPath("/gate")}
+            className="px-3.5 py-2.5 rounded-lg bg-emerald-500 hover:bg-emerald-400 text-black text-xs font-mono uppercase tracking-wider font-bold shadow-[0_0_15px_rgba(16,185,129,0.3)] transition-all flex items-center gap-1.5"
+          >
+            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M12 4v1m6 11h2m-6 0h-2v4m0-11v3m0 0h.01M12 12h4.01M16 20h4M4 12h4m12 0h.01M5 8h2a1 1 0 001-1V5a1 1 0 00-1-1H5a1 1 0 00-1 1v2a1 1 0 001 1zm12 0h2a1 1 0 001-1V5a1 1 0 00-1-1h-2a1 1 0 00-1 1v2a1 1 0 001 1zM5 20h2a1 1 0 001-1v-2a1 1 0 00-1-1H5a1 1 0 00-1 1v2a1 1 0 001 1z" />
+            </svg>
+            <span>Live Scanner</span>
+          </Link>
+
+          <Link
+            href={adminPath("/gatemen")}
+            className="px-3.5 py-2.5 rounded-lg bg-white/[0.04] hover:bg-white/[0.08] border border-white/[0.1] text-xs font-mono uppercase tracking-wider text-g3 hover:text-white transition-all flex items-center gap-1.5"
+          >
+            <span>Gatemen Staff</span>
+          </Link>
+
           <button
             onClick={() => setIsGenerateModalOpen(true)}
             className="px-4 py-2.5 rounded-lg bg-red text-white text-xs font-mono uppercase tracking-wider font-semibold shadow-[0_0_20px_rgba(200,16,46,0.35)] hover:bg-red-hover transition-all flex items-center gap-2"
@@ -332,24 +365,33 @@ export function TicketManager({ initialTickets, events }: TicketManagerProps) {
 
           <button
             onClick={handleExportCSV}
-            className="px-3.5 py-2.5 rounded-lg bg-white/[0.04] hover:bg-white/[0.08] border border-white/[0.1] text-xs font-mono uppercase tracking-wider text-g3 hover:text-white transition-all flex items-center gap-1.5"
+            className="px-3 py-2.5 rounded-lg bg-white/[0.04] hover:bg-white/[0.08] border border-white/[0.1] text-xs font-mono uppercase tracking-wider text-g3 hover:text-white transition-all flex items-center gap-1.5"
             title="Download CSV for Gateman"
           >
             <svg className="w-4 h-4 text-g4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
             </svg>
-            <span>Export CSV</span>
+            <span>CSV</span>
           </button>
 
           <button
             onClick={handlePrintGateSheet}
-            className="px-3.5 py-2.5 rounded-lg bg-white/[0.04] hover:bg-white/[0.08] border border-white/[0.1] text-xs font-mono uppercase tracking-wider text-g3 hover:text-white transition-all flex items-center gap-1.5"
+            className="px-3 py-2.5 rounded-lg bg-white/[0.04] hover:bg-white/[0.08] border border-white/[0.1] text-xs font-mono uppercase tracking-wider text-g3 hover:text-white transition-all flex items-center gap-1.5"
             title="Print Physical Gate Check Sheet"
           >
             <svg className="w-4 h-4 text-g4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z" />
             </svg>
-            <span>Print Sheet</span>
+            <span>Print</span>
+          </button>
+
+          <button
+            onClick={handleRefreshQRCodes}
+            disabled={isPending}
+            className="px-3 py-2.5 rounded-lg bg-white/[0.04] hover:bg-white/[0.08] border border-white/[0.1] text-xs font-mono uppercase tracking-wider text-g4 hover:text-white transition-all"
+            title="Sync all stored QR codes to production URL (https://velvt.in)"
+          >
+            🔄 Sync QR Links
           </button>
         </div>
       </div>

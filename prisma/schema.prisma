@@ -14,12 +14,15 @@ datasource db {
 // ─── Admin Users ───────────────────────────────────────────────────────────────
 
 model AdminUser {
-  id           String   @id @default(cuid())
-  email        String   @unique
-  passwordHash String
-  name         String
-  createdAt    DateTime @default(now())
-  updatedAt    DateTime @updatedAt
+  id              String   @id @default(cuid())
+  email           String   @unique
+  passwordHash    String
+  name            String
+  role            String   @default("admin") // "admin" | "gateman"
+  assignedEventId String?  // Optional: constrain gateman to a specific event
+  isActive        Boolean  @default(true)
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
 }
 
 // ─── Events ────────────────────────────────────────────────────────────────────

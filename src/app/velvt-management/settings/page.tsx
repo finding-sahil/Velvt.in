@@ -11,6 +11,9 @@ export default async function AdminSettingsPage() {
   if (!session) {
     redirect("/velvt-management/login");
   }
+  if (session.user.role === "gateman") {
+    redirect("/velvt-management/gate");
+  }
 
   const [settingsList, events] = await Promise.all([
     prisma.siteSetting.findMany(),

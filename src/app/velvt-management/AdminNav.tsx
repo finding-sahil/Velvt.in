@@ -8,6 +8,8 @@ const navItems = [
   { href: adminPath(), label: "Overview" },
   { href: adminPath("/events"), label: "Events & Tickets" },
   { href: adminPath("/tickets"), label: "Passes & QR Generator" },
+  { href: adminPath("/gatemen"), label: "Gatemen & Security" },
+  { href: adminPath("/gate"), label: "Live Gate Scanner" },
   { href: adminPath("/volunteers"), label: "Volunteers" },
   { href: adminPath("/team"), label: "Core Team" },
   { href: adminPath("/gallery"), label: "Gallery" },

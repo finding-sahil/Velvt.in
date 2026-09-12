@@ -20,7 +20,11 @@ export default function AdminLoginPage() {
     const result = await adminLogin(formData);
 
     if (result.success) {
-      router.push(getAdminPrefix());
+      if (result.role === "gateman") {
+        router.push(`${getAdminPrefix()}/gate`);
+      } else {
+        router.push(getAdminPrefix());
+      }
       router.refresh();
     } else {
       setError(result.error || "Authentication failed. Please verify your credentials.");

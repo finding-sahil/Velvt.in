@@ -11,6 +11,9 @@ export default async function AdminPartnersPage() {
   if (!session) {
     redirect("/velvt-management/login");
   }
+  if (session.user.role === "gateman") {
+    redirect("/velvt-management/gate");
+  }
 
   const [partners, pressMentions, events] = await Promise.all([
     prisma.partner.findMany({

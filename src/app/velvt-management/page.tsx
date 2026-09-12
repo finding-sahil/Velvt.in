@@ -14,6 +14,9 @@ export default async function AdminDashboardPage() {
   if (!session) {
     redirect(adminLoginPath());
   }
+  if (session.user.role === "gateman") {
+    redirect(adminPath("/gate"));
+  }
 
   // Fetch real aggregate metrics
   const [

@@ -11,6 +11,9 @@ export default async function AdminTicketsPage() {
   if (!session) {
     redirect("/velvt-management/login");
   }
+  if (session.user.role === "gateman") {
+    redirect("/velvt-management/gate");
+  }
 
   // Fetch all issued tickets
   const tickets = await prisma.issuedTicket.findMany({

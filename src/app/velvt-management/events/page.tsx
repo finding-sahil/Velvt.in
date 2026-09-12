@@ -11,6 +11,9 @@ export default async function AdminEventsPage() {
   if (!session) {
     redirect("/velvt-management/login");
   }
+  if (session.user.role === "gateman") {
+    redirect("/velvt-management/gate");
+  }
 
   const events = await prisma.event.findMany({
     orderBy: { date: "desc" },

@@ -46,7 +46,18 @@ export default async function AdminLayout({
             {session ? (
               <div className="flex items-center gap-3">
                 <div className="text-right hidden md:block">
-                  <p className="text-xs font-semibold text-white">{session.user.name}</p>
+                  <div className="flex items-center justify-end gap-1.5">
+                    <p className="text-xs font-semibold text-white">{session.user.name}</p>
+                    <span
+                      className={`text-[9px] font-mono uppercase tracking-wider px-1.5 py-0.5 rounded font-bold ${
+                        session.user.role === "gateman"
+                          ? "bg-emerald-500/20 text-emerald-300 border border-emerald-500/30"
+                          : "bg-red-dim text-red border border-red-glow"
+                      }`}
+                    >
+                      {session.user.role === "gateman" ? "Gateman" : "Admin"}
+                    </span>
+                  </div>
                   <p className="text-[10px] font-mono text-g5">
                     {session.user.email}
                   </p>
@@ -71,8 +82,25 @@ export default async function AdminLayout({
           </div>
         </div>
 
-        {/* Responsive Horizontal Admin Navigation Tabs */}
-        {session && <AdminNav />}
+        {/* Responsive Horizontal Admin Navigation Tabs (Admins Only) */}
+        {session && session.user.role === "admin" && <AdminNav />}
+
+        {/* Dedicated Gateman Header Bar */}
+        {session && session.user.role === "gateman" && (
+          <div className="border-t border-white/[0.06] bg-emerald-950/20 py-2">
+            <div className="container-velvt flex items-center justify-between text-xs font-mono">
+              <div className="flex items-center gap-2 text-emerald-400">
+                <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
+                <span className="font-bold tracking-wider uppercase text-[11px]">
+                  Official Gate Scanner & Admission Terminal
+                </span>
+              </div>
+              <div className="text-[10px] text-g5">
+                Staff ID: <span className="text-white font-bold">{session.user.name}</span>
+              </div>
+            </div>
+          </div>
+        )}
       </header>
 
       {/* Main Admin Content Body */}

@@ -167,10 +167,21 @@ export async function createSession(userId: string): Promise<void> {
   });
 }
 
-export async function getSession(): Promise<{
+export interface SessionUser {
+  id: string;
+  email: string;
+  name: string;
+  role: string;
+  assignedEventId: string | null;
+  isActive: boolean;
+}
+
+export interface SessionData {
   userId: string;
-  user: { id: string; email: string; name: string };
-} | null> {
+  user: SessionUser;
+}
+
+export async function getSession(): Promise<SessionData | null> {
   try {
     const cookieStore = await cookies();
     const sessionCookie = cookieStore.get(SESSION_COOKIE);
@@ -199,13 +210,20 @@ export async function getSession(): Promise<{
 
     if (!isValid) return null;
 
-    // Verify user exists
+    // Verify user exists and is active
     const user = await prisma.adminUser.findUnique({
       where: { id: storedUserId },
-      select: { id: true, email: true, name: true },
+      select: {
+        id: true,
+        email: true,
+        name: true,
+        role: true,
+        assignedEventId: true,
+        isActive: true,
+      },
     });
 
-    if (!user) return null;
+    if (!user || user.isActive === false) return null;
 
     return { userId: user.id, user };
   } catch {
@@ -222,6 +240,20 @@ export async function requireAdmin() {
   const session = await getSession();
   if (!session) {
     throw new Error("Unauthorized");
+  }
+  if (session.user.role !== "admin") {
+    throw new Error("Unauthorized: Admin access required");
+  }
+  return session;
+}
+
+export async function requireGatemanOrAdmin() {
+  const session = await getSession();
+  if (!session) {
+    throw new Error("Unauthorized: Gatekeeper or Admin login required");
+  }
+  if (session.user.role !== "admin" && session.user.role !== "gateman") {
+    throw new Error("Unauthorized: Gatekeeper access required");
   }
   return session;
 }

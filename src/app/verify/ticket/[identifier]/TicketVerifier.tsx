@@ -31,12 +31,19 @@ interface TicketData {
 interface TicketVerifierProps {
   initialTicket: TicketData | null;
   identifier: string;
+  isAuthorizedStaff?: boolean;
+  staffName?: string;
 }
 
-export function TicketVerifier({ initialTicket, identifier }: TicketVerifierProps) {
+export function TicketVerifier({
+  initialTicket,
+  identifier,
+  isAuthorizedStaff = false,
+  staffName = "Gate Staff",
+}: TicketVerifierProps) {
   const [ticket, setTicket] = useState<TicketData | null>(initialTicket);
   const [isPending, startTransition] = useTransition();
-  const [gatekeeperName, setGatekeeperName] = useState("Gate Staff #1");
+  const [gatekeeperName, setGatekeeperName] = useState(staffName);
   const [feedbackMessage, setFeedbackMessage] = useState<string | null>(null);
   const [customLookup, setCustomLookup] = useState("");
 
@@ -262,26 +269,56 @@ export function TicketVerifier({ initialTicket, identifier }: TicketVerifierProp
           )}
         </div>
 
-        {/* Primary Gateman Action */}
+        {/* Primary Action Area */}
         <div className="mt-6 space-y-3">
-          {!isAlreadyCheckedIn ? (
-            <button
-              onClick={handleAdmit}
-              disabled={isPending}
-              className="w-full py-4 rounded-xl bg-emerald-500 hover:bg-emerald-400 text-black font-heading text-lg uppercase tracking-wider font-bold shadow-[0_0_30px_rgba(16,185,129,0.4)] transition-all flex items-center justify-center gap-2 cursor-pointer disabled:opacity-50"
-            >
-              <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" />
-              </svg>
-              <span>{isPending ? "Checking in..." : "Admit & Check In"}</span>
-            </button>
+          {isAuthorizedStaff ? (
+            <>
+              {!isAlreadyCheckedIn ? (
+                <button
+                  onClick={handleAdmit}
+                  disabled={isPending}
+                  className="w-full py-4 rounded-xl bg-emerald-500 hover:bg-emerald-400 text-black font-heading text-lg uppercase tracking-wider font-bold shadow-[0_0_30px_rgba(16,185,129,0.4)] transition-all flex items-center justify-center gap-2 cursor-pointer disabled:opacity-50"
+                >
+                  <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" />
+                  </svg>
+                  <span>{isPending ? "Checking in..." : "Admit & Check In"}</span>
+                </button>
+              ) : (
+                <div className="p-3 rounded-xl bg-amber-500/10 border border-amber-500/20 text-center">
+                  <div className="text-xs font-mono text-amber-300 font-semibold">
+                    Pass is already verified and checked into system.
+                  </div>
+                  <div className="text-[11px] text-g5 font-mono mt-1">
+                    If the attendee is re-entering, confirm wristband / hand stamp.
+                  </div>
+                </div>
+              )}
+
+              <Link
+                href="/velvt-management/gate"
+                className="w-full py-2.5 rounded-xl bg-white/[0.06] hover:bg-white/[0.12] text-g3 hover:text-white font-mono text-xs uppercase tracking-wider font-semibold border border-white/[0.1] transition-all flex items-center justify-center gap-2"
+              >
+                <span>📷 Open Live Gate Scanner</span>
+              </Link>
+            </>
           ) : (
-            <div className="p-3 rounded-xl bg-amber-500/10 border border-amber-500/20 text-center">
-              <div className="text-xs font-mono text-amber-300 font-semibold">
-                Pass is already verified and checked into system.
+            <div className="p-4 rounded-xl bg-white/[0.04] border border-white/[0.1] text-center space-y-2">
+              <div className="text-xs font-mono text-emerald-400 font-bold uppercase tracking-wider flex items-center justify-center gap-1.5">
+                <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
+                <span>Official VELVET Digital Pass</span>
               </div>
-              <div className="text-[11px] text-g5 font-mono mt-1">
-                If the attendee is re-entering, confirm wristband / hand stamp.
+              <p className="text-[11px] text-g4 font-mono leading-relaxed">
+                Present this pass at the gate. Admission must be scanned and authorized by official VELVET Gate Staff.
+              </p>
+              <div className="pt-2 border-t border-white/[0.06]">
+                <Link
+                  href="/velvt-management/login"
+                  className="text-[11px] font-mono text-g5 hover:text-emerald-400 transition-colors inline-flex items-center gap-1"
+                >
+                  <span>Gatekeeper Sign In</span>
+                  <span>&rarr;</span>
+                </Link>
               </div>
             </div>
           )}
@@ -293,16 +330,18 @@ export function TicketVerifier({ initialTicket, identifier }: TicketVerifierProp
           )}
         </div>
 
-        {/* Gatekeeper selector */}
-        <div className="mt-5 pt-4 border-t border-white/[0.08] flex items-center justify-between text-xs font-mono text-g5">
-          <span>Gate Station:</span>
-          <input
-            type="text"
-            value={gatekeeperName}
-            onChange={(e) => setGatekeeperName(e.target.value)}
-            className="w-36 px-2 py-1 rounded bg-black/60 border border-white/[0.1] text-g3 text-right text-xs focus:outline-none focus:border-red"
-          />
-        </div>
+        {/* Gatekeeper selector (Staff Only) */}
+        {isAuthorizedStaff && (
+          <div className="mt-5 pt-4 border-t border-white/[0.08] flex items-center justify-between text-xs font-mono text-g5">
+            <span>Gate Station:</span>
+            <input
+              type="text"
+              value={gatekeeperName}
+              onChange={(e) => setGatekeeperName(e.target.value)}
+              className="w-36 px-2 py-1 rounded bg-black/60 border border-white/[0.1] text-g3 text-right text-xs focus:outline-none focus:border-emerald-500"
+            />
+          </div>
+        )}
       </div>
 
       {/* Manual lookup footer */}

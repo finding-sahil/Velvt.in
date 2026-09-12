@@ -17,7 +17,7 @@ import {
 } from "@/lib/validations";
 import { generateTicketNumber, generateSecurityToken, generateTicketQRCode } from "@/lib/ticket-generator";
 import { generateVolunteerId } from "@/lib/volunteer-id";
-import { verifyPassword, hashPassword, createSession, destroySession, requireAdmin } from "@/lib/auth";
+import { verifyPassword, hashPassword, createSession, destroySession, requireAdmin, requireGatemanOrAdmin } from "@/lib/auth";
 import { checkRateLimit, RATE_LIMITS, getClientIdentifier } from "@/lib/rate-limit";
 import { logAuditEvent } from "@/lib/audit";
 import { redirect } from "next/navigation";
@@ -200,6 +200,13 @@ export async function adminLogin(formData: FormData) {
       return { success: false, error: "Invalid email or password." };
     }
 
+    if (admin.isActive === false) {
+      return {
+        success: false,
+        error: "This staff account has been deactivated. Please contact an administrator.",
+      };
+    }
+
     await createSession(admin.id);
 
     await logAuditEvent({
@@ -208,7 +215,7 @@ export async function adminLogin(formData: FormData) {
       ipAddress: clientIp,
     });
 
-    return { success: true };
+    return { success: true, role: admin.role || "admin", name: admin.name };
   } catch (error: any) {
     console.error("Login error:", error);
     const hasDb = Boolean(
@@ -1607,7 +1614,12 @@ export async function deleteEventFAQ(id: string) {
 // ─── Ticket Generator & Gateman Operations ──────────────────────────────────
 
 function resolveSiteUrl(reqHeaders?: Headers): string {
-  if (process.env.NEXT_PUBLIC_SITE_URL && process.env.NEXT_PUBLIC_SITE_URL.startsWith("http")) {
+  // If explicitly configured with a public non-localhost domain, use it
+  if (
+    process.env.NEXT_PUBLIC_SITE_URL &&
+    process.env.NEXT_PUBLIC_SITE_URL.startsWith("http") &&
+    !process.env.NEXT_PUBLIC_SITE_URL.includes("localhost")
+  ) {
     return process.env.NEXT_PUBLIC_SITE_URL.replace(/\/$/, "");
   }
   if (process.env.VERCEL_URL) {
@@ -1615,11 +1627,12 @@ function resolveSiteUrl(reqHeaders?: Headers): string {
   }
   if (reqHeaders) {
     const host = reqHeaders.get("host");
-    if (host) {
-      const proto = reqHeaders.get("x-forwarded-proto") || (host.includes("localhost") ? "http" : "https");
+    if (host && !host.includes("localhost")) {
+      const proto = reqHeaders.get("x-forwarded-proto") || "https";
       return `${proto}://${host}`;
     }
   }
+  // Always default to canonical production domain so QR codes are universally scannable
   return "https://velvt.in";
 }
 
@@ -1725,18 +1738,23 @@ export async function generateIssuedTicket(formData: FormData) {
 }
 
 /**
- * Gateman check-in action (called either by gateman on verification page or by admin)
+ * Gateman check-in action (requires Gateman or Admin session)
  */
 export async function checkInIssuedTicket(
   identifier: string,
-  gatekeeperName: string = "Gate Staff",
+  gatekeeperName?: string,
   notes?: string
 ) {
+  const session = await requireGatemanOrAdmin();
+
   if (!identifier || identifier.trim().length === 0) {
     return { success: false, status: "invalid", message: "Missing ticket identifier." };
   }
 
   const cleanIdentifier = identifier.trim();
+  const effectiveGatekeeper = gatekeeperName && gatekeeperName !== "Gate Staff"
+    ? gatekeeperName
+    : session.user.name;
 
   try {
     // Lookup by either securityToken (QR code scan) or ticketNumber (manual entry)
@@ -1767,6 +1785,18 @@ export async function checkInIssuedTicket(
       };
     }
 
+    // Check if gateman is constrained to a specific event
+    if (session.user.role === "gateman" && session.user.assignedEventId) {
+      if (ticket.eventId !== session.user.assignedEventId) {
+        return {
+          success: false,
+          status: "wrong_event",
+          ticket,
+          message: "Pass is issued for a DIFFERENT EVENT. Do not admit at this gate.",
+        };
+      }
+    }
+
     if (ticket.status === "cancelled" || ticket.status === "revoked") {
       return {
         success: false,
@@ -1782,7 +1812,7 @@ export async function checkInIssuedTicket(
         success: false,
         status: "already_checked_in",
         ticket,
-        message: `Pass ALREADY SCANNED and admitted on ${ticket.checkedInAt ? new Date(ticket.checkedInAt).toLocaleTimeString("en-IN", { hour: "2-digit", minute: "2-digit", hour12: true }) : "earlier"}. Verify identity before admitting.`,
+        message: `Pass ALREADY SCANNED and admitted on ${ticket.checkedInAt ? new Date(ticket.checkedInAt).toLocaleTimeString("en-IN", { hour: "2-digit", minute: "2-digit", hour12: true }) : "earlier"} by ${ticket.checkedInBy || "Gate Staff"}. Verify identity before admitting.`,
       };
     }
 
@@ -1793,7 +1823,7 @@ export async function checkInIssuedTicket(
       data: {
         isCheckedIn: true,
         checkedInAt: checkInTime,
-        checkedInBy: gatekeeperName,
+        checkedInBy: effectiveGatekeeper,
         status: "used",
         ...(notes ? { notes: ticket.notes ? `${ticket.notes} | ${notes}` : notes } : {}),
       },
@@ -1816,12 +1846,13 @@ export async function checkInIssuedTicket(
       metadata: {
         ticketNumber: updated.ticketNumber,
         attendeeName: updated.attendeeName,
-        checkedInBy: gatekeeperName,
+        checkedInBy: effectiveGatekeeper,
       },
-      actor: { id: "gatekeeper", email: gatekeeperName },
+      actor: { id: session.userId, email: session.user.email },
     });
 
     revalidatePath("/velvt-management/tickets");
+    revalidatePath("/velvt-management/gate");
     revalidatePath(`/verify/ticket/${ticket.securityToken}`);
 
     return {
@@ -1954,6 +1985,358 @@ export async function getTicketVerificationData(identifier: string) {
     return null;
   }
 }
+
+// ─── Fast Gate Search & Gate Operations ──────────────────────────────────────
+
+/**
+ * Fast search for gatekeepers (search by attendee name, email, phone, serial #, or token)
+ */
+export async function searchTicketsForGate(query: string, eventId?: string) {
+  const session = await requireGatemanOrAdmin();
+  const clean = (query || "").trim();
+
+  // If gateman has an assigned event, force that eventId
+  const effectiveEventId =
+    session.user.role === "gateman" && session.user.assignedEventId
+      ? session.user.assignedEventId
+      : eventId && eventId !== "all"
+      ? eventId
+      : undefined;
+
+  const whereClause: any = {};
+  if (effectiveEventId) {
+    whereClause.eventId = effectiveEventId;
+  }
+
+  if (clean.length > 0) {
+    whereClause.OR = [
+      { ticketNumber: { contains: clean, mode: "insensitive" } },
+      { securityToken: { contains: clean, mode: "insensitive" } },
+      { attendeeName: { contains: clean, mode: "insensitive" } },
+      { attendeeEmail: { contains: clean, mode: "insensitive" } },
+      { attendeePhone: { contains: clean, mode: "insensitive" } },
+    ];
+  }
+
+  try {
+    const tickets = await prisma.issuedTicket.findMany({
+      where: whereClause,
+      take: 25,
+      orderBy: [{ isCheckedIn: "asc" }, { createdAt: "desc" }],
+      include: {
+        event: {
+          select: {
+            id: true,
+            name: true,
+            slug: true,
+            date: true,
+            time: true,
+          },
+        },
+      },
+    });
+
+    return tickets.map((t) => ({
+      id: t.id,
+      ticketNumber: t.ticketNumber,
+      securityToken: t.securityToken,
+      attendeeName: t.attendeeName,
+      attendeeEmail: t.attendeeEmail,
+      attendeePhone: t.attendeePhone,
+      tierName: t.tierName,
+      status: t.status,
+      isCheckedIn: t.isCheckedIn,
+      checkedInAt: t.checkedInAt ? t.checkedInAt.toISOString() : null,
+      checkedInBy: t.checkedInBy,
+      notes: t.notes,
+      event: {
+        id: t.event.id,
+        name: t.event.name,
+      },
+    }));
+  } catch (error) {
+    console.error("searchTicketsForGate error:", error);
+    return [];
+  }
+}
+
+/**
+ * Fetch recently admitted passes at the gate
+ */
+export async function getRecentGateCheckIns(eventId?: string) {
+  const session = await requireGatemanOrAdmin();
+  const effectiveEventId =
+    session.user.role === "gateman" && session.user.assignedEventId
+      ? session.user.assignedEventId
+      : eventId && eventId !== "all"
+      ? eventId
+      : undefined;
+
+  try {
+    const tickets = await prisma.issuedTicket.findMany({
+      where: {
+        isCheckedIn: true,
+        ...(effectiveEventId ? { eventId: effectiveEventId } : {}),
+      },
+      take: 15,
+      orderBy: { checkedInAt: "desc" },
+      include: {
+        event: {
+          select: {
+            id: true,
+            name: true,
+          },
+        },
+      },
+    });
+
+    return tickets.map((t) => ({
+      id: t.id,
+      ticketNumber: t.ticketNumber,
+      securityToken: t.securityToken,
+      attendeeName: t.attendeeName,
+      tierName: t.tierName,
+      checkedInAt: t.checkedInAt ? t.checkedInAt.toISOString() : null,
+      checkedInBy: t.checkedInBy,
+      event: {
+        id: t.event.id,
+        name: t.event.name,
+      },
+    }));
+  } catch (error) {
+    console.error("getRecentGateCheckIns error:", error);
+    return [];
+  }
+}
+
+// ─── Gateman Account Management (Admin Only) ────────────────────────────────
+
+/**
+ * List all Gatemen with their assigned events and total admissions
+ */
+export async function listGatemen() {
+  await requireAdmin();
+
+  try {
+    const gatemen = await prisma.adminUser.findMany({
+      where: { role: "gateman" },
+      select: {
+        id: true,
+        email: true,
+        name: true,
+        role: true,
+        assignedEventId: true,
+        isActive: true,
+        createdAt: true,
+        updatedAt: true,
+      },
+      orderBy: { createdAt: "desc" },
+    });
+
+    const eventIds = Array.from(
+      new Set(gatemen.map((g) => g.assignedEventId).filter(Boolean))
+    ) as string[];
+
+    const events = await prisma.event.findMany({
+      where: { id: { in: eventIds } },
+      select: { id: true, name: true },
+    });
+    const eventMap = new Map(events.map((e) => [e.id, e.name]));
+
+    const checkInCounts = await Promise.all(
+      gatemen.map(async (g) => {
+        const count = await prisma.issuedTicket.count({
+          where: { checkedInBy: g.name },
+        });
+        return { id: g.id, count };
+      })
+    );
+    const countMap = new Map(checkInCounts.map((c) => [c.id, c.count]));
+
+    return gatemen.map((g) => ({
+      ...g,
+      createdAt: g.createdAt.toISOString(),
+      updatedAt: g.updatedAt.toISOString(),
+      eventName: g.assignedEventId
+        ? eventMap.get(g.assignedEventId) || "Unknown Event"
+        : "All Events",
+      checkInCount: countMap.get(g.id) || 0,
+    }));
+  } catch (error) {
+    console.error("listGatemen error:", error);
+    return [];
+  }
+}
+
+/**
+ * Admin creates a new Gateman staff account
+ */
+export async function createGatemanUser(formData: FormData) {
+  const session = await requireAdmin();
+  const name = (formData.get("name") as string || "").trim();
+  const email = (formData.get("email") as string || "").trim().toLowerCase();
+  const password = (formData.get("password") as string || "").trim();
+  const assignedEventId = (formData.get("assignedEventId") as string || "").trim() || null;
+
+  if (!name || !email || !password) {
+    return { success: false, error: "Name, email, and password are required." };
+  }
+
+  if (password.length < 6) {
+    return { success: false, error: "Password must be at least 6 characters long." };
+  }
+
+  try {
+    const existing = await prisma.adminUser.findUnique({
+      where: { email },
+    });
+    if (existing) {
+      return { success: false, error: "An account with this email already exists." };
+    }
+
+    const passwordHash = await hashPassword(password);
+    const user = await prisma.adminUser.create({
+      data: {
+        name,
+        email,
+        passwordHash,
+        role: "gateman",
+        assignedEventId,
+        isActive: true,
+      },
+    });
+
+    await logAuditEvent({
+      action: "gateman.create",
+      targetType: "AdminUser",
+      targetId: user.id,
+      metadata: { name, email, assignedEventId },
+      actor: { id: session.userId, email: session.user.email },
+    });
+
+    revalidatePath("/velvt-management/gatemen");
+    return {
+      success: true,
+      user: { id: user.id, name: user.name, email: user.email },
+    };
+  } catch (error: any) {
+    console.error("Create gateman error:", error);
+    return { success: false, error: error?.message || "Failed to create gateman." };
+  }
+}
+
+/**
+ * Admin toggles Gateman active / inactive status
+ */
+export async function toggleGatemanStatus(id: string, currentStatus: boolean) {
+  const session = await requireAdmin();
+  try {
+    const user = await prisma.adminUser.update({
+      where: { id },
+      data: { isActive: !currentStatus },
+    });
+
+    await logAuditEvent({
+      action: !currentStatus ? "gateman.activate" : "gateman.deactivate",
+      targetType: "AdminUser",
+      targetId: user.id,
+      metadata: { email: user.email, isActive: user.isActive },
+      actor: { id: session.userId, email: session.user.email },
+    });
+
+    revalidatePath("/velvt-management/gatemen");
+    return { success: true, user };
+  } catch (error: any) {
+    return { success: false, error: error?.message || "Failed to update status." };
+  }
+}
+
+/**
+ * Admin deletes a Gateman account
+ */
+export async function deleteGatemanUser(id: string) {
+  const session = await requireAdmin();
+  try {
+    const user = await prisma.adminUser.delete({
+      where: { id },
+    });
+
+    await logAuditEvent({
+      action: "gateman.delete",
+      targetType: "AdminUser",
+      targetId: id,
+      metadata: { email: user.email },
+      actor: { id: session.userId, email: session.user.email },
+    });
+
+    revalidatePath("/velvt-management/gatemen");
+    return { success: true };
+  } catch (error: any) {
+    return { success: false, error: error?.message || "Failed to delete gateman." };
+  }
+}
+
+/**
+ * Admin resets a Gateman password
+ */
+export async function resetGatemanPassword(formData: FormData) {
+  const session = await requireAdmin();
+  const id = (formData.get("id") as string || "").trim();
+  const newPassword = (formData.get("newPassword") as string || "").trim();
+
+  if (!id || !newPassword) {
+    return { success: false, error: "Gateman ID and new password are required." };
+  }
+
+  if (newPassword.length < 6) {
+    return { success: false, error: "Password must be at least 6 characters long." };
+  }
+
+  try {
+    const passwordHash = await hashPassword(newPassword);
+    await prisma.adminUser.update({
+      where: { id },
+      data: { passwordHash },
+    });
+
+    await logAuditEvent({
+      action: "gateman.reset_password",
+      targetType: "AdminUser",
+      targetId: id,
+      actor: { id: session.userId, email: session.user.email },
+    });
+
+    revalidatePath("/velvt-management/gatemen");
+    return { success: true };
+  } catch (error: any) {
+    return { success: false, error: error?.message || "Failed to reset password." };
+  }
+}
+
+/**
+ * Re-render QR codes for any tickets that currently contain localhost:3000
+ */
+export async function refreshLegacyTicketQRCodes() {
+  const session = await requireAdmin();
+  try {
+    const tickets = await prisma.issuedTicket.findMany();
+    let updatedCount = 0;
+    for (const t of tickets) {
+      const verifyUrl = `https://velvt.in/verify/ticket/${t.securityToken}`;
+      const qrCodeDataUrl = await generateTicketQRCode(verifyUrl);
+      await prisma.issuedTicket.update({
+        where: { id: t.id },
+        data: { qrCodeDataUrl },
+      });
+      updatedCount++;
+    }
+    revalidatePath("/velvt-management/tickets");
+    return { success: true, count: updatedCount };
+  } catch (error: any) {
+    return { success: false, error: error?.message || "Failed to refresh passes." };
+  }
+}
+
 
 
 

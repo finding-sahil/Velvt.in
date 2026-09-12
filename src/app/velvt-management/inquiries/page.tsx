@@ -11,6 +11,9 @@ export default async function AdminInquiriesPage() {
   if (!session) {
     redirect("/velvt-management/login");
   }
+  if (session.user.role === "gateman") {
+    redirect("/velvt-management/gate");
+  }
 
   const inquiries = await prisma.contactInquiry.findMany({
     orderBy: { createdAt: "desc" },

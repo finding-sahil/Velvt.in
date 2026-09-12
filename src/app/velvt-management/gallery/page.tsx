@@ -11,6 +11,9 @@ export default async function AdminGalleryPage() {
   if (!session) {
     redirect("/velvt-management/login");
   }
+  if (session.user.role === "gateman") {
+    redirect("/velvt-management/gate");
+  }
 
   const [items, events] = await Promise.all([
     prisma.galleryItem.findMany({

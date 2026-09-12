@@ -11,6 +11,9 @@ export default async function AdminTeamPage() {
   if (!session) {
     redirect("/velvt-management/login");
   }
+  if (session.user.role === "gateman") {
+    redirect("/velvt-management/gate");
+  }
 
   const members = await prisma.teamMember.findMany({
     orderBy: { displayOrder: "asc" },
