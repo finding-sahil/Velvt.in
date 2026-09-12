@@ -145,7 +145,7 @@ export function Navigation() {
                 onClick={() => setMobileOpen(false)}
                 className="text-xs font-mono text-g5 hover:text-white uppercase tracking-wider"
               >
-                Archive Gallery &rarr;
+                Archive Gallery →
               </Link>
               <Link
                 href="/verify"

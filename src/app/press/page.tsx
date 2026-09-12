@@ -119,7 +119,7 @@ export default async function PressPage() {
                       rel="noopener noreferrer"
                       className="text-xs font-mono text-primary group-hover:text-white uppercase tracking-wider inline-flex items-center gap-1.5 transition-colors"
                     >
-                      Read Feature &rarr;
+                      Read Feature →
                     </a>
                   </div>
                 </article>

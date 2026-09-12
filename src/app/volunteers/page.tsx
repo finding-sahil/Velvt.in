@@ -250,7 +250,7 @@ export default async function VolunteersPage() {
                           className="w-full py-2 px-4 rounded-xl bg-white/[0.05] hover:bg-white/[0.1] border border-white/10 text-white text-xs font-mono uppercase tracking-wider flex items-center justify-center gap-2 transition-all hover:border-primary/40"
                         >
                           <span>Verify Credential</span>
-                          <span className="text-primary">&rarr;</span>
+                          <span className="text-primary">→</span>
                         </a>
                       </div>
                     </div>

@@ -11,6 +11,8 @@ import {
   deleteVolunteer,
   createVolunteerDirect,
   bulkImportVolunteers,
+  bulkGenerateVolunteers,
+  updateVolunteerStatusDirect,
 } from "@/app/actions";
 import { StatusBadge } from "@/components/ui/StatusBadge";
 import { formatDateShort } from "@/lib/utils";
@@ -206,6 +208,99 @@ export function VolunteerManager({ volunteers, events = [] }: VolunteerManagerPr
     phone: string;
   } | null>(null);
   const [savingSocials, setSavingSocials] = useState(false);
+
+  // Mass Volunteer Generator Modal State
+  const [showMassVolunteerModal, setShowMassVolunteerModal] = useState(false);
+  const [isBulkGeneratingVolunteers, setIsBulkGeneratingVolunteers] = useState(false);
+  const [massVolMode, setMassVolMode] = useState<"sheet" | "quick">("sheet");
+  const [massVolForm, setMassVolForm] = useState({
+    eventId: defaultEvent?.id || "",
+    year: defaultYear,
+    role: ROLE_PRESETS[0],
+    quantity: "10",
+    status: "verified",
+    namePrefix: "Crew Member",
+  });
+
+  // Google Sheet-like tabular input rows for Volunteers
+  const [volSheetRows, setVolSheetRows] = useState<Array<{
+    id: string;
+    fullName: string;
+    email: string;
+    phone: string;
+    role: string;
+    city: string;
+  }>>([
+    { id: "vrow-1", fullName: "", email: "", phone: "", role: ROLE_PRESETS[0], city: "Silchar" },
+    { id: "vrow-2", fullName: "", email: "", phone: "", role: ROLE_PRESETS[0], city: "Silchar" },
+    { id: "vrow-3", fullName: "", email: "", phone: "", role: ROLE_PRESETS[0], city: "Silchar" },
+  ]);
+  const [isVolPasteOpen, setIsVolPasteOpen] = useState(false);
+  const [volPasteRaw, setVolPasteRaw] = useState("");
+
+  const handleAddVolRow = () => {
+    setVolSheetRows((prev) => [
+      ...prev,
+      {
+        id: `vrow-${Date.now()}-${Math.random().toString(36).substring(2, 6)}`,
+        fullName: "",
+        email: "",
+        phone: "",
+        role: massVolForm.role || ROLE_PRESETS[0],
+        city: "Silchar",
+      },
+    ]);
+  };
+
+  const handleAddMultipleVolRows = (count: number) => {
+    const newRows = Array.from({ length: count }, (_, i) => ({
+      id: `vrow-${Date.now()}-${i}-${Math.random().toString(36).substring(2, 6)}`,
+      fullName: "",
+      email: "",
+      phone: "",
+      role: massVolForm.role || ROLE_PRESETS[0],
+      city: "Silchar",
+    }));
+    setVolSheetRows((prev) => [...prev, ...newRows]);
+  };
+
+  const handleRemoveVolRow = (id: string) => {
+    setVolSheetRows((prev) => (prev.length > 1 ? prev.filter((r) => r.id !== id) : prev));
+  };
+
+  const handleVolRowChange = (id: string, field: string, val: string) => {
+    setVolSheetRows((prev) =>
+      prev.map((r) => (r.id === id ? { ...r, [field]: val } : r))
+    );
+  };
+
+  const handleImportVolPastedText = () => {
+    if (!volPasteRaw.trim()) return;
+    const lines = volPasteRaw.split(/\r?\n/).map((l) => l.trim()).filter(Boolean);
+    const parsedRows = lines.map((line, idx) => {
+      const parts = line.includes("\t") ? line.split("\t") : line.split(",");
+      const fullName = (parts[0] || "").trim();
+      const email = (parts[1] || "").trim();
+      const phone = (parts[2] || "").trim();
+      const role = (parts[3] || "").trim() || massVolForm.role || ROLE_PRESETS[0];
+      const city = (parts[4] || "").trim() || "Silchar";
+      return {
+        id: `vrow-${Date.now()}-${idx}`,
+        fullName,
+        email,
+        phone,
+        role,
+        city,
+      };
+    });
+
+    if (parsedRows.length > 0) {
+      setVolSheetRows(parsedRows);
+      setIsVolPasteOpen(false);
+      setVolPasteRaw("");
+      setToast({ message: `Imported ${parsedRows.length} crew rows from clipboard!`, type: "success" });
+    }
+  };
 
   useEffect(() => {
     setVolunteerList(volunteers);
@@ -407,6 +502,102 @@ export function VolunteerManager({ volunteers, events = [] }: VolunteerManagerPr
     } catch (err: any) {
       setToast({ message: err?.message || "Failed to delete volunteer", type: "error" });
       setVolunteerList(prevList);
+    }
+  }
+
+  async function handleBulkGenerateVolunteers(e: React.FormEvent) {
+    e.preventDefault();
+    setIsBulkGeneratingVolunteers(true);
+    try {
+      if (massVolMode === "sheet") {
+        const validRows = volSheetRows
+          .map((r) => ({
+            fullName: r.fullName.trim(),
+            email: r.email.trim(),
+            phone: r.phone.trim(),
+            role: r.role.trim() || massVolForm.role || ROLE_PRESETS[0],
+            city: r.city.trim() || "Silchar",
+          }))
+          .filter((r) => r.fullName.length > 0);
+
+        if (validRows.length === 0) {
+          setToast({ message: "Please enter at least one crew member name in the sheet.", type: "error" });
+          setIsBulkGeneratingVolunteers(false);
+          return;
+        }
+
+        const res = await bulkGenerateVolunteers({
+          eventId: massVolForm.eventId || undefined,
+          year: Number(massVolForm.year) || 2026,
+          role: massVolForm.role,
+          status: massVolForm.status,
+          records: validRows,
+        });
+
+        if (res.success && res.volunteers) {
+          setVolunteerList((prev) => [...(res.volunteers as any), ...prev]);
+          setToast({
+            message: `Registered ${res.count} crew members with official IDs!`,
+            type: "success",
+          });
+          setShowMassVolunteerModal(false);
+          router.refresh();
+        } else {
+          setToast({ message: res.error || "Failed to register volunteers", type: "error" });
+        }
+      } else {
+        const qty = parseInt(massVolForm.quantity, 10) || 10;
+        const res = await bulkGenerateVolunteers({
+          eventId: massVolForm.eventId || undefined,
+          year: Number(massVolForm.year) || 2026,
+          role: massVolForm.role,
+          quantity: qty,
+          status: massVolForm.status,
+          namePrefix: massVolForm.namePrefix,
+        });
+
+        if (res.success && res.volunteers) {
+          setVolunteerList((prev) => [...(res.volunteers as any), ...prev]);
+          setToast({
+            message: `Generated ${res.count} volunteers with auto-assigned official IDs!`,
+            type: "success",
+          });
+          setShowMassVolunteerModal(false);
+          router.refresh();
+        } else {
+          setToast({ message: res.error || "Failed to generate volunteers", type: "error" });
+        }
+      }
+    } catch (err: any) {
+      setToast({ message: err?.message || "An error occurred", type: "error" });
+    } finally {
+      setIsBulkGeneratingVolunteers(false);
+    }
+  }
+
+  async function handleDirectStatusChange(volunteerId: string, newStatus: string) {
+    setVolunteerList((prev) =>
+      prev.map((v) => (v.id === volunteerId ? { ...v, status: newStatus } : v))
+    );
+    try {
+      const res = await updateVolunteerStatusDirect(volunteerId, newStatus);
+      if (res.success && res.volunteer) {
+        setVolunteerList((prev) =>
+          prev.map((v) =>
+            v.id === volunteerId
+              ? { ...v, volunteerId: res.volunteer.volunteerId, status: newStatus }
+              : v
+          )
+        );
+        setToast({ message: `Status updated to ${newStatus.toUpperCase()}`, type: "success" });
+        router.refresh();
+      } else {
+        setToast({ message: res.error || "Failed to update status", type: "error" });
+        setVolunteerList(volunteers);
+      }
+    } catch (err: any) {
+      setToast({ message: err?.message || "Failed to update status", type: "error" });
+      setVolunteerList(volunteers);
     }
   }
 
@@ -714,6 +905,15 @@ export function VolunteerManager({ volunteers, events = [] }: VolunteerManagerPr
             <span className="text-base font-bold leading-none">+</span>
             <span>Add Volunteer</span>
           </button>
+
+          {/* Mass Volunteer Generator */}
+          <button
+            type="button"
+            onClick={() => setShowMassVolunteerModal(true)}
+            className="px-4 py-2 text-xs font-mono uppercase tracking-wider rounded-xl bg-primary/20 text-primary border border-primary/40 font-bold hover:bg-primary/30 transition-all cursor-pointer shadow-[0_0_15px_rgba(200,16,46,0.2)] flex items-center gap-1.5"
+          >
+            <span>⚡ Mass Crew Generator</span>
+          </button>
         </div>
       </div>
 
@@ -867,7 +1067,27 @@ export function VolunteerManager({ volunteers, events = [] }: VolunteerManagerPr
                       </td>
 
                       <td className="py-4 px-4">
-                        <StatusBadge status={vol.status} />
+                        <select
+                          value={vol.status}
+                          onChange={(e) => handleDirectStatusChange(vol.id, e.target.value)}
+                          className={`text-[10px] font-mono font-bold uppercase rounded-lg px-2 py-1 border transition-colors cursor-pointer focus:outline-none ${
+                            vol.status === "verified"
+                              ? "bg-emerald-950/80 text-emerald-400 border-emerald-500/40"
+                              : vol.status === "approved"
+                              ? "bg-blue-950/80 text-blue-400 border-blue-500/40"
+                              : vol.status === "pending"
+                              ? "bg-amber-950/70 text-amber-300 border-amber-500/30"
+                              : vol.status === "rejected"
+                              ? "bg-red-950/80 text-red-400 border-red-500/40"
+                              : "bg-zinc-900 text-zinc-400 border-zinc-700"
+                          }`}
+                        >
+                          <option value="pending">Pending</option>
+                          <option value="approved">Approved</option>
+                          <option value="verified">Verified Pass</option>
+                          <option value="revoked">Revoked</option>
+                          <option value="rejected">Rejected</option>
+                        </select>
                       </td>
 
                       <td className="py-4 px-4 font-mono text-g5 text-[11px]">
@@ -941,7 +1161,7 @@ export function VolunteerManager({ volunteers, events = [] }: VolunteerManagerPr
                                 rel="noopener noreferrer"
                                 className="px-2.5 py-1 text-[11px] font-mono uppercase tracking-wider rounded bg-white/[0.04] text-g5 border border-white/[0.08] hover:text-white transition-colors"
                               >
-                                Badge &nearr;
+                                Badge ↗
                               </a>
 
                               <DownloadQrButton
@@ -1625,6 +1845,397 @@ export function VolunteerManager({ volunteers, events = [] }: VolunteerManagerPr
                   className="px-5 py-2 text-xs font-bold rounded-lg bg-primary text-white hover:bg-red-700 transition-all cursor-pointer shadow-[0_0_15px_rgba(200,16,46,0.3)]"
                 >
                   {savingSocials ? "Saving..." : "Save Handles"}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* ── Modal / Sheet: Mass Volunteer Generator (Spreadsheet & Bulk) ─────────────────────── */}
+      {showMassVolunteerModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-3 md:p-6 bg-black/85 backdrop-blur-md animate-fade-in">
+          <div
+            className={`w-full ${
+              massVolMode === "sheet" ? "max-w-5xl" : "max-w-xl"
+            } rounded-2xl bg-[#0c0c0e] border border-primary/30 shadow-[0_16px_50px_rgba(0,0,0,0.9)] p-5 md:p-7 relative max-h-[92vh] overflow-y-auto transition-all duration-300`}
+          >
+            <button
+              onClick={() => setShowMassVolunteerModal(false)}
+              className="absolute top-4 right-4 text-g5 hover:text-white p-1 cursor-pointer transition-colors"
+            >
+              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+              </svg>
+            </button>
+
+            <div className="mb-4">
+              <div className="flex items-center gap-2">
+                <span className="w-2 h-2 rounded-full bg-red animate-pulse" />
+                <span className="text-[10px] font-mono tracking-widest text-red uppercase">
+                  Batch Generator &bull; Sequential Official IDs (VEL-2026-XXXXX)
+                </span>
+              </div>
+              <h2 className="font-heading text-xl md:text-2xl uppercase tracking-wider text-white mt-1">
+                Mass Volunteer &amp; Crew Generator
+              </h2>
+              <p className="text-xs text-g4 mt-1">
+                Enter crew details directly using the Google Sheet table or import from clipboard. Sequential official IDs (<span className="text-white font-mono font-bold">VEL-2026-XXXXX</span>) are generated automatically.
+              </p>
+            </div>
+
+            {/* Mode Switcher Tabs */}
+            <div className="flex items-center gap-2 p-1 rounded-xl bg-white/[0.04] border border-white/10 mb-4 w-fit">
+              <button
+                type="button"
+                onClick={() => setMassVolMode("sheet")}
+                className={`px-3 py-1.5 rounded-lg text-xs font-mono uppercase tracking-wider font-bold transition-all cursor-pointer flex items-center gap-1.5 ${
+                  massVolMode === "sheet"
+                    ? "bg-red text-white shadow-[0_0_12px_rgba(200,16,46,0.4)]"
+                    : "text-g5 hover:text-white"
+                }`}
+              >
+                <span>📊</span>
+                <span>Google Sheet Grid</span>
+              </button>
+              <button
+                type="button"
+                onClick={() => setMassVolMode("quick")}
+                className={`px-3 py-1.5 rounded-lg text-xs font-mono uppercase tracking-wider font-bold transition-all cursor-pointer flex items-center gap-1.5 ${
+                  massVolMode === "quick"
+                    ? "bg-red text-white shadow-[0_0_12px_rgba(200,16,46,0.4)]"
+                    : "text-g5 hover:text-white"
+                }`}
+              >
+                <span>⚡</span>
+                <span>Numbered Auto-ID Batch</span>
+              </button>
+            </div>
+
+            <form onSubmit={handleBulkGenerateVolunteers} className="space-y-4 font-mono text-xs">
+              {/* Event & Status Row */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-g4 uppercase text-[10px] mb-1">
+                    Assigned Event
+                  </label>
+                  <select
+                    value={massVolForm.eventId}
+                    onChange={(e) => setMassVolForm({ ...massVolForm, eventId: e.target.value })}
+                    className="w-full bg-black/60 border border-white/10 rounded-lg p-2.5 text-white focus:outline-none focus:border-primary"
+                  >
+                    <option value="">General Crew Pool</option>
+                    {events.map((ev) => (
+                      <option key={ev.id} value={ev.id}>
+                        {ev.name}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+
+                <div>
+                  <label className="block text-g4 uppercase text-[10px] mb-1">
+                    Status / Access Tier
+                  </label>
+                  <select
+                    value={massVolForm.status}
+                    onChange={(e) => setMassVolForm({ ...massVolForm, status: e.target.value })}
+                    className="w-full bg-black/60 border border-white/10 rounded-lg p-2.5 text-white focus:outline-none focus:border-primary"
+                  >
+                    <option value="verified">Verified (Official Active Pass)</option>
+                    <option value="approved">Approved</option>
+                    <option value="pending">Pending</option>
+                  </select>
+                </div>
+              </div>
+
+              {massVolMode === "sheet" ? (
+                /* ── TAB 1: Google Sheet Table Mode ─────────────────────── */
+                <div className="space-y-3">
+                  <div className="flex flex-wrap items-center justify-between gap-2 pt-1 border-t border-white/10">
+                    <div className="flex items-center gap-2">
+                      <span className="text-xs font-mono font-bold uppercase text-white tracking-wide">
+                        Crew Members Spreadsheet
+                      </span>
+                      <span className="px-2 py-0.5 rounded-full text-[10px] font-mono bg-white/[0.06] text-amber-400 border border-amber-500/20">
+                        {volSheetRows.filter((r) => r.fullName.trim()).length} of {volSheetRows.length} valid
+                      </span>
+                    </div>
+
+                    <div className="flex flex-wrap items-center gap-2">
+                      <button
+                        type="button"
+                        onClick={handleAddVolRow}
+                        className="px-2.5 py-1 text-xs font-mono rounded bg-white/[0.06] text-white hover:bg-white/10 border border-white/10 cursor-pointer transition-colors"
+                      >
+                        + Add Row
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => handleAddMultipleVolRows(5)}
+                        className="px-2.5 py-1 text-xs font-mono rounded bg-white/[0.06] text-white hover:bg-white/10 border border-white/10 cursor-pointer transition-colors"
+                      >
+                        + 5 Rows
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setIsVolPasteOpen(!isVolPasteOpen)}
+                        className={`px-2.5 py-1 text-xs font-mono rounded border transition-colors cursor-pointer flex items-center gap-1 ${
+                          isVolPasteOpen
+                            ? "bg-purple-600 text-white border-purple-500"
+                            : "bg-purple-950/40 text-purple-300 border-purple-500/30 hover:bg-purple-950/70"
+                        }`}
+                      >
+                        <span>📋</span>
+                        <span>{isVolPasteOpen ? "Close Paste Box" : "Paste from Sheets / Excel"}</span>
+                      </button>
+                      {volSheetRows.length > 1 && (
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setVolSheetRows([
+                              { id: "vrow-1", fullName: "", email: "", phone: "", role: ROLE_PRESETS[0], city: "Silchar" },
+                            ]);
+                          }}
+                          className="px-2 py-1 text-xs font-mono text-g5 hover:text-red transition-colors cursor-pointer"
+                        >
+                          Clear
+                        </button>
+                      )}
+                    </div>
+                  </div>
+
+                  {/* Paste Box Drawer */}
+                  {isVolPasteOpen && (
+                    <div className="p-3.5 rounded-xl bg-[#141418] border border-purple-500/40 space-y-2 animate-fade-in">
+                      <div className="flex items-center justify-between">
+                        <span className="text-[11px] font-mono text-purple-300 font-bold uppercase tracking-wider">
+                          Paste Data from Google Sheets or Excel
+                        </span>
+                        <span className="text-[10px] text-g5">Tab or Comma separated</span>
+                      </div>
+                      <textarea
+                        rows={4}
+                        value={volPasteRaw}
+                        onChange={(e) => setVolPasteRaw(e.target.value)}
+                        placeholder={`Name\tEmail\tPhone\tRole\tCity\nRohit Das\trohit@example.com\t9876543210\tStage & Sound\tSilchar\nPooja Roy\tpooja@example.com\t9876543211\tGate & Ticketing\tSilchar`}
+                        className="w-full bg-black/60 border border-white/15 rounded-lg p-2 text-xs font-mono text-white placeholder:text-g6 focus:outline-none focus:border-purple-500"
+                      />
+                      <div className="flex justify-end gap-2">
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setIsVolPasteOpen(false);
+                            setVolPasteRaw("");
+                          }}
+                          className="px-3 py-1 text-xs font-mono text-g5 hover:text-white cursor-pointer"
+                        >
+                          Cancel
+                        </button>
+                        <button
+                          type="button"
+                          onClick={handleImportVolPastedText}
+                          className="px-4 py-1 text-xs font-mono font-bold rounded-lg bg-purple-600 text-white hover:bg-purple-500 transition-all cursor-pointer shadow-[0_0_12px_rgba(168,85,247,0.35)]"
+                        >
+                          ⚡ Import Rows into Spreadsheet
+                        </button>
+                      </div>
+                    </div>
+                  )}
+
+                  {/* The Spreadsheet Grid */}
+                  <div className="rounded-xl border border-white/15 bg-black/40 overflow-x-auto max-h-[42vh] overflow-y-auto">
+                    <table className="w-full text-left text-xs font-mono border-collapse min-w-[760px]">
+                      <thead>
+                        <tr className="bg-white/[0.04] text-[10px] text-g5 uppercase tracking-wider border-b border-white/10 sticky top-0 z-10">
+                          <th className="p-2 text-center w-10">#</th>
+                          <th className="p-2 min-w-[170px]">Full Name *</th>
+                          <th className="p-2 min-w-[170px]">Email Address</th>
+                          <th className="p-2 min-w-[130px]">Phone Number</th>
+                          <th className="p-2 min-w-[170px]">Department / Role</th>
+                          <th className="p-2 min-w-[110px]">City</th>
+                          <th className="p-2 text-center w-10"></th>
+                        </tr>
+                      </thead>
+                      <tbody className="divide-y divide-white/[0.05]">
+                        {volSheetRows.map((row, idx) => (
+                          <tr key={row.id} className="hover:bg-white/[0.02]">
+                            <td className="p-2 text-center text-g5 text-[11px] select-none">{idx + 1}</td>
+                            <td className="p-1.5">
+                              <input
+                                type="text"
+                                value={row.fullName}
+                                onChange={(e) => handleVolRowChange(row.id, "fullName", e.target.value)}
+                                placeholder="Full Name"
+                                className="w-full bg-black/50 border border-white/10 rounded px-2 py-1 text-xs text-white focus:outline-none focus:border-red"
+                              />
+                            </td>
+                            <td className="p-1.5">
+                              <input
+                                type="email"
+                                value={row.email}
+                                onChange={(e) => handleVolRowChange(row.id, "email", e.target.value)}
+                                placeholder="Auto-generated if empty"
+                                className="w-full bg-black/50 border border-white/10 rounded px-2 py-1 text-xs text-white focus:outline-none focus:border-red placeholder:text-g6"
+                              />
+                            </td>
+                            <td className="p-1.5">
+                              <input
+                                type="tel"
+                                value={row.phone}
+                                onChange={(e) => handleVolRowChange(row.id, "phone", e.target.value)}
+                                placeholder="+91..."
+                                className="w-full bg-black/50 border border-white/10 rounded px-2 py-1 text-xs text-white focus:outline-none focus:border-red"
+                              />
+                            </td>
+                            <td className="p-1.5">
+                              <select
+                                value={row.role}
+                                onChange={(e) => handleVolRowChange(row.id, "role", e.target.value)}
+                                className="w-full bg-black/50 border border-white/10 rounded px-2 py-1 text-xs text-white focus:outline-none focus:border-red"
+                              >
+                                {ROLE_PRESETS.map((r) => (
+                                  <option key={r} value={r}>
+                                    {r}
+                                  </option>
+                                ))}
+                              </select>
+                            </td>
+                            <td className="p-1.5">
+                              <input
+                                type="text"
+                                value={row.city}
+                                onChange={(e) => handleVolRowChange(row.id, "city", e.target.value)}
+                                placeholder="Silchar"
+                                className="w-full bg-black/50 border border-white/10 rounded px-2 py-1 text-xs text-white focus:outline-none focus:border-red"
+                              />
+                            </td>
+                            <td className="p-1.5 text-center">
+                              <button
+                                type="button"
+                                onClick={() => handleRemoveVolRow(row.id)}
+                                disabled={volSheetRows.length <= 1}
+                                className="text-g5 hover:text-red transition-colors p-1 cursor-pointer disabled:opacity-20"
+                                title="Remove row"
+                              >
+                                ✕
+                              </button>
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+              ) : (
+                /* ── TAB 2: Numbered Auto-ID Batch ─────────────────────── */
+                <div className="space-y-4">
+                  {/* Role Preset */}
+                  <div>
+                    <label className="block text-g4 uppercase text-[10px] mb-1">
+                      Department / Assigned Role <span className="text-red">*</span>
+                    </label>
+                    <select
+                      value={massVolForm.role}
+                      onChange={(e) => setMassVolForm({ ...massVolForm, role: e.target.value })}
+                      className="w-full bg-black/60 border border-white/10 rounded-lg p-2.5 text-white focus:outline-none focus:border-primary"
+                    >
+                      {ROLE_PRESETS.map((r) => (
+                        <option key={r} value={r}>
+                          {r}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+
+                  {/* Quantity with quick chips */}
+                  <div>
+                    <label className="block text-g4 uppercase text-[10px] mb-1">
+                      Quantity to Generate <span className="text-red">*</span>
+                    </label>
+                    <div className="flex items-center gap-2 mb-2">
+                      {["5", "10", "20", "35", "50"].map((num) => (
+                        <button
+                          key={num}
+                          type="button"
+                          onClick={() => setMassVolForm({ ...massVolForm, quantity: num })}
+                          className={`px-2.5 py-1 text-xs rounded border transition-colors cursor-pointer ${
+                            massVolForm.quantity === num
+                              ? "bg-red text-white border-red"
+                              : "bg-white/[0.05] text-g4 border-white/10 hover:border-white/30"
+                          }`}
+                        >
+                          +{num}
+                        </button>
+                      ))}
+                    </div>
+                    <input
+                      type="number"
+                      min="1"
+                      max="100"
+                      required
+                      value={massVolForm.quantity}
+                      onChange={(e) => setMassVolForm({ ...massVolForm, quantity: e.target.value })}
+                      className="w-full bg-black/60 border border-white/10 rounded-lg p-2.5 text-white focus:outline-none focus:border-primary"
+                    />
+                  </div>
+
+                  {/* Timeline / Year */}
+                  <div>
+                    <label className="block text-g4 uppercase text-[10px] mb-1">
+                      Timeline / Year
+                    </label>
+                    <input
+                      type="number"
+                      value={massVolForm.year}
+                      onChange={(e) => setMassVolForm({ ...massVolForm, year: Number(e.target.value) || 2026 })}
+                      className="w-full bg-black/60 border border-white/10 rounded-lg p-2.5 text-white focus:outline-none focus:border-primary"
+                    />
+                  </div>
+
+                  {/* Name Prefix */}
+                  <div>
+                    <label className="block text-g4 uppercase text-[10px] mb-1">
+                      Volunteer Name Label Prefix
+                    </label>
+                    <input
+                      type="text"
+                      value={massVolForm.namePrefix}
+                      onChange={(e) => setMassVolForm({ ...massVolForm, namePrefix: e.target.value })}
+                      placeholder="e.g. Crew Member, Volunteer, Stage Hand"
+                      className="w-full bg-black/60 border border-white/10 rounded-lg p-2.5 text-white focus:outline-none focus:border-primary"
+                    />
+                    <span className="text-[10px] text-g5 mt-1 block">
+                      Generated crew will be named &ldquo;{massVolForm.namePrefix} 01&rdquo;, &ldquo;{massVolForm.namePrefix} 02&rdquo; with sequential credentials.
+                    </span>
+                  </div>
+                </div>
+              )}
+
+              {/* Actions */}
+              <div className="flex justify-end gap-3 pt-4 border-t border-white/10">
+                <button
+                  type="button"
+                  onClick={() => setShowMassVolunteerModal(false)}
+                  className="px-4 py-2 text-xs rounded-lg bg-white/[0.05] text-g4 hover:text-white cursor-pointer"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  disabled={
+                    isBulkGeneratingVolunteers ||
+                    (massVolMode === "sheet" && volSheetRows.filter((r) => r.fullName.trim()).length === 0)
+                  }
+                  className="px-6 py-2.5 text-xs font-bold rounded-lg bg-primary hover:bg-red-700 text-white shadow-[0_0_20px_rgba(200,16,46,0.4)] disabled:opacity-50 flex items-center gap-2 cursor-pointer transition-all"
+                >
+                  {isBulkGeneratingVolunteers ? (
+                    <span>Generating Crew Members...</span>
+                  ) : massVolMode === "sheet" ? (
+                    <span>👥 Register {volSheetRows.filter((r) => r.fullName.trim()).length || 0} Volunteers</span>
+                  ) : (
+                    <span>⚡ Generate {massVolForm.quantity || "0"} Volunteers</span>
+                  )}
                 </button>
               </div>
             </form>

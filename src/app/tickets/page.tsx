@@ -130,7 +130,7 @@ export default async function TicketsPage() {
                 href="/events"
                 className="inline-flex items-center gap-2 px-6 py-2.5 rounded-full bg-red-dim border border-red-glow text-xs font-mono uppercase tracking-widest text-white hover:bg-primary transition-all"
               >
-                View Events &rarr;
+                View Events →
               </Link>
             </div>
           )}

@@ -8,6 +8,7 @@ import {
   searchTicketsForGate,
   getRecentGateCheckIns,
   getTicketVerificationData,
+  getVolunteerVerificationData,
 } from "@/app/actions";
 import { adminPath } from "@/lib/admin-path";
 
@@ -148,6 +149,11 @@ function extractTicketIdentifier(rawText: string): string {
   if (urlMatch && urlMatch[1]) {
     return urlMatch[1];
   }
+  // Check if it's a URL like .../verify/<volunteerId>
+  const volUrlMatch = clean.match(/\/verify\/([a-zA-Z0-9_-]+)/i);
+  if (volUrlMatch && volUrlMatch[1]) {
+    return volUrlMatch[1];
+  }
   // Check if it's a UUID
   const uuidMatch = clean.match(/[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}/i);
   if (uuidMatch) {
@@ -157,6 +163,11 @@ function extractTicketIdentifier(rawText: string): string {
   const ticketNumMatch = clean.match(/VLT-[0-9]{4}-[A-Z0-9]+/i);
   if (ticketNumMatch) {
     return ticketNumMatch[0].toUpperCase();
+  }
+  // Check if it's a volunteer ID (e.g. VEL-2026-XXXXX)
+  const volIdMatch = clean.match(/VEL-[0-9]{4}-[0-9]+/i);
+  if (volIdMatch) {
+    return volIdMatch[0].toUpperCase();
   }
   return clean;
 }
@@ -252,6 +263,50 @@ export function GateScanner({
       const cleanCode = extractTicketIdentifier(identifier);
 
       try {
+        // First check if it's a volunteer / crew badge (e.g. VEL-2026-XXXXX)
+        if (cleanCode.startsWith("VEL-")) {
+          const vol = await getVolunteerVerificationData(cleanCode);
+          if (vol) {
+            if (vol.status === "revoked" || vol.status === "rejected") {
+              setScanResult({
+                status: "revoked",
+                message: `CREW ACCESS REVOKED • ${vol.fullName} (${vol.assignedRole || vol.preferredRole})`,
+                ticket: {
+                  attendeeName: vol.fullName,
+                  tierName: `CREW / ${vol.assignedRole || vol.preferredRole}`,
+                  ticketNumber: vol.volunteerId || "CREW",
+                  status: vol.status,
+                } as any,
+              });
+              if (soundEnabled) playAudioChime(false);
+              triggerHaptic(false);
+              return;
+            }
+
+            setScanResult({
+              status: "admitted",
+              message: `CREW ACCESS GRANTED • ${vol.fullName} (${vol.assignedRole || vol.preferredRole})`,
+              ticket: {
+                attendeeName: vol.fullName,
+                tierName: `OFFICIAL CREW (${vol.assignedRole || vol.preferredRole})`,
+                ticketNumber: vol.volunteerId || "CREW-PASS",
+                status: "verified",
+                isCheckedIn: true,
+                event: { name: vol.event.name },
+              } as any,
+            });
+            if (soundEnabled) playAudioChime(true);
+            triggerHaptic(true);
+
+            if (autoAdmit) {
+              setTimeout(() => {
+                setScanResult(null);
+                isProcessingRef.current = false;
+              }, 1800);
+            }
+            return;
+          }
+        }
         // If not auto-admit and not confirmed, fetch details first
         if (!autoAdmit && !skipConfirm) {
           const ticketData = await getTicketVerificationData(cleanCode);

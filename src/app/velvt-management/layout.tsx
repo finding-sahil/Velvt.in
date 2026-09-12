@@ -36,7 +36,10 @@ export default async function AdminLayout({
 
   // Modern Left-Sidebar Admin Architecture
   return (
-    <div className="min-h-screen bg-[#050507] text-white flex flex-col md:flex-row font-sans selection:bg-red selection:text-white">
+    <div
+      suppressHydrationWarning
+      className="min-h-screen bg-[#050507] text-white flex flex-col md:flex-row font-sans selection:bg-red selection:text-white"
+    >
       {/* ─── Left Sidebar Navigation (Desktop Fixed + Mobile Drawer) ─── */}
       <AdminNav user={session.user} />
 
@@ -46,7 +49,7 @@ export default async function AdminLayout({
         <div className="fixed top-0 right-0 w-[500px] h-[350px] bg-red/5 rounded-full filter blur-[140px] pointer-events-none -z-10" />
 
         {/* Content Body */}
-        <main className="flex-1 px-4 sm:px-6 lg:px-8 pt-5 pb-8 max-w-7xl w-full mx-auto">
+        <main className="flex-1 px-4 sm:px-6 lg:px-10 pt-5 pb-10 w-full max-w-[1720px] mx-auto">
           {children}
         </main>
       </div>

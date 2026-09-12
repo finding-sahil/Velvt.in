@@ -63,9 +63,9 @@ export default async function TeamMemberPortfolioPage({ params }: PageProps) {
     : "https://instagram.com/velvt.in";
 
   const isFounder =
-    member.category?.toLowerCase().includes("founder") ||
-    member.role.toLowerCase().includes("founder") ||
-    member.name.toLowerCase().includes("sahil");
+    member.category?.toLowerCase() === "founders" ||
+    member.category?.toLowerCase() === "founder" ||
+    member.role.toLowerCase().includes("founder");
 
   // Parse highlights
   let highlightItems: string[] = [];
@@ -90,7 +90,7 @@ export default async function TeamMemberPortfolioPage({ params }: PageProps) {
             href="/team"
             className="hover:text-red transition-colors flex items-center gap-1.5"
           >
-            <span>&larr;</span>
+            <span>←</span>
             <span>Core Team</span>
           </Link>
           <span>/</span>
@@ -125,12 +125,12 @@ export default async function TeamMemberPortfolioPage({ params }: PageProps) {
                   {isFounder ? (
                     <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-black/80 backdrop-blur-md border border-red/80 text-[10px] font-mono font-bold uppercase tracking-widest text-red shadow-[0_0_15px_var(--red-glow)]">
                       <span className="w-1.5 h-1.5 rounded-full bg-red animate-pulse" />
-                      FOUNDER &amp; VISIONARY
+                      FOUNDER
                     </span>
                   ) : (
                     <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-black/80 backdrop-blur-md border border-white/20 text-[10px] font-mono uppercase tracking-widest text-white/90">
                       <span className="w-1.5 h-1.5 rounded-full bg-red" />
-                      {member.category}
+                      {member.category.toUpperCase()}
                     </span>
                   )}
 
@@ -180,7 +180,7 @@ export default async function TeamMemberPortfolioPage({ params }: PageProps) {
                     className="inline-flex items-center gap-1.5 text-xs font-mono text-red hover:text-white uppercase tracking-wider underline underline-offset-4"
                   >
                     <span>Portfolio</span>
-                    <span>&nearr;</span>
+                    <span>↗</span>
                   </a>
                 )}
               </div>

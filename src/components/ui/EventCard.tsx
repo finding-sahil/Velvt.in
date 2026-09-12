@@ -76,7 +76,7 @@ export function EventCard({
 
             <div className="flex items-center gap-2 text-xs text-red font-display font-bold uppercase tracking-wider group-hover:gap-3 transition-all duration-300">
               <span>View Production Dossier</span>
-              <span className="text-base leading-none">&rarr;</span>
+              <span className="text-base leading-none">→</span>
             </div>
           </div>
         </div>
@@ -136,7 +136,7 @@ export function EventCard({
 
         <div className="pt-2 flex items-center justify-between text-xs font-mono text-red font-semibold uppercase tracking-wider">
           <span>Explore Event</span>
-          <span className="group-hover:translate-x-1.5 transition-transform duration-200">&rarr;</span>
+          <span className="group-hover:translate-x-1.5 transition-transform duration-200">→</span>
         </div>
       </div>
     </Link>

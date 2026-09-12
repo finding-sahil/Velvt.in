@@ -107,10 +107,10 @@ export function VolunteerActions({
         await updateVolunteerPhoto(id, data.url);
         router.refresh();
       } else {
-        alert(data.error || "Failed to upload image");
+        console.error("Failed to upload image:", data.error);
       }
     } catch (err: any) {
-      alert("Upload failed: " + err.message);
+      console.error("Upload failed:", err.message);
     } finally {
       setUploading(false);
     }
@@ -183,7 +183,7 @@ export function VolunteerActions({
             rel="noopener noreferrer"
             className="px-2.5 py-1 text-[11px] font-mono uppercase tracking-wider rounded bg-white/[0.04] text-g5 border border-white/[0.08] hover:text-white transition-colors"
           >
-            View Badge &nearr;
+            View Badge ↗
           </a>
 
           <DownloadQrButton

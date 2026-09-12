@@ -22,6 +22,9 @@ export default async function AdminEventsPage() {
       ticketTypes: {
         orderBy: { displayOrder: "asc" },
       },
+      scheduleItems: {
+        orderBy: { displayOrder: "asc" },
+      },
       faqs: {
         orderBy: { displayOrder: "asc" },
       },
@@ -29,6 +32,7 @@ export default async function AdminEventsPage() {
         select: {
           volunteers: true,
           ticketTypes: true,
+          scheduleItems: true,
           announcements: true,
           faqs: true,
         },

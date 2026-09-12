@@ -303,7 +303,7 @@ export function SettingsManager({ settings, events }: SettingsManagerProps) {
             Central Content Management System
           </span>
           <h1 className="font-display text-3xl font-bold uppercase tracking-wider text-white">
-            Site CMS &amp; Page Details
+            Site CMS & Page Details
           </h1>
           <p className="text-xs text-g5 mt-1">
             Customize live text, Experience Highlights cards, hero copy, and channel links without code edits.
@@ -488,7 +488,7 @@ export function SettingsManager({ settings, events }: SettingsManagerProps) {
                           ) : isCurrent ? (
                             <span>✓ Active Theme</span>
                           ) : (
-                            <span>Activate {theme.name} &rarr;</span>
+                            <span>Activate {theme.name} →</span>
                           )}
                         </button>
                       </div>
@@ -509,7 +509,7 @@ export function SettingsManager({ settings, events }: SettingsManagerProps) {
                   <div className="flex items-center gap-2">
                     <span className="w-2 h-2 rounded-full bg-red animate-pulse" />
                     <h3 className="font-display text-xl text-white font-bold uppercase tracking-wider">
-                      Page Switchboard &amp; Instant Visibility
+                      Page Switchboard & Instant Visibility
                     </h3>
                   </div>
                   <p className="text-[11px] text-g5 mt-1">
@@ -570,7 +570,7 @@ export function SettingsManager({ settings, events }: SettingsManagerProps) {
                               className="text-red hover:underline inline-flex items-center gap-1"
                             >
                               <span>Preview in new tab</span>
-                              <span>&nearr;</span>
+                              <span>↗</span>
                             </a>
                           </p>
                         </div>
@@ -977,7 +977,7 @@ export function SettingsManager({ settings, events }: SettingsManagerProps) {
             {/* Services Section */}
             <div className="p-6 bg-white/[0.03] border border-white/10 rounded-2xl space-y-4">
               <h3 className="font-display text-xl text-white font-bold uppercase tracking-wider pb-2 border-b border-white/10">
-                &quot;What We Do&quot; Section
+                "What We Do" Section
               </h3>
 
               <div className="grid sm:grid-cols-2 gap-4">
@@ -1009,7 +1009,7 @@ export function SettingsManager({ settings, events }: SettingsManagerProps) {
           <div className="space-y-6 animate-fade-in">
             <div className="p-6 bg-white/[0.03] border border-white/10 rounded-2xl space-y-4">
               <h3 className="font-display text-xl text-white font-bold uppercase tracking-wider pb-2 border-b border-white/10">
-                Official Channels &amp; Community Links
+                Official Channels & Community Links
               </h3>
 
               <div className="grid sm:grid-cols-2 gap-4">
@@ -1047,7 +1047,7 @@ export function SettingsManager({ settings, events }: SettingsManagerProps) {
                   />
                 </div>
                 <div>
-                  <label className="block text-g5 mb-1 uppercase">Press &amp; Media Email</label>
+                  <label className="block text-g5 mb-1 uppercase">Press & Media Email</label>
                   <input
                     type="email"
                     value={form.press_email}

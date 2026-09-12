@@ -39,7 +39,9 @@ export function TeamPreviewSection({ members }: TeamPreviewSectionProps) {
               } catch {}
             }
 
-            const isFounder = index === 0 || member.role.toLowerCase().includes("founder");
+            const isFounder =
+              member.role.toLowerCase().includes("founder") ||
+              member.category?.toLowerCase() === "founders";
             const instagramUrl =
               socials?.instagram && socials.instagram.trim() !== ""
                 ? socials.instagram.startsWith("http")
@@ -108,23 +110,29 @@ export function TeamPreviewSection({ members }: TeamPreviewSectionProps) {
 
                 {/* ─── Bottom Content: Name, Role, Social Toolbar ─── */}
                 <div className="relative z-10 flex flex-col justify-end space-y-3.5 w-full">
-                  <div className="space-y-1">
-                    {/* Prominent Name */}
+                  <div className="space-y-1.5">
+                    {/* Prominent Name: Kept on the exact same horizontal line across all cards */}
                     <h3 className="font-display font-black text-2xl sm:text-[1.65rem] text-white uppercase tracking-[0.04em] leading-none group-hover:text-red transition-colors duration-300">
                       {member.name}
                     </h3>
 
-                    {/* Clean, Unclipped Role Designation */}
-                    <p className="text-[11px] font-mono uppercase tracking-[0.14em] text-red font-semibold leading-snug pt-0.5">
-                      {member.role}
-                    </p>
-
-                    {/* Optional Bio / Motto */}
-                    {member.bio && (
-                      <p className="text-[11px] text-g5 italic font-sans leading-tight pt-1 line-clamp-1">
-                        &ldquo;{member.bio}&rdquo;
+                    {/* Clean, Unclipped Role Designation: standardized height aligns names across cards */}
+                    <div className="min-h-[46px] sm:min-h-[52px] flex items-start">
+                      <p className="text-[11px] font-mono uppercase tracking-[0.12em] text-red font-semibold leading-snug pt-0.5">
+                        {member.role}
                       </p>
-                    )}
+                    </div>
+
+                    {/* Optional Bio / Motto: standardized height ensures perfectly aligned baseline */}
+                    <div className="min-h-[18px] flex items-center">
+                      {member.bio ? (
+                        <p className="text-[11px] text-g5 italic font-sans leading-tight line-clamp-1">
+                          &ldquo;{member.bio}&rdquo;
+                        </p>
+                      ) : (
+                        <span className="invisible text-[11px] select-none pointer-events-none">&nbsp;</span>
+                      )}
+                    </div>
                   </div>
 
                   {/* Bottom Action Bar: Consistent Across All Cards */}

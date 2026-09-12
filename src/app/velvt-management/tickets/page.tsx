@@ -27,6 +27,13 @@ export default async function AdminTicketsPage() {
           date: true,
           time: true,
           status: true,
+          venue: {
+            select: {
+              name: true,
+              city: true,
+              address: true,
+            },
+          },
         },
       },
       ticketType: {

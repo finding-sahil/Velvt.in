@@ -274,7 +274,6 @@ export function TeamManager({ members, adminUsers = [], currentUserRole = "admin
   }
 
   async function handleRevokeCredentials(teamMemberId: string) {
-    if (!confirm("Are you sure you want to revoke staff login credentials for this member?")) return;
     setCredLoading(true);
     try {
       const res = await removeTeamCredentials(teamMemberId);
@@ -301,7 +300,7 @@ export function TeamManager({ members, adminUsers = [], currentUserRole = "admin
             Organization Leadership
           </span>
           <h1 className="font-display font-black text-3xl sm:text-4xl text-white tracking-tight uppercase">
-            Core Team &amp; Personnel
+            Core Team & Personnel
           </h1>
           <p className="text-xs text-g5 mt-1">
             Manage founders, directors, experience designers, social links, contact numbers, and official portraits.
@@ -438,7 +437,7 @@ export function TeamManager({ members, adminUsers = [], currentUserRole = "admin
                     className="px-3 py-1.5 text-xs font-mono rounded border border-white/10 text-g5 hover:text-white flex items-center gap-1 hover:border-red/40"
                   >
                     <span>Portfolio</span>
-                    <span>&nearr;</span>
+                    <span>↗</span>
                   </Link>
 
                   {(currentUserRole === "admin" || currentUserRole === "founder") && (
@@ -548,7 +547,7 @@ export function TeamManager({ members, adminUsers = [], currentUserRole = "admin
                   >
                     <option value="Founders">Founders</option>
                     <option value="Core Team">Core Team</option>
-                    <option value="Creative & Design">Creative &amp; Design</option>
+                    <option value="Creative & Design">Creative & Design</option>
                     <option value="Operations">Operations</option>
                   </select>
                 </div>
@@ -764,7 +763,7 @@ export function TeamManager({ members, adminUsers = [], currentUserRole = "admin
                   >
                     <option value="Founders">Founders</option>
                     <option value="Core Team">Core Team</option>
-                    <option value="Creative & Design">Creative &amp; Design</option>
+                    <option value="Creative & Design">Creative & Design</option>
                     <option value="Operations">Operations</option>
                   </select>
                 </div>

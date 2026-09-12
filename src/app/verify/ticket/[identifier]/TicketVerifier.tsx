@@ -60,7 +60,7 @@ export function TicketVerifier({
           checkedInBy: gatekeeperName,
           status: "used",
         });
-        setFeedbackMessage("ACCESS GRANTED &bull; Attendee admitted successfully");
+        setFeedbackMessage("ACCESS GRANTED • Attendee admitted successfully");
       } else {
         setFeedbackMessage(res.message || "Failed to admit attendee");
       }
@@ -136,7 +136,7 @@ export function TicketVerifier({
         </div>
 
         <h1 className="font-heading text-2xl md:text-3xl uppercase tracking-wider text-white">
-          Entry Denied &bull; Pass Cancelled
+          Entry Denied • Pass Cancelled
         </h1>
 
         <div className="mt-4 p-4 rounded-xl bg-black/60 border border-white/[0.1] text-left space-y-1.5 font-mono text-xs">
@@ -182,7 +182,7 @@ export function TicketVerifier({
                 </svg>
               </div>
               <span className="inline-block px-3 py-1 rounded-full text-[11px] font-mono font-bold uppercase tracking-widest bg-amber-500/20 text-amber-300 border border-amber-500/30">
-                Already Admitted &bull; Pass Used
+                Already Admitted • Pass Used
               </span>
               <h2 className="font-heading text-2xl uppercase tracking-wider text-white mt-2">
                 Duplicate Scan Warning
@@ -210,7 +210,7 @@ export function TicketVerifier({
                 </svg>
               </div>
               <span className="inline-block px-3 py-1 rounded-full text-[11px] font-mono font-bold uppercase tracking-widest bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 animate-pulse">
-                Valid Ticket &bull; Access Granted
+                Valid Ticket • Access Granted
               </span>
               <h2 className="font-heading text-2xl uppercase tracking-wider text-white mt-2">
                 Admit Pass Holder
@@ -317,7 +317,7 @@ export function TicketVerifier({
                   className="text-[11px] font-mono text-g5 hover:text-emerald-400 transition-colors inline-flex items-center gap-1"
                 >
                   <span>Gatekeeper Sign In</span>
-                  <span>&rarr;</span>
+                  <span>→</span>
                 </Link>
               </div>
             </div>

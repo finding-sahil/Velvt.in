@@ -49,7 +49,7 @@ export async function Footer() {
             </Link>
             
             <p className="text-xs text-g5 italic max-w-xs leading-relaxed">
-              &ldquo;It starts as a thought, ends as a memory.&rdquo;
+              "It starts as a thought, ends as a memory."
             </p>
 
             <div className="pt-2 space-y-2">
@@ -112,7 +112,7 @@ export async function Footer() {
           {/* Resources & Ops */}
           <div className="space-y-3">
             <p className="text-[11px] font-display font-bold uppercase tracking-[0.18em] text-red">
-              Verification &amp; Crew
+              Verification & Crew
             </p>
             <ul className="space-y-1">
               {footerLinks.resources.map((link) => (
@@ -129,7 +129,7 @@ export async function Footer() {
 
             <div className="pt-3 border-t border-white/[0.08] space-y-2">
               <p className="text-[10px] font-mono font-bold uppercase tracking-[0.16em] text-g5">
-                Join Community &amp; Contact
+                Join Community & Contact
               </p>
               <div className="flex flex-col gap-1 text-xs font-mono">
                 <a

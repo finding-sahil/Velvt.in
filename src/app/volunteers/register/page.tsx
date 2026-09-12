@@ -223,7 +223,7 @@ export default function VolunteerRegisterPage() {
             <div className="p-4 rounded-xl bg-white/[0.03] border border-white/10 space-y-4">
               <div>
                 <label className="block text-xs font-mono font-medium uppercase tracking-[0.15em] text-white">
-                  Social Profiles &amp; Networking (Optional)
+                  Social Profiles & Networking (Optional)
                 </label>
                 <p className="text-[11px] text-muted leading-relaxed mt-0.5">
                   Your social links and WhatsApp button will be embedded into your verified public volunteer credential card.

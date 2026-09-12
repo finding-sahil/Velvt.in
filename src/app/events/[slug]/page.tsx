@@ -164,25 +164,46 @@ export default async function EventDetailPage({ params }: EventPageProps) {
                   {event.description}
                 </p>
 
-                {event.slug.includes("curse") && (
-                  <div className="p-5 rounded-[16px] border border-red-glow bg-red-dim space-y-2">
+                {event.dressCode && (
+                  <div className={`p-5 rounded-[16px] border space-y-2 ${
+                    event.dressCode.toLowerCase().includes("announc") ||
+                    event.dressCode.toLowerCase().includes("not decided") ||
+                    event.dressCode.toLowerCase().includes("tba")
+                      ? "border-amber-500/30 bg-amber-500/[0.04]"
+                      : "border-red-glow bg-red-dim"
+                  }`}>
                     <div className="flex items-center gap-2">
                       <span className="text-base select-none">🎭</span>
                       <h4 className="font-display font-bold text-sm uppercase tracking-wider text-white">
-                        Halloween Masquerade &amp; Dress Code
+                        Masquerade &amp; Dress Code
                       </h4>
+                      {(event.dressCode.toLowerCase().includes("announc") ||
+                        event.dressCode.toLowerCase().includes("not decided") ||
+                        event.dressCode.toLowerCase().includes("tba")) && (
+                        <span className="text-[9px] font-mono uppercase tracking-widest px-2 py-0.5 rounded-full bg-amber-500/20 text-amber-300 border border-amber-500/30">
+                          Announcing Soon
+                        </span>
+                      )}
                     </div>
                     <p className="text-xs text-muted leading-relaxed">
-                      Attendees are encouraged to dress in dark formal, gothic couture, elegant noir, or Venetian masquerade masks.
+                      {event.dressCode}
                     </p>
                   </div>
                 )}
 
                 {event.theme && (
                   <div className="p-5 rounded-[16px] border border-white/10 bg-white/[0.03]">
-                    <h3 className="font-display font-bold text-xs uppercase tracking-widest text-primary mb-2">
-                      Theme & Concept
-                    </h3>
+                    <div className="flex items-center gap-2 mb-2">
+                      <h3 className="font-display font-bold text-xs uppercase tracking-widest text-primary">
+                        Theme &amp; Concept
+                      </h3>
+                      {(event.theme.toLowerCase().includes("announc") ||
+                        event.theme.toLowerCase().includes("tba")) && (
+                        <span className="text-[9px] font-mono uppercase tracking-widest px-2 py-0.5 rounded-full bg-amber-500/20 text-amber-300 border border-amber-500/30">
+                          Announcing Soon
+                        </span>
+                      )}
+                    </div>
                     <p className="text-xs sm:text-sm text-muted leading-relaxed">
                       {event.theme}
                     </p>
@@ -246,14 +267,14 @@ export default async function EventDetailPage({ params }: EventPageProps) {
       </section>
 
       {/* ─── Schedule ───────────────────────────────────────────────────────── */}
-      {event.scheduleItems.length > 0 && (
-        <section className="py-12 md:py-16 border-t border-white/[0.08]">
-          <div className="container-velvt">
-            <SectionHeading
-              title="Event Schedule"
-              subtitle="What to expect through the evening."
-            />
+      <section className="py-12 md:py-16 border-t border-white/[0.08]">
+        <div className="container-velvt">
+          <SectionHeading
+            title="Event Schedule"
+            subtitle="What to expect through the evening."
+          />
 
+          {event.scheduleItems.length > 0 ? (
             <div className="max-w-2xl space-y-0">
               {event.scheduleItems.map((item, i) => (
                 <div
@@ -285,9 +306,19 @@ export default async function EventDetailPage({ params }: EventPageProps) {
                 </div>
               ))}
             </div>
-          </div>
-        </section>
-      )}
+          ) : (
+            <div className="p-8 sm:p-10 rounded-2xl bg-white/[0.03] border border-white/10 max-w-2xl space-y-3">
+              <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-amber-500/10 border border-amber-500/30 text-amber-300 font-mono text-xs uppercase tracking-widest font-bold">
+                <span className="w-2 h-2 rounded-full bg-amber-400 animate-pulse" />
+                Schedule Announcing Soon
+              </div>
+              <p className="text-sm text-muted leading-relaxed">
+                The curated nocturnal itinerary, artist slots, and atmospheric reveals are currently being finalized. Full timeline will be announced closer to the event date.
+              </p>
+            </div>
+          )}
+        </div>
+      </section>
 
       {/* ─── Tickets ────────────────────────────────────────────────────────── */}
       {event.ticketTypes.length > 0 && (
@@ -484,12 +515,25 @@ export default async function EventDetailPage({ params }: EventPageProps) {
 
 // Helper component for detail rows
 function DetailRow({ label, value }: { label: string; value: string }) {
+  const isPending =
+    value.toLowerCase().includes("announc") ||
+    value.toLowerCase().includes("to be announced") ||
+    value.toLowerCase().includes("not decided") ||
+    value.toLowerCase().includes("tba");
+
   return (
     <div>
       <p className="text-[10px] font-mono font-medium uppercase tracking-[0.15em] text-muted/60 mb-1">
         {label}
       </p>
-      <p className="text-sm text-white font-medium leading-relaxed">{value}</p>
+      <div className="flex items-center gap-2">
+        <p className="text-sm text-white font-medium leading-relaxed">{value}</p>
+        {isPending && (
+          <span className="text-[9px] font-mono uppercase tracking-widest px-2 py-0.5 rounded-full bg-amber-500/20 text-amber-300 border border-amber-500/30 whitespace-nowrap">
+            Soon
+          </span>
+        )}
+      </div>
     </div>
   );
 }

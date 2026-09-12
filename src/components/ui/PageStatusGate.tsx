@@ -99,7 +99,7 @@ export function PageStatusGate({
               href="/"
               className="inline-flex items-center gap-2 px-6 py-3 rounded-full border border-white/15 bg-white/[0.04] text-xs font-mono uppercase tracking-widest text-g5 hover:text-white hover:border-white/30 transition-all duration-300"
             >
-              &larr; Return Home
+              ← Return Home
             </Link>
           </div>
         </div>

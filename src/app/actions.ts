@@ -973,6 +973,151 @@ export async function deleteEvent(eventId: string) {
   }
 }
 
+// ─── Admin: Event Schedule Management ──────────────────────────────────────────
+
+export async function createScheduleItem(data: {
+  eventId: string;
+  time: string;
+  title: string;
+  description?: string;
+  displayOrder?: number;
+}) {
+  try {
+    await requireAdmin();
+    if (!data.eventId || !data.time || !data.title) {
+      return { success: false, error: "Time, title, and event are required." };
+    }
+
+    const order =
+      data.displayOrder ??
+      (await prisma.eventScheduleItem.count({ where: { eventId: data.eventId } })) + 1;
+
+    const item = await prisma.eventScheduleItem.create({
+      data: {
+        eventId: data.eventId,
+        time: data.time.trim(),
+        title: data.title.trim(),
+        description: data.description?.trim() || null,
+        displayOrder: order,
+      },
+    });
+
+    const event = await prisma.event.findUnique({ where: { id: data.eventId }, select: { slug: true } });
+    revalidatePath("/");
+    revalidatePath("/events");
+    if (event?.slug) revalidatePath(`/events/${event.slug}`);
+    revalidatePath("/velvt-management/events");
+
+    return { success: true, item };
+  } catch (error: any) {
+    console.error("Create schedule item error:", error);
+    return { success: false, error: error?.message || "Failed to create schedule item." };
+  }
+}
+
+export async function updateScheduleItem(
+  id: string,
+  data: {
+    time: string;
+    title: string;
+    description?: string;
+    displayOrder?: number;
+  }
+) {
+  try {
+    await requireAdmin();
+    const item = await prisma.eventScheduleItem.update({
+      where: { id },
+      data: {
+        time: data.time.trim(),
+        title: data.title.trim(),
+        description: data.description !== undefined ? data.description.trim() || null : undefined,
+        ...(data.displayOrder !== undefined && { displayOrder: data.displayOrder }),
+      },
+      include: { event: { select: { slug: true } } },
+    });
+
+    revalidatePath("/");
+    revalidatePath("/events");
+    if (item.event?.slug) revalidatePath(`/events/${item.event.slug}`);
+    revalidatePath("/velvt-management/events");
+
+    return { success: true, item };
+  } catch (error: any) {
+    console.error("Update schedule item error:", error);
+    return { success: false, error: error?.message || "Failed to update schedule item." };
+  }
+}
+
+export async function deleteScheduleItem(id: string) {
+  try {
+    await requireAdmin();
+    const item = await prisma.eventScheduleItem.delete({
+      where: { id },
+      include: { event: { select: { slug: true } } },
+    });
+
+    revalidatePath("/");
+    revalidatePath("/events");
+    if (item.event?.slug) revalidatePath(`/events/${item.event.slug}`);
+    revalidatePath("/velvt-management/events");
+
+    return { success: true };
+  } catch (error: any) {
+    console.error("Delete schedule item error:", error);
+    return { success: false, error: error?.message || "Failed to delete schedule item." };
+  }
+}
+
+export async function clearScheduleItems(eventId: string) {
+  try {
+    await requireAdmin();
+    await prisma.eventScheduleItem.deleteMany({ where: { eventId } });
+
+    const event = await prisma.event.findUnique({ where: { id: eventId }, select: { slug: true } });
+    revalidatePath("/");
+    revalidatePath("/events");
+    if (event?.slug) revalidatePath(`/events/${event.slug}`);
+    revalidatePath("/velvt-management/events");
+
+    return { success: true };
+  } catch (error: any) {
+    console.error("Clear schedule items error:", error);
+    return { success: false, error: error?.message || "Failed to clear schedule items." };
+  }
+}
+
+export async function populateTemplateSchedule(eventId: string) {
+  try {
+    await requireAdmin();
+    // Delete existing
+    await prisma.eventScheduleItem.deleteMany({ where: { eventId } });
+
+    const template = [
+      { time: "7:00 PM", title: "Gates Open", description: "Welcome to the event. Door entry begins.", displayOrder: 1 },
+      { time: "7:30 PM", title: "Immersive Experience Begins", description: "Explore the themed installations and atmospheric zones.", displayOrder: 2 },
+      { time: "8:30 PM", title: "Live Performances", description: "Curated performances and entertainment.", displayOrder: 3 },
+      { time: "10:00 PM", title: "Main Event", description: "The centrepiece experience of the evening.", displayOrder: 4 },
+      { time: "12:00 AM", title: "Closing", description: "The night draws to a close. Until next time.", displayOrder: 5 },
+    ];
+
+    await prisma.eventScheduleItem.createMany({
+      data: template.map((t) => ({ ...t, eventId })),
+    });
+
+    const event = await prisma.event.findUnique({ where: { id: eventId }, select: { slug: true } });
+    revalidatePath("/");
+    revalidatePath("/events");
+    if (event?.slug) revalidatePath(`/events/${event.slug}`);
+    revalidatePath("/velvt-management/events");
+
+    return { success: true };
+  } catch (error: any) {
+    console.error("Populate template schedule error:", error);
+    return { success: false, error: error?.message || "Failed to load template schedule." };
+  }
+}
+
 // ─── Admin: Ticket Types ───────────────────────────────────────────────────────
 
 export async function createTicketType(formData: FormData) {
@@ -1642,7 +1787,7 @@ function resolveSiteUrl(reqHeaders?: Headers): string {
     }
   }
   // Always default to canonical production domain so QR codes are universally scannable
-  return "https://velvt.in";
+  return "https://velvt-in.vercel.app";
 }
 
 export async function generateIssuedTicket(formData: FormData) {
@@ -1720,6 +1865,13 @@ export async function generateIssuedTicket(formData: FormData) {
             slug: true,
             date: true,
             time: true,
+            venue: {
+              select: {
+                name: true,
+                city: true,
+                address: true,
+              },
+            },
           },
         },
       },
@@ -2495,6 +2647,493 @@ export async function removeTeamCredentials(teamMemberId: string) {
     return { success: false, error: error?.message || "Failed to remove credentials." };
   }
 }
+
+// ─── Mass Ticket Generator Action ─────────────────────────────────────────────
+
+export async function bulkGenerateIssuedTickets(data: {
+  eventId: string;
+  tierName?: string;
+  priceInRupees?: number;
+  quantity?: number;
+  prefix?: string;
+  notes?: string;
+  records?: Array<{
+    attendeeName: string;
+    attendeeEmail?: string;
+    attendeePhone?: string;
+    tierName?: string;
+    priceInRupees?: number;
+    notes?: string;
+  }>;
+}) {
+  try {
+    const session = await requireAdmin();
+    const reqHeaders = await headers();
+    const baseUrl = resolveSiteUrl(reqHeaders);
+
+    const event = await prisma.event.findUnique({
+      where: { id: data.eventId },
+      select: {
+        id: true,
+        name: true,
+        slug: true,
+        date: true,
+        time: true,
+        status: true,
+        venue: {
+          select: {
+            name: true,
+            city: true,
+            address: true,
+          },
+        },
+      },
+    });
+
+    if (!event) {
+      return { success: false, error: "Event not found." };
+    }
+
+    const defaultTier = data.tierName?.trim() || "General Entry";
+    const defaultPricePaise = Math.round((Number(data.priceInRupees) || 0) * 100);
+    const prefix = data.prefix?.trim() || "Guest";
+    const createdTickets = [];
+
+    // Check if user submitted specific sheet/table records
+    if (data.records && Array.isArray(data.records) && data.records.length > 0) {
+      const validRecords = data.records
+        .map((r) => ({
+          attendeeName: (r.attendeeName || "").trim(),
+          attendeeEmail: (r.attendeeEmail || "").trim(),
+          attendeePhone: (r.attendeePhone || "").trim(),
+          tierName: (r.tierName || "").trim() || defaultTier,
+          priceInPaise:
+            r.priceInRupees !== undefined && !isNaN(Number(r.priceInRupees))
+              ? Math.round(Number(r.priceInRupees) * 100)
+              : defaultPricePaise,
+          notes: (r.notes || "").trim() || data.notes?.trim() || `Sheet generated batch on ${new Date().toLocaleDateString()}`,
+        }))
+        .filter((r) => r.attendeeName.length > 0);
+
+      if (validRecords.length === 0) {
+        return { success: false, error: "No valid attendee names found in spreadsheet records." };
+      }
+
+      for (let i = 0; i < validRecords.length; i++) {
+        const item = validRecords[i];
+        let ticketNumber = "";
+        let isUnique = false;
+        let attempts = 0;
+        while (!isUnique && attempts < 10) {
+          attempts++;
+          ticketNumber = generateTicketNumber("VLT-2026");
+          const existing = await prisma.issuedTicket.findUnique({
+            where: { ticketNumber },
+            select: { id: true },
+          });
+          if (!existing) isUnique = true;
+        }
+        if (!isUnique) {
+          ticketNumber = `VLT-${Date.now().toString(36).toUpperCase()}-${i + 1}`;
+        }
+
+        const securityToken = generateSecurityToken();
+        const verificationUrl = `${baseUrl}/verify/ticket/${securityToken}`;
+        const qrCodeDataUrl = await generateTicketQRCode(verificationUrl);
+
+        const email =
+          item.attendeeEmail ||
+          `${item.attendeeName.toLowerCase().replace(/[^a-z0-9]/g, "")}${i + 1}@velvt.in`;
+
+        const ticket = await prisma.issuedTicket.create({
+          data: {
+            ticketNumber,
+            securityToken,
+            attendeeName: item.attendeeName,
+            attendeeEmail: email,
+            attendeePhone: item.attendeePhone || null,
+            tierName: item.tierName,
+            priceInPaise: item.priceInPaise,
+            status: "valid",
+            isCheckedIn: false,
+            notes: item.notes,
+            qrCodeDataUrl,
+            eventId: event.id,
+          },
+          include: {
+            event: {
+              select: {
+                id: true,
+                name: true,
+                slug: true,
+                date: true,
+                time: true,
+                status: true,
+                venue: { select: { name: true, city: true, address: true } },
+              },
+            },
+          },
+        });
+
+        createdTickets.push(ticket);
+      }
+    } else {
+      // Fallback: Quantity-based sequential guest generation
+      const qty = Math.min(Math.max(Number(data.quantity) || 1, 1), 200);
+
+      for (let i = 0; i < qty; i++) {
+        let ticketNumber = "";
+        let isUnique = false;
+        let attempts = 0;
+        while (!isUnique && attempts < 10) {
+          attempts++;
+          ticketNumber = generateTicketNumber("VLT-2026");
+          const existing = await prisma.issuedTicket.findUnique({
+            where: { ticketNumber },
+            select: { id: true },
+          });
+          if (!existing) isUnique = true;
+        }
+        if (!isUnique) {
+          ticketNumber = `VLT-${Date.now().toString(36).toUpperCase()}-${i + 1}`;
+        }
+
+        const securityToken = generateSecurityToken();
+        const verificationUrl = `${baseUrl}/verify/ticket/${securityToken}`;
+        const qrCodeDataUrl = await generateTicketQRCode(verificationUrl);
+
+        const attendeeName = `${prefix} #${i + 1}`;
+        const attendeeEmail = `${prefix.toLowerCase().replace(/[^a-z0-9]/g, "")}${i + 1}@velvt.in`;
+
+        const ticket = await prisma.issuedTicket.create({
+          data: {
+            ticketNumber,
+            securityToken,
+            attendeeName,
+            attendeeEmail,
+            attendeePhone: null,
+            tierName: defaultTier,
+            priceInPaise: defaultPricePaise,
+            status: "valid",
+            isCheckedIn: false,
+            notes: data.notes?.trim() || `Mass generated batch on ${new Date().toLocaleDateString()}`,
+            qrCodeDataUrl,
+            eventId: event.id,
+          },
+          include: {
+            event: {
+              select: {
+                id: true,
+                name: true,
+                slug: true,
+                date: true,
+                time: true,
+                status: true,
+                venue: { select: { name: true, city: true, address: true } },
+              },
+            },
+          },
+        });
+
+        createdTickets.push(ticket);
+      }
+    }
+
+    await logAuditEvent({
+      action: "ticket.bulk_issue",
+      targetType: "IssuedTicket",
+      metadata: { count: createdTickets.length, eventId: event.id, tierName: defaultTier },
+      actor: { id: session.userId, email: session.user.email },
+    });
+
+    revalidatePath("/velvt-management/tickets");
+    revalidatePath("/tickets");
+    return { success: true, count: createdTickets.length, tickets: createdTickets };
+  } catch (error: any) {
+    console.error("Bulk generate tickets error:", error);
+    return { success: false, error: error?.message || "Failed to bulk generate tickets." };
+  }
+}
+
+// ─── Mass Volunteer Generator Action ──────────────────────────────────────────
+
+export async function bulkGenerateVolunteers(data: {
+  eventId?: string;
+  year?: number;
+  role?: string;
+  quantity?: number;
+  status?: string;
+  namePrefix?: string;
+  records?: Array<{
+    fullName: string;
+    email?: string;
+    phone?: string;
+    role?: string;
+    city?: string;
+  }>;
+}) {
+  try {
+    const session = await requireAdmin();
+
+    const year = data.year ? Number(data.year) : new Date().getFullYear();
+    let targetEventId = data.eventId;
+
+    if (!targetEventId) {
+      const defaultEvent = await prisma.event.findFirst({
+        orderBy: { date: "desc" },
+      });
+      targetEventId = defaultEvent?.id;
+      if (!targetEventId) {
+        const newEvent = await prisma.event.create({
+          data: {
+            name: `VELVT CURSE ${year}`,
+            slug: `velvt-curse-${year}-${Date.now()}`,
+            description: `Event operations archive for ${year}`,
+            date: new Date(`${year}-11-01T18:00:00.000Z`),
+          },
+        });
+        targetEventId = newEvent.id;
+      }
+    }
+
+    const defaultRole = data.role?.trim() || "General Crew & Operations";
+    const status = data.status || "verified";
+    const namePrefix = data.namePrefix?.trim() || "Volunteer Crew";
+    const createdVolunteers = [];
+
+    // Check if user submitted specific sheet/table records
+    if (data.records && Array.isArray(data.records) && data.records.length > 0) {
+      const validRecords = data.records
+        .map((r) => ({
+          fullName: (r.fullName || "").trim(),
+          email: (r.email || "").trim(),
+          phone: (r.phone || "").trim() || "+91 90000 00000",
+          role: (r.role || "").trim() || defaultRole,
+          city: (r.city || "").trim() || "Silchar",
+        }))
+        .filter((r) => r.fullName.length > 0);
+
+      if (validRecords.length === 0) {
+        return { success: false, error: "No valid volunteer names found in spreadsheet records." };
+      }
+
+      for (let i = 0; i < validRecords.length; i++) {
+        const item = validRecords[i];
+        const generatedId = await generateVolunteerId(year);
+        const email =
+          item.email || `crew.${generatedId.toLowerCase()}@velvt.in`;
+
+        const volunteer = await prisma.volunteer.create({
+          data: {
+            volunteerId: generatedId,
+            fullName: item.fullName,
+            email,
+            phone: item.phone,
+            city: item.city,
+            preferredRole: item.role,
+            assignedRole: item.role,
+            eventId: targetEventId,
+            status,
+            consentGiven: true,
+            approvedAt: status === "approved" || status === "verified" ? new Date() : null,
+            adminNotes: `Sheet registered crew record on ${new Date().toLocaleDateString()}`,
+          },
+          include: {
+            event: { select: { id: true, name: true, date: true } },
+          },
+        });
+
+        createdVolunteers.push(volunteer);
+      }
+    } else {
+      const qty = Math.min(Math.max(Number(data.quantity) || 1, 1), 100);
+
+      for (let i = 0; i < qty; i++) {
+        const generatedId = await generateVolunteerId(year);
+        const fullName = `${namePrefix} #${i + 1}`;
+        const email = `crew.${generatedId.toLowerCase()}@velvt.in`;
+
+        const volunteer = await prisma.volunteer.create({
+          data: {
+            volunteerId: generatedId,
+            fullName,
+            email,
+            phone: "+91 90000 00000",
+            city: "Silchar",
+            preferredRole: defaultRole,
+            assignedRole: defaultRole,
+            eventId: targetEventId,
+            status,
+            consentGiven: true,
+            approvedAt: status === "approved" || status === "verified" ? new Date() : null,
+            adminNotes: `Mass generated crew record on ${new Date().toLocaleDateString()}`,
+          },
+          include: {
+            event: { select: { id: true, name: true, date: true } },
+          },
+        });
+
+        createdVolunteers.push(volunteer);
+      }
+    }
+
+    await logAuditEvent({
+      action: "volunteer.bulk_create",
+      targetType: "Volunteer",
+      metadata: { count: createdVolunteers.length, year, role: defaultRole, status },
+      actor: { id: session.userId, email: session.user.email },
+    });
+
+    revalidatePath("/velvt-management/volunteers");
+    revalidatePath("/volunteers");
+    return { success: true, count: createdVolunteers.length, volunteers: createdVolunteers };
+  } catch (error: any) {
+    console.error("Bulk generate volunteers error:", error);
+    return { success: false, error: error?.message || "Failed to bulk generate volunteers." };
+  }
+}
+
+// ─── Direct Volunteer Status Update Action (Dropdown) ─────────────────────────
+
+export async function updateVolunteerStatusDirect(volunteerId: string, newStatus: string) {
+  try {
+    const session = await requireAdmin();
+
+    const volunteer = await prisma.volunteer.findUnique({
+      where: { id: volunteerId },
+      include: { event: true },
+    });
+
+    if (!volunteer) {
+      return { success: false, error: "Volunteer not found." };
+    }
+
+    const validStatus = ["pending", "approved", "verified", "revoked", "rejected"].includes(newStatus)
+      ? newStatus
+      : "verified";
+
+    let volunteerIdCode = volunteer.volunteerId;
+    if ((validStatus === "approved" || validStatus === "verified") && !volunteerIdCode) {
+      const year = volunteer.event?.date ? new Date(volunteer.event.date).getFullYear() : new Date().getFullYear();
+      volunteerIdCode = await generateVolunteerId(year);
+    }
+
+    const updated = await prisma.volunteer.update({
+      where: { id: volunteerId },
+      data: {
+        status: validStatus,
+        volunteerId: volunteerIdCode,
+        ...(validStatus === "approved" || validStatus === "verified"
+          ? { approvedAt: volunteer.approvedAt || new Date() }
+          : {}),
+        ...(validStatus === "revoked"
+          ? { revokedAt: new Date() }
+          : {}),
+      },
+      include: {
+        event: { select: { id: true, name: true, date: true } },
+      },
+    });
+
+    await logAuditEvent({
+      action: "volunteer.status_change",
+      targetType: "Volunteer",
+      targetId: volunteerId,
+      metadata: { previousStatus: volunteer.status, newStatus: validStatus, volunteerId: volunteerIdCode },
+      actor: { id: session.userId, email: session.user.email },
+    });
+
+    revalidatePath("/velvt-management/volunteers");
+    revalidatePath("/volunteers");
+    if (volunteerIdCode) {
+      revalidatePath(`/verify/${volunteerIdCode}`);
+    }
+    return { success: true, volunteer: updated };
+  } catch (error: any) {
+    console.error("Update volunteer status error:", error);
+    return { success: false, error: error?.message || "Failed to update status." };
+  }
+}
+
+// ─── Direct Ticket Status Update Action (Dropdown) ────────────────────────────
+
+export async function updateTicketStatusDirect(ticketId: string, newStatus: string) {
+  try {
+    const session = await requireAdmin();
+
+    const ticket = await prisma.issuedTicket.findUnique({
+      where: { id: ticketId },
+    });
+
+    if (!ticket) {
+      return { success: false, error: "Ticket not found." };
+    }
+
+    const validStatus = ["valid", "used", "cancelled", "refunded"].includes(newStatus)
+      ? newStatus
+      : "valid";
+
+    const isUsed = validStatus === "used";
+    const updated = await prisma.issuedTicket.update({
+      where: { id: ticketId },
+      data: {
+        status: validStatus,
+        isCheckedIn: isUsed,
+        checkedInAt: isUsed ? (ticket.checkedInAt || new Date()) : null,
+        checkedInBy: isUsed ? (ticket.checkedInBy || session.user.name || "Admin") : null,
+      },
+      include: {
+        event: {
+          select: {
+            id: true,
+            name: true,
+            slug: true,
+            date: true,
+            time: true,
+            status: true,
+          },
+        },
+      },
+    });
+
+    await logAuditEvent({
+      action: "ticket.status_change",
+      targetType: "IssuedTicket",
+      targetId: ticketId,
+      metadata: { previousStatus: ticket.status, newStatus: validStatus },
+      actor: { id: session.userId, email: session.user.email },
+    });
+
+    revalidatePath("/velvt-management/tickets");
+    revalidatePath(`/verify/ticket/${ticket.securityToken}`);
+    return { success: true, ticket: updated };
+  } catch (error: any) {
+    console.error("Update ticket status error:", error);
+    return { success: false, error: error?.message || "Failed to update ticket status." };
+  }
+}
+
+// ─── Quick Volunteer Verification Lookup for Gate ─────────────────────────────
+
+export async function getVolunteerVerificationData(identifier: string) {
+  try {
+    const clean = identifier.trim();
+    return await prisma.volunteer.findFirst({
+      where: {
+        OR: [
+          { volunteerId: clean },
+          { id: clean },
+        ],
+      },
+      include: {
+        event: { select: { id: true, name: true, date: true } },
+      },
+    });
+  } catch {
+    return null;
+  }
+}
+
 
 
 

@@ -390,7 +390,7 @@ export function InteractiveGallery({ items }: InteractiveGalleryProps) {
                 rel="noopener noreferrer"
                 className="text-xs font-mono uppercase tracking-widest px-4 py-2 rounded-full border border-white/20 hover:border-primary hover:bg-primary/20 transition-all text-white/80 hover:text-white"
               >
-                Open Full Res &nearr;
+                Open Full Res ↗
               </a>
             </div>
           </div>

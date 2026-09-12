@@ -23,9 +23,9 @@ export const defaultPillars: ExperienceHighlightItem[] = [
   },
   {
     icon: "🔮",
-    tag: "Music & Sound",
-    title: "Midnight Soundscapes",
-    description: "Darkwave, industrial rhythm, and driving underground beats.",
+    tag: "Immersive Design",
+    title: "Sensory Architecture",
+    description: "Curated venue transformations with thematic staging and theatrical lighting.",
   },
   {
     icon: "🍸",

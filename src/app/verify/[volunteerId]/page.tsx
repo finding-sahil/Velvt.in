@@ -3,6 +3,7 @@ import { notFound } from "next/navigation";
 import { headers } from "next/headers";
 import type { Metadata } from "next";
 import QRCode from "qrcode";
+import DownloadQrButton from "@/components/ui/DownloadQrButton";
 
 interface VerifyPageProps {
   params: Promise<{ volunteerId: string }>;
@@ -148,7 +149,7 @@ export default async function VerifyVolunteerPage({
   const headersList = await headers();
   const host = headersList.get("x-forwarded-host") || headersList.get("host");
   const proto = headersList.get("x-forwarded-proto") || (host?.includes("localhost") ? "http" : "https");
-  const baseUrl = host ? `${proto}://${host}` : (process.env.NEXT_PUBLIC_SITE_URL || "https://velvt-in.vercel.app");
+  const baseUrl = host ? `${proto}://${host}` : (process.env.NEXT_PUBLIC_SITE_URL || "https://velvt.in");
   const passCode = volunteer.volunteerId || volunteer.id;
   const verifyUrl = `${baseUrl}/verify/${encodeURIComponent(passCode)}`;
 
@@ -158,8 +159,8 @@ export default async function VerifyVolunteerPage({
       type: "svg",
       margin: 1,
       color: {
-        dark: "#ffffff",
-        light: "#00000000",
+        dark: "#0a0a0c",
+        light: "#ffffff",
       },
     });
   } catch {
@@ -252,7 +253,7 @@ export default async function VerifyVolunteerPage({
                 return (
                   <div className="space-y-2 pt-2 border-t border-white/10">
                     <p className="text-[10px] font-mono font-medium uppercase tracking-[0.18em] text-muted/60">
-                      Verified Member Links &amp; Contact
+                      Verified Member Links & Contact
                     </p>
                     <div className="flex flex-wrap gap-2 pt-1">
                       {soc.instagram && (
@@ -301,7 +302,7 @@ export default async function VerifyVolunteerPage({
                           rel="noopener noreferrer"
                           className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-white/[0.06] border border-white/10 text-xs font-mono text-white hover:border-primary hover:text-primary transition-all"
                         >
-                          <span>🔗</span> Portfolio &nearr;
+                          <span>🔗</span> Portfolio ↗
                         </a>
                       )}
                     </div>
@@ -320,7 +321,7 @@ export default async function VerifyVolunteerPage({
                     rel="noopener noreferrer"
                     className="text-primary hover:underline font-mono text-xs flex items-center gap-1.5 break-all"
                   >
-                    <span>🔗</span> {volunteer.socialLink} &nearr;
+                    <span>🔗</span> {volunteer.socialLink} ↗
                   </a>
                 </div>
               );
@@ -329,20 +330,36 @@ export default async function VerifyVolunteerPage({
 
           {/* QR Code Verification Section */}
           {qrSvg && (
-            <div className="mt-8 pt-6 border-t border-white/10 flex flex-col items-center text-center space-y-2">
+            <div className="mt-8 pt-6 border-t border-white/10 flex flex-col items-center text-center space-y-4">
               <div
-                className="w-32 h-32 p-2 bg-white/[0.04] border border-white/15 rounded-xl flex items-center justify-center [&>svg]:w-full [&>svg]:h-full"
+                className="w-40 h-40 p-3 bg-white rounded-2xl shadow-[0_0_30px_rgba(255,255,255,0.15)] flex items-center justify-center [&>svg]:w-full [&>svg]:h-full"
                 dangerouslySetInnerHTML={{ __html: qrSvg }}
               />
-              <span className="text-[10px] font-mono text-muted/60 tracking-wider uppercase">
-                Scan to Verify Credential Authenticity
-              </span>
-              <a
-                href={`/verify/${encodeURIComponent(passCode)}`}
-                className="text-[9px] font-mono text-primary hover:underline break-all"
-              >
-                {verifyUrl}
-              </a>
+              <div className="space-y-1">
+                <span className="text-[10px] font-mono text-white/80 tracking-wider uppercase font-semibold block">
+                  Scan to Verify Credential Authenticity
+                </span>
+                <a
+                  href={`/verify/${encodeURIComponent(passCode)}`}
+                  className="text-[10px] font-mono text-primary hover:underline break-all block"
+                >
+                  {verifyUrl}
+                </a>
+              </div>
+
+              {/* Download Pass Button */}
+              <div className="w-full pt-1">
+                <DownloadQrButton
+                  data={verifyUrl}
+                  filename={`VELVT-Credential-${passCode}.png`}
+                  title={volunteer.fullName}
+                  subtitle={`ID: ${passCode} • ${volunteer.assignedRole || volunteer.preferredRole || "OPERATIONS CREW"}`}
+                  badgeText="OFFICIAL CREDENTIAL"
+                  label="Download Official QR Pass (PNG)"
+                  variant="primary"
+                  className="w-full"
+                />
+              </div>
             </div>
           )}
 

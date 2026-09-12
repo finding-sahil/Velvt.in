@@ -368,7 +368,7 @@ export function AdminNav({ user }: AdminNavProps) {
             className="flex-1 px-3 py-1.5 rounded-xl bg-white/[0.04] hover:bg-white/[0.08] border border-white/10 text-[11px] font-mono text-g5 hover:text-white transition-all flex items-center justify-center gap-1.5"
           >
             <span>Live Site</span>
-            <span className="text-red">&nearr;</span>
+            <span className="text-red">↗</span>
           </Link>
           <form action={adminLogout} className="flex-1">
             <button

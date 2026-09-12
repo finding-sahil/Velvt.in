@@ -14,6 +14,11 @@ import {
   createEventFAQ,
   updateEventFAQ,
   deleteEventFAQ,
+  createScheduleItem,
+  updateScheduleItem,
+  deleteScheduleItem,
+  clearScheduleItems,
+  populateTemplateSchedule,
 } from "@/app/actions";
 import { StatusBadge } from "@/components/ui/StatusBadge";
 import { formatDateShort, formatPrice } from "@/lib/utils";
@@ -30,6 +35,14 @@ export function EventManager({ events }: EventManagerProps) {
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [editingEvent, setEditingEvent] = useState<any | null>(null);
   const [managingTicketsFor, setManagingTicketsFor] = useState<any | null>(null);
+  const [managingScheduleFor, setManagingScheduleFor] = useState<any | null>(null);
+  const [scheduleForm, setScheduleForm] = useState({
+    time: "7:00 PM",
+    title: "",
+    description: "",
+    displayOrder: 1,
+  });
+  const [scheduleLoading, setScheduleLoading] = useState(false);
   const [managingFaqsFor, setManagingFaqsFor] = useState<any | null>(null);
   const [editingFaq, setEditingFaq] = useState<any | null>(null);
   const [faqForm, setFaqForm] = useState({
@@ -47,6 +60,12 @@ export function EventManager({ events }: EventManagerProps) {
       const updated = events.find((e) => e.id === managingTicketsFor.id);
       if (updated) {
         setManagingTicketsFor(updated);
+      }
+    }
+    if (managingScheduleFor) {
+      const updated = events.find((e) => e.id === managingScheduleFor.id);
+      if (updated) {
+        setManagingScheduleFor(updated);
       }
     }
     if (managingFaqsFor) {
@@ -450,6 +469,101 @@ export function EventManager({ events }: EventManagerProps) {
     });
   }
 
+  // ─── Schedule Handlers ──────────────────────────────────────────────────────
+  async function handleAddScheduleItem(e: React.FormEvent) {
+    e.preventDefault();
+    if (!managingScheduleFor || !scheduleForm.title || !scheduleForm.time) return;
+    setScheduleLoading(true);
+
+    try {
+      const res = await createScheduleItem({
+        eventId: managingScheduleFor.id,
+        time: scheduleForm.time,
+        title: scheduleForm.title,
+        description: scheduleForm.description,
+        displayOrder: scheduleForm.displayOrder || (managingScheduleFor.scheduleItems?.length || 0) + 1,
+      });
+
+      if (res.success && res.item) {
+        setManagingScheduleFor((prev: any) => ({
+          ...prev,
+          scheduleItems: [...(prev?.scheduleItems || []), res.item],
+        }));
+        setScheduleForm({
+          time: "8:00 PM",
+          title: "",
+          description: "",
+          displayOrder: (managingScheduleFor.scheduleItems?.length || 0) + 2,
+        });
+        setToast({ message: "Schedule item added to timeline", type: "success" });
+        router.refresh();
+      } else {
+        setToast({ message: res.error || "Failed to add schedule item", type: "error" });
+      }
+    } catch (err: any) {
+      setToast({ message: err?.message || "Error adding schedule item", type: "error" });
+    } finally {
+      setScheduleLoading(false);
+    }
+  }
+
+  async function handleDeleteScheduleItem(itemId: string) {
+    setScheduleLoading(true);
+    try {
+      const res = await deleteScheduleItem(itemId);
+      if (res.success) {
+        setManagingScheduleFor((prev: any) => ({
+          ...prev,
+          scheduleItems: (prev?.scheduleItems || []).filter((s: any) => s.id !== itemId),
+        }));
+        setToast({ message: "Schedule item removed", type: "info" });
+        router.refresh();
+      } else {
+        setToast({ message: res.error || "Failed to delete schedule item", type: "error" });
+      }
+    } catch (err: any) {
+      setToast({ message: err?.message || "Error deleting item", type: "error" });
+    } finally {
+      setScheduleLoading(false);
+    }
+  }
+
+  async function handleClearSchedule(eventId: string) {
+    if (!window.confirm("Set schedule to 'Announcing Soon'? This will clear current timeline items.")) return;
+    setScheduleLoading(true);
+    try {
+      const res = await clearScheduleItems(eventId);
+      if (res.success) {
+        setManagingScheduleFor((prev: any) => ({ ...prev, scheduleItems: [] }));
+        setToast({ message: "Schedule set to 'Announcing Soon'", type: "success" });
+        router.refresh();
+      } else {
+        setToast({ message: res.error || "Failed to clear schedule", type: "error" });
+      }
+    } catch (err: any) {
+      setToast({ message: err?.message || "Error", type: "error" });
+    } finally {
+      setScheduleLoading(false);
+    }
+  }
+
+  async function handleLoadTemplateSchedule(eventId: string) {
+    setScheduleLoading(true);
+    try {
+      const res = await populateTemplateSchedule(eventId);
+      if (res.success) {
+        setToast({ message: "Loaded default festival schedule", type: "success" });
+        router.refresh();
+      } else {
+        setToast({ message: res.error || "Failed to load template", type: "error" });
+      }
+    } catch (err: any) {
+      setToast({ message: err?.message || "Error", type: "error" });
+    } finally {
+      setScheduleLoading(false);
+    }
+  }
+
   return (
     <div className="space-y-6">
       {/* Top Header */}
@@ -551,7 +665,7 @@ export function EventManager({ events }: EventManagerProps) {
                     target="_blank"
                     className="px-3 py-1.5 text-xs font-mono uppercase tracking-wider rounded-full border border-white/15 bg-white/[0.04] text-g5 hover:text-white transition-colors"
                   >
-                    View Live &nearr;
+                    View Live ↗
                   </Link>
                   <button
                     onClick={() => setManagingTicketsFor(event)}
