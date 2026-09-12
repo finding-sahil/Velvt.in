@@ -106,7 +106,6 @@ export default async function TeamPage() {
                         {/* ─── Background Portrait Layer ─── */}
                         {member.portrait ? (
                           <div className="absolute inset-0 overflow-hidden">
-                            {/* eslint-disable-next-line @next/next/no-img-element */}
                             <img
                               src={member.portrait}
                               alt={member.name}

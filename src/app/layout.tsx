@@ -5,7 +5,7 @@ import { Footer } from "@/components/layout/Footer";
 import { CustomCursor } from "@/components/ui/CustomCursor";
 import { HalloweenAtmosphere } from "@/components/ui/HalloweenAtmosphere";
 import { ScrollToTop } from "@/components/ui/ScrollToTop";
-import { prisma } from "@/lib/db";
+import { AppShell } from "@/components/layout/AppShell";
 import "./globals.css";
 
 const barlowCondensed = Barlow_Condensed({
@@ -57,25 +57,8 @@ export default async function RootLayout({
 }: Readonly<{
   children: React.ReactNode;
 }>) {
-  let siteTheme = "halloween";
-
-  try {
-    const themeSetting = await prisma.siteSetting.findUnique({
-      where: { key: "site_theme" },
-    });
-    if (themeSetting?.value) {
-      siteTheme = themeSetting.value;
-    }
-  } catch {
-    // Fallback to halloween theme
-  }
-
   return (
-    <html
-      lang="en"
-      data-theme={siteTheme}
-      className={`${barlowCondensed.variable} ${inter.variable}`}
-    >
+    <html lang="en" className={`${barlowCondensed.variable} ${inter.variable}`}>
       <body className="min-h-screen flex flex-col bg-black text-white relative">
         {/* UNTOLDSURI Texture Layers: Film Grain & Scanlines */}
         <div className="film-grain" aria-hidden="true" />
@@ -85,18 +68,22 @@ export default async function RootLayout({
         <CustomCursor />
 
         {/* Ambient Floating Embers (Halloween Touch) */}
-        {siteTheme === "halloween" && <HalloweenAtmosphere />}
+        <HalloweenAtmosphere />
 
         {/* Floating Pill Glass Navigation */}
         <Navigation />
 
-        {/* Page Content */}
-        <main className="flex-1 pt-24">{children}</main>
-
-        {/* Floating Scroll to Top Button */}
-        <ScrollToTop />
-
-        <Footer />
+        {/* Route-Aware App Shell: Zero Top-Padding & No Public Footer in Admin Panel */}
+        <AppShell
+          footer={
+            <>
+              <ScrollToTop />
+              <Footer />
+            </>
+          }
+        >
+          {children}
+        </AppShell>
       </body>
     </html>
   );

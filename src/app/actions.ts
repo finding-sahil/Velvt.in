@@ -5,21 +5,15 @@ import {
   volunteerRegistrationSchema,
   contactFormSchema,
   adminLoginSchema,
-  eventSchema,
-  ticketTypeSchema,
-  teamMemberSchema,
-  galleryItemSchema,
-  partnerSchema,
-  pressMentionSchema,
   eventFaqSchema,
   issueTicketSchema,
-  checkInTicketSchema,
 } from "@/lib/validations";
 import { generateTicketNumber, generateSecurityToken, generateTicketQRCode } from "@/lib/ticket-generator";
 import { generateVolunteerId } from "@/lib/volunteer-id";
 import { verifyPassword, hashPassword, createSession, destroySession, requireAdmin, requireGatemanOrAdmin } from "@/lib/auth";
 import { checkRateLimit, RATE_LIMITS, getClientIdentifier } from "@/lib/rate-limit";
 import { logAuditEvent } from "@/lib/audit";
+import { getAdminPrefix } from "@/lib/admin-path";
 import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
 import { headers } from "next/headers";
@@ -233,10 +227,11 @@ export async function adminLogin(formData: FormData) {
     if (msg.includes("Can't reach database server") || msg.includes("connect")) {
       return {
         success: false,
-        error: "Cannot reach Supabase database. Please check connection pooler status.",
+        error: "Cannot reach database. Please check connection status.",
       };
     }
-    return { success: false, error: error?.message || "Login failed. Please try again." };
+    // Never leak raw database/Prisma error messages to the client
+    return { success: false, error: "Login failed. Please try again." };
   }
 }
 
@@ -306,7 +301,7 @@ export async function changeAdminPassword(formData: FormData) {
 export async function adminLogout() {
   await logAuditEvent({ action: "admin.logout" });
   await destroySession();
-  redirect("/velvt-management/login");
+  redirect(`${getAdminPrefix()}/login`);
 }
 
 // ─── Admin: Approve Volunteer ──────────────────────────────────────────────────
@@ -732,24 +727,29 @@ export async function updateInquiryStatus(
 ) {
   const session = await requireAdmin();
 
-  await prisma.contactInquiry.update({
-    where: { id: inquiryId },
-    data: {
-      status,
-      ...(adminNotes !== undefined && { adminNotes }),
-    },
-  });
+  try {
+    await prisma.contactInquiry.update({
+      where: { id: inquiryId },
+      data: {
+        status,
+        ...(adminNotes !== undefined && { adminNotes }),
+      },
+    });
 
-  logAuditEvent({
-    action: "inquiry.update_status",
-    targetType: "ContactInquiry",
-    targetId: inquiryId,
-    metadata: { status },
-    actor: { id: session.userId, email: session.user.email },
-  }).catch((e) => console.error("Audit log error:", e));
+    logAuditEvent({
+      action: "inquiry.update_status",
+      targetType: "ContactInquiry",
+      targetId: inquiryId,
+      metadata: { status },
+      actor: { id: session.userId, email: session.user.email },
+    }).catch((e) => console.error("Audit log error:", e));
 
-  revalidatePath("/velvt-management/inquiries");
-  return { success: true };
+    revalidatePath("/velvt-management/inquiries");
+    return { success: true };
+  } catch (error: any) {
+    console.error("Update inquiry status error:", error);
+    return { success: false, error: error?.message || "Failed to update inquiry status." };
+  }
 }
 
 export async function deleteInquiry(inquiryId: string) {
@@ -801,6 +801,15 @@ export async function createEvent(formData: FormData) {
   }
 
   try {
+    // Guard against slug collisions with a user-friendly error
+    const existingSlug = await prisma.event.findUnique({
+      where: { slug },
+      select: { id: true },
+    });
+    if (existingSlug) {
+      return { success: false, error: `An event with the slug "${slug}" already exists. Please choose a different name or slug.` };
+    }
+
     const event = await prisma.event.create({
       data: {
         name,
@@ -2317,7 +2326,7 @@ export async function resetGatemanPassword(formData: FormData) {
  * Re-render QR codes for any tickets that currently contain localhost:3000
  */
 export async function refreshLegacyTicketQRCodes() {
-  const session = await requireAdmin();
+  await requireAdmin();
   try {
     const tickets = await prisma.issuedTicket.findMany();
     let updatedCount = 0;
@@ -2340,35 +2349,43 @@ export async function refreshLegacyTicketQRCodes() {
 // ─── Theme Switcher System ──────────────────────────────────────────────────
 
 export async function updateSiteTheme(theme: string) {
-  const session = await requireAdmin();
-  if (session.user.role !== "admin" && session.user.role !== "founder") {
-    return { success: false, error: "Only Main Admin / Founder can switch themes." };
-  }
-
-  const validThemes = ["halloween", "legacy", "nocturnal_gold", "cyber_crimson"];
+  const validThemes = [
+    "blood_moon",
+    "halloween_pumpkin",
+    "phantom_ghost",
+    "witch_coven",
+    "halloween_mix",
+    "legacy",
+    "halloween",
+  ];
   if (!validThemes.includes(theme)) {
     return { success: false, error: "Invalid theme identifier." };
   }
 
+  const normalizedTheme = theme === "halloween" ? "blood_moon" : theme;
+
   try {
-    await prisma.siteSetting.upsert({
-      where: { key: "site_theme" },
-      create: { key: "site_theme", value: theme },
-      update: { value: theme },
-    });
+    const session = await requireAdmin();
+    if (session.user.role === "admin" || session.user.role === "founder") {
+      await prisma.siteSetting.upsert({
+        where: { key: "site_theme" },
+        create: { key: "site_theme", value: normalizedTheme },
+        update: { value: normalizedTheme },
+      });
 
-    await logAuditEvent({
-      action: "settings.theme_switch",
-      targetType: "SiteSetting",
-      metadata: { theme },
-      actor: { id: session.userId, email: session.user.email },
-    });
+      await logAuditEvent({
+        action: "settings.theme_switch",
+        targetType: "SiteSetting",
+        metadata: { theme: normalizedTheme },
+        actor: { id: session.userId, email: session.user.email },
+      });
 
-    revalidatePath("/", "layout");
-    revalidatePath("/velvt-management/settings");
-    return { success: true, theme };
-  } catch (error: any) {
-    return { success: false, error: error?.message || "Failed to switch site theme." };
+      return { success: true, theme: normalizedTheme, persisted: true };
+    }
+    return { success: true, theme: normalizedTheme, localOnly: true };
+  } catch {
+    // Non-admin preview: return success so client localStorage/cookie switch happens instantly
+    return { success: true, theme: normalizedTheme, localOnly: true };
   }
 }
 

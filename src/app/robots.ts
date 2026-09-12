@@ -2,6 +2,7 @@ import type { MetadataRoute } from "next";
 
 export default function robots(): MetadataRoute.Robots {
   const baseUrl = process.env.NEXT_PUBLIC_SITE_URL || "https://velvt-in.vercel.app";
+  const adminPrefix = process.env.ADMIN_ROUTE_PREFIX || "/velvt-management";
 
   return {
     rules: [
@@ -9,8 +10,8 @@ export default function robots(): MetadataRoute.Robots {
         userAgent: "*",
         allow: "/",
         disallow: [
-          "/velvt-management",
-          "/velvt-management/*",
+          adminPrefix,
+          `${adminPrefix}/*`,
           "/api/*",
         ],
       },

@@ -111,7 +111,7 @@ export async function verifyPassword(
     const computedHex = Array.from(new Uint8Array(computedHash))
       .map((b) => b.toString(16).padStart(2, "0"))
       .join("");
-    return computedHex === hash;
+    return constantTimeEqual(computedHex, hash);
   }
 }
 

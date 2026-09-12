@@ -33,7 +33,6 @@ export function FeaturedEventSection({ event }: FeaturedEventSectionProps) {
             <div className="lg:col-span-5 relative">
               <div className="relative aspect-[4/5] rounded-[16px] overflow-hidden border border-white/10 group shadow-2xl bg-black">
                 {event.coverImage ? (
-                  /* eslint-disable-next-line @next/next/no-img-element */
                   <img
                     src={event.coverImage}
                     alt={event.name}

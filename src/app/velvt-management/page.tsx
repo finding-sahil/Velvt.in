@@ -48,10 +48,10 @@ export default async function AdminDashboardPage() {
     prisma.siteSetting.findUnique({ where: { key: "site_theme" } }).catch(() => null),
   ]);
 
-  const activeTheme = currentThemeSetting?.value || "halloween";
+  const activeTheme = currentThemeSetting?.value || "legacy";
 
   return (
-    <div className="space-y-10 animate-fade-in pb-12">
+    <div className="space-y-6 sm:space-y-8 animate-fade-in pb-8">
       {/* Top Welcome Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-white/10 pb-6">
         <div>
@@ -108,7 +108,9 @@ export default async function AdminDashboardPage() {
           <p className="font-display font-black text-4xl text-amber-300 tracking-tight">
             {pendingVolunteersCount}
           </p>
-          <p className="text-[11px] text-amber-300/70">Awaiting credential approval</p>
+          <p className="text-[11px] text-amber-300/70">
+            Awaiting approval · {verifiedVolunteersCount} verified
+          </p>
         </div>
 
         {/* Issued Tickets */}

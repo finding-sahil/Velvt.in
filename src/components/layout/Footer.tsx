@@ -163,7 +163,7 @@ export async function Footer() {
         <div className="pt-8 border-t border-white/[0.08] flex flex-col sm:flex-row items-center justify-between gap-4 text-center sm:text-left">
           <div className="flex flex-col sm:flex-row items-center gap-2 sm:gap-4">
             <p className="text-[11px] font-mono text-g5 uppercase tracking-wider">
-              © {year} VELVT.
+              © {year} VELVT. All rights reserved.
             </p>
             <a
               href="https://www.instagram.com/finding.sahil/"

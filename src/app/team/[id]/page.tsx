@@ -104,7 +104,6 @@ export default async function TeamMemberPortfolioPage({ params }: PageProps) {
             <div className="relative rounded-3xl overflow-hidden border border-white/15 bg-black/60 backdrop-blur-xl p-2 shadow-[0_12px_40px_rgba(0,0,0,0.8)] group">
               <div className="relative aspect-[3/4] w-full rounded-2xl overflow-hidden bg-black">
                 {member.portrait ? (
-                  // eslint-disable-next-line @next/next/no-img-element
                   <img
                     src={member.portrait}
                     alt={member.name}
@@ -312,7 +311,6 @@ export default async function TeamMemberPortfolioPage({ params }: PageProps) {
                 >
                   <div className="w-14 h-14 rounded-full overflow-hidden border border-white/10 group-hover:border-red flex-shrink-0 bg-black">
                     {m.portrait ? (
-                      // eslint-disable-next-line @next/next/no-img-element
                       <img
                         src={m.portrait}
                         alt={m.name}

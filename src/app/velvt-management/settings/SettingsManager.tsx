@@ -211,72 +211,86 @@ export function SettingsManager({ settings, events }: SettingsManagerProps) {
 
   const THEME_OPTIONS = [
     {
-      id: "halloween",
-      name: "Halloween Curse",
-      tagline: "Active Edition — Glowing crimson, red dot matrix & embers",
-      description: "Matches the official Curse 2.O design: eerie blood crimson glow, radial atmospheric halo, red dot constellation background, and flickering ember accents.",
+      id: "blood_moon",
+      name: "Blood Moon",
+      tagline: "Vampire Curse Edition — Blood dripping, giant red moon & gothic candles",
+      description: "Atmospheric horror aesthetic: visceral animated blood dripping from VELVT.IN, giant glowing Blood Red Moon behind the hero, gothic candelabras, spiderwebs, and rolling fog.",
       accentColor: "#dc2626",
       dotColor: "rgba(220, 38, 38, 0.4)",
-      bgColor: "#050507",
-      badge: "Halloween Themed (Recommended)",
+      bgColor: "#050406",
+      badge: "Vampire Blood Curse (Default)",
+    },
+    {
+      id: "halloween_pumpkin",
+      name: "Wicked Pumpkin",
+      tagline: "Jack-O'-Lantern Edition — Glowing orange pumpkins, embers & candleflames",
+      description: "Classic vibrant Halloween orange aesthetic: carved grinning Jack-O'-Lanterns with glowing sinister eyes, warm flickering candlelight, floating ember particles, and spooky mist.",
+      accentColor: "#ff6b00",
+      dotColor: "rgba(255, 107, 0, 0.4)",
+      bgColor: "#070402",
+      badge: "Halloween Orange (Spooky)",
+    },
+    {
+      id: "phantom_ghost",
+      name: "Phantom Ghost",
+      tagline: "Spectral Crypt Edition — Eerie ectoplasm green, floating spirits & cold fog",
+      description: "Haunted crypt aesthetic: spectral neon cyan and ectoplasm green glows, floating ghost apparitions drifting across the screen, chilling spiderwebs, and cemetery mist.",
+      accentColor: "#00ff9d",
+      dotColor: "rgba(0, 255, 157, 0.35)",
+      bgColor: "#020705",
+      badge: "Creepy Ghost Theme",
+    },
+    {
+      id: "witch_coven",
+      name: "Witch Coven",
+      tagline: "Poison Sorcery Edition — Occult violet runes & purple candlelight",
+      description: "Midnight occult aesthetic: deep mystical violet aura, poisonous potion amethyst glow, witch candlelight, arcane web filigree, and toxic haze.",
+      accentColor: "#a855f7",
+      dotColor: "rgba(168, 85, 247, 0.4)",
+      bgColor: "#07030c",
+      badge: "Witch Sorcery",
+    },
+    {
+      id: "halloween_mix",
+      name: "All 4 Mix (Grand Fusion)",
+      tagline: "Ultimate Halloween Spectacle — Blood drips + Jack-O'-Lanterns + Ghosts + Witch Sorcery",
+      description: "The ultimate synthesis combining all 4 themes simultaneously: animated blood dripping from VELVT.IN, glowing orange Jack-O'-Lanterns, spectral floating ghosts, and mystical witch candlelight.",
+      accentColor: "#f59e0b",
+      dotColor: "rgba(255, 107, 0, 0.4)",
+      bgColor: "#060307",
+      badge: "All 4 Themes Combined",
     },
     {
       id: "legacy",
       name: "Legacy Velvet",
-      tagline: "Preserved Original — Classic velvet crimson & monochrome",
-      description: "The original Velvet aesthetic: deep obsidian black, classic crimson highlights, minimalist borders, and white dot matrix overlay.",
+      tagline: "Preserved Original — Classic velvet crimson, monochrome luxury & zero spooky artifacts",
+      description: "The 100% untouched original Velvet aesthetic: deep obsidian black, classic velvet crimson accents, elegant borders, white dot matrix, with ZERO pumpkins, blood, or horror elements.",
       accentColor: "#c8102e",
       dotColor: "rgba(255, 255, 255, 0.2)",
       bgColor: "#000000",
-      badge: "Legacy Velvet",
-    },
-    {
-      id: "nocturnal_gold",
-      name: "Nocturnal Gold",
-      tagline: "VIP Gala Edition — Champagne gold & royal obsidian",
-      description: "Luxury nightlife aesthetic featuring radiant champagne gold ambient lighting, golden starlight dots, and warm amber highlights for VIP events.",
-      accentColor: "#d4af37",
-      dotColor: "rgba(212, 175, 55, 0.4)",
-      bgColor: "#070705",
-      badge: "VIP Club Gala",
-    },
-    {
-      id: "cyber_crimson",
-      name: "Cyber Crimson",
-      tagline: "Techno Noir Edition — Electric ruby & cyber cyan",
-      description: "High-tech synthwave and underground techno energy with intense neon ruby lasers, cyan subtones, and razor-sharp digital gridlines.",
-      accentColor: "#ff0055",
-      dotColor: "rgba(255, 0, 85, 0.4)",
-      bgColor: "#030308",
-      badge: "Techno Noir",
+      badge: "Untouched Classic Velvet",
     },
   ];
 
   async function handleThemeSwitch(themeId: string) {
-    setThemeLoading(true);
+    // 1. INSTANT 0ms client-side DOM + storage update (zero delay)
+    setCurrentTheme(themeId);
+    document.documentElement.setAttribute("data-theme", themeId);
+    localStorage.setItem("velvt_theme", themeId);
+    document.cookie = `velvt_theme=${themeId}; path=/; max-age=31536000; SameSite=Lax`;
+    window.dispatchEvent(new CustomEvent("velvt-theme-change", { detail: themeId }));
+
+    const opt = THEME_OPTIONS.find((t) => t.id === themeId);
+    setToast({
+      type: "success",
+      message: `Theme instantly switched to "${opt?.name || themeId}" live across VELVT!`,
+    });
+
+    // 2. Background async sync to database for persistence (no blocking, no page reload)
     try {
-      const res = await updateSiteTheme(themeId);
-      if (res.success) {
-        setCurrentTheme(themeId);
-        document.documentElement.setAttribute("data-theme", themeId);
-        setToast({
-          type: "success",
-          message: `Theme successfully switched to "${themeId.toUpperCase()}" live across VELVT!`,
-        });
-        router.refresh();
-      } else {
-        setToast({
-          type: "error",
-          message: res.error || "Failed to switch theme.",
-        });
-      }
-    } catch (err: any) {
-      setToast({
-        type: "error",
-        message: err?.message || "An unexpected error occurred.",
-      });
-    } finally {
-      setThemeLoading(false);
+      await updateSiteTheme(themeId);
+    } catch {
+      // Non-blocking sync
     }
   }
 
