@@ -17,15 +17,27 @@ interface AuditLog {
 
 interface AuditLogViewerProps {
   initialLogs: AuditLog[];
+  isRootAdmin?: boolean;
 }
 
-export function AuditLogViewer({ initialLogs }: AuditLogViewerProps) {
+export function AuditLogViewer({ initialLogs, isRootAdmin = false }: AuditLogViewerProps) {
   const [logs] = useState<AuditLog[]>(initialLogs);
   const [filterAction, setFilterAction] = useState<string>("all");
   const [search, setSearch] = useState<string>("");
   const [expandedId, setExpandedId] = useState<string | null>(null);
+  const [viewScope, setViewScope] = useState<"master" | "founder">("master");
 
   const filtered = logs.filter((l) => {
+    const isRootAction =
+      l.actorEmail?.toLowerCase() === "admin@velvt.in" ||
+      l.actorEmail?.toLowerCase().startsWith("admin@") ||
+      l.action.startsWith("admin.");
+
+    // If viewer is NOT root admin, or root admin switched to founder preview mode:
+    if ((!isRootAdmin || viewScope === "founder") && isRootAction) {
+      return false;
+    }
+
     if (filterAction !== "all" && !l.action.startsWith(filterAction)) return false;
     if (search.trim()) {
       const q = search.toLowerCase();
@@ -42,6 +54,45 @@ export function AuditLogViewer({ initialLogs }: AuditLogViewerProps) {
 
   return (
     <div className="space-y-6">
+      {/* Root Admin Scope Switcher & Banner */}
+      {isRootAdmin && (
+        <div className="p-4 rounded-2xl border border-amber-500/20 bg-amber-500/[0.03] flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-xs font-mono">
+          <div className="flex items-center gap-2.5">
+            <span className="text-amber-400 text-base">⚡</span>
+            <div>
+              <span className="text-white font-bold uppercase">Root Master Viewport</span>
+              <p className="text-[11px] text-g5">
+                Root admin operations are strictly quarantined and invisible in Founder &amp; Core Team sessions.
+              </p>
+            </div>
+          </div>
+          <div className="flex items-center gap-1.5 bg-black/60 p-1 rounded-xl border border-white/10 shrink-0">
+            <button
+              type="button"
+              onClick={() => setViewScope("master")}
+              className={`px-3 py-1.5 rounded-lg text-xs font-mono transition-all cursor-pointer ${
+                viewScope === "master"
+                  ? "bg-amber-500 text-black font-bold shadow-md"
+                  : "text-g5 hover:text-white"
+              }`}
+            >
+              Master Trail ({logs.length})
+            </button>
+            <button
+              type="button"
+              onClick={() => setViewScope("founder")}
+              className={`px-3 py-1.5 rounded-lg text-xs font-mono transition-all cursor-pointer ${
+                viewScope === "founder"
+                  ? "bg-amber-500 text-black font-bold shadow-md"
+                  : "text-g5 hover:text-white"
+              }`}
+            >
+              Founder View ({logs.filter((l) => l.actorEmail !== "admin@velvt.in" && !l.actorEmail?.startsWith("admin@") && !l.action.startsWith("admin.")).length})
+            </button>
+          </div>
+        </div>
+      )}
+
       {/* Search & Filter Controls */}
       <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-4 p-4 rounded-2xl border border-white/10 bg-white/[0.02]">
         <div className="flex items-center gap-2 overflow-x-auto text-xs font-mono uppercase">
@@ -101,12 +152,10 @@ export function AuditLogViewer({ initialLogs }: AuditLogViewerProps) {
               <tbody className="divide-y divide-white/[0.06]">
                 {filtered.map((log) => {
                   const isExpanded = expandedId === log.id;
-                  let parsedMeta: any = null;
-                  if (log.metadata) {
-                    try {
-                      parsedMeta = JSON.parse(log.metadata);
-                    } catch {}
-                  }
+                  const isRootEntry =
+                    log.actorEmail?.toLowerCase() === "admin@velvt.in" ||
+                    log.actorEmail?.toLowerCase().startsWith("admin@") ||
+                    log.action.startsWith("admin.");
 
                   return (
                     <tr key={log.id} className="hover:bg-white/[0.02] transition-colors">
@@ -119,7 +168,14 @@ export function AuditLogViewer({ initialLogs }: AuditLogViewerProps) {
                         </span>
                       </td>
                       <td className="p-4 text-white">
-                        {log.actorEmail || "System / Public"}
+                        <div className="flex items-center gap-2">
+                          <span>{log.actorEmail || "System / Public"}</span>
+                          {isRootAdmin && isRootEntry && (
+                            <span className="px-1.5 py-0.5 rounded bg-amber-500/10 border border-amber-500/30 text-amber-300 text-[9px] uppercase tracking-wider font-bold">
+                              Root (Hidden)
+                            </span>
+                          )}
+                        </div>
                       </td>
                       <td className="p-4 text-g5">
                         {log.targetType ? `${log.targetType} (${log.targetId ? log.targetId.slice(0, 8) + "..." : ""})` : "—"}

@@ -12,6 +12,7 @@ import {
 } from "@/app/actions";
 import { ImageUploader } from "@/components/ui/ImageUploader";
 import { ToastNotification, ToastMessage } from "@/components/ui/ToastNotification";
+import { ToggleSwitch } from "@/components/ui/ToggleSwitch";
 
 interface EventItem {
   id: string;
@@ -790,12 +791,14 @@ export function GalleryManager({ items, events }: GalleryManagerProps) {
 
                   {/* Card Bottom Actions */}
                   <div className="flex items-center justify-between pt-2 border-t border-white/[0.06]">
-                    <button
-                      onClick={() => handleTogglePublish(item.id, item.isPublished)}
-                      className="text-[11px] text-muted-foreground hover:text-white cursor-pointer"
-                    >
-                      {item.isPublished ? "Hide from Public" : "Publish to Public"}
-                    </button>
+                    <ToggleSwitch
+                      checked={item.isPublished}
+                      onChange={() => handleTogglePublish(item.id, item.isPublished)}
+                      size="sm"
+                      activeLabel="Public"
+                      inactiveLabel="Hidden"
+                      ariaLabel={`Publish status for ${item.caption || item.id}`}
+                    />
 
                     <button
                       onClick={() => handleDelete(item.id)}

@@ -13,6 +13,7 @@ import {
 } from "@/app/actions";
 import DownloadQrButton from "@/components/ui/DownloadQrButton";
 import { ToastNotification, ToastMessage } from "@/components/ui/ToastNotification";
+import { ToggleSwitch } from "@/components/ui/ToggleSwitch";
 
 interface TeamManagerProps {
   members: any[];
@@ -460,12 +461,16 @@ export function TeamManager({ members, adminUsers = [], currentUserRole = "admin
                     label="Download QR"
                     variant="pill"
                   />
-                  <button
-                    onClick={() => handleTogglePublish(m.id, m.isPublished)}
-                    className="px-3 py-1.5 text-xs font-mono rounded border border-white/10 text-g5 hover:text-white cursor-pointer"
-                  >
-                    {m.isPublished ? "Unpublish" : "Publish"}
-                  </button>
+                  <div className="flex items-center gap-1.5 py-0.5">
+                    <ToggleSwitch
+                      checked={m.isPublished}
+                      onChange={() => handleTogglePublish(m.id, m.isPublished)}
+                      size="sm"
+                      activeLabel="Live"
+                      inactiveLabel="Draft"
+                      ariaLabel={`Publish status for ${m.name}`}
+                    />
+                  </div>
                   <button
                     onClick={() => {
                       const soc = parseSocials(m.socialLinks) || {

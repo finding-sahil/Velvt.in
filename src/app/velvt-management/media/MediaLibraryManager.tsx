@@ -2,6 +2,7 @@
 
 import { useState, useTransition } from "react";
 import Image from "next/image";
+import { deleteMediaAsset } from "@/app/actions";
 
 export interface MediaItem {
   id: string;
@@ -22,9 +23,44 @@ export function MediaLibraryManager({ initialItems }: MediaLibraryManagerProps) 
   const [searchQuery, setSearchQuery] = useState("");
   const [copiedId, setCopiedId] = useState<string | null>(null);
   const [selectedItem, setSelectedItem] = useState<MediaItem | null>(null);
+  const [confirmDelete, setConfirmDelete] = useState<MediaItem | null>(null);
+  const [isDeleting, setIsDeleting] = useState(false);
+  const [actionFeedback, setActionFeedback] = useState<{ type: "success" | "error"; text: string } | null>(null);
   const [uploading, setUploading] = useState(false);
   const [uploadError, setUploadError] = useState("");
   const [isPending, startTransition] = useTransition();
+
+  const handleDeleteAsset = async (item: MediaItem) => {
+    setIsDeleting(true);
+    setActionFeedback(null);
+    try {
+      const res = await deleteMediaAsset(item.url);
+      if (res.success) {
+        setItems((prev) => prev.filter((i) => i.id !== item.id));
+        if (selectedItem?.id === item.id) {
+          setSelectedItem(null);
+        }
+        setConfirmDelete(null);
+        setActionFeedback({
+          type: "success",
+          text: `Asset "${item.name}" was permanently deleted from storage.`,
+        });
+        setTimeout(() => setActionFeedback(null), 4000);
+      } else {
+        setActionFeedback({
+          type: "error",
+          text: res.error || "Failed to delete asset.",
+        });
+      }
+    } catch (err: any) {
+      setActionFeedback({
+        type: "error",
+        text: err?.message || "An unexpected error occurred while deleting.",
+      });
+    } finally {
+      setIsDeleting(false);
+    }
+  };
 
   const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -142,6 +178,28 @@ export function MediaLibraryManager({ initialItems }: MediaLibraryManagerProps) 
         </div>
       </div>
 
+      {actionFeedback && (
+        <div
+          className={`p-4 rounded-xl border text-xs font-mono flex items-center justify-between animate-fade-in ${
+            actionFeedback.type === "success"
+              ? "bg-emerald-950/60 border-emerald-800/60 text-emerald-400 shadow-[0_0_20px_rgba(16,185,129,0.2)]"
+              : "bg-red-dim border-red/40 text-red shadow-[0_0_20px_rgba(200,16,46,0.2)]"
+          }`}
+        >
+          <div className="flex items-center gap-2">
+            <span>{actionFeedback.type === "success" ? "✓" : "⚠️"}</span>
+            <span>{actionFeedback.text}</span>
+          </div>
+          <button
+            type="button"
+            onClick={() => setActionFeedback(null)}
+            className="text-g5 hover:text-white"
+          >
+            ✕
+          </button>
+        </div>
+      )}
+
       {uploadError && (
         <div className="p-4 rounded-xl bg-red-dim border border-red/40 text-red text-xs font-mono">
           {uploadError}
@@ -218,6 +276,22 @@ export function MediaLibraryManager({ initialItems }: MediaLibraryManagerProps) 
                   className="object-cover group-hover:scale-105 transition-transform duration-300"
                   loading="lazy"
                 />
+
+                {/* Quick Hover Delete Button */}
+                <button
+                  type="button"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    setConfirmDelete(item);
+                  }}
+                  title="Permanently Delete Asset"
+                  className="absolute top-2 right-2 p-1.5 rounded-lg bg-black/80 hover:bg-red text-white/70 hover:text-white border border-white/10 hover:border-red opacity-0 group-hover:opacity-100 transition-all z-10 cursor-pointer shadow-lg hover:shadow-[0_0_12px_rgba(200,16,46,0.6)]"
+                >
+                  <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth="2">
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                  </svg>
+                </button>
+
                 <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity flex items-end p-2">
                   <span className="text-[10px] font-mono text-white/90 truncate w-full">
                     {item.name}
@@ -318,6 +392,107 @@ export function MediaLibraryManager({ initialItems }: MediaLibraryManagerProps) 
                   <span>{copiedId === "html" ? "Copied HTML!" : "Copy <img> Tag"}</span>
                 </button>
               </div>
+
+              {/* Delete Action inside Modal */}
+              <div className="pt-4 border-t border-white/[0.08] flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3">
+                <span className="text-[10px] font-mono text-g5 truncate max-w-xs">
+                  {selectedItem.url}
+                </span>
+                <button
+                  type="button"
+                  onClick={() => setConfirmDelete(selectedItem)}
+                  className="px-4 py-2 rounded-xl bg-red/15 hover:bg-red text-red hover:text-white border border-red/40 transition-all font-mono text-xs uppercase tracking-wider flex items-center justify-center gap-2 cursor-pointer shadow-[0_0_15px_rgba(200,16,46,0.25)] font-bold"
+                >
+                  <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth="2">
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                  </svg>
+                  <span>Delete Image Permanently</span>
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ─── Deletion Confirmation Modal ─── */}
+      {confirmDelete && (
+        <div
+          className="fixed inset-0 z-[60] bg-black/85 backdrop-blur-md flex items-center justify-center p-4 animate-fade-in"
+          onClick={() => !isDeleting && setConfirmDelete(null)}
+        >
+          <div
+            className="bg-[#0c0c0e] border border-red/40 rounded-2xl max-w-md w-full p-6 shadow-[0_0_50px_rgba(200,16,46,0.3)] space-y-5 relative"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 rounded-full bg-red/20 border border-red/40 flex items-center justify-center shrink-0">
+                <span className="text-red text-lg">⚠️</span>
+              </div>
+              <div>
+                <h4 className="font-display font-bold text-lg text-white uppercase tracking-wide">
+                  Delete Media Asset?
+                </h4>
+                <p className="text-xs font-mono text-g5">
+                  Permanent removal from storage & CDN
+                </p>
+              </div>
+            </div>
+
+            {/* Asset Preview */}
+            <div className="flex items-center gap-3 p-3 rounded-xl bg-black/60 border border-white/10">
+              <div className="w-12 h-12 relative rounded-lg overflow-hidden shrink-0 bg-black/40">
+                <Image
+                  src={confirmDelete.url}
+                  alt={confirmDelete.name}
+                  fill
+                  className="object-cover"
+                />
+              </div>
+              <div className="min-w-0 flex-1">
+                <p className="text-xs font-mono text-white font-bold truncate">
+                  {confirmDelete.name}
+                </p>
+                <p className="text-[10px] font-mono text-g5 mt-0.5">
+                  <span className="uppercase text-white/80">{confirmDelete.category}</span> • {formatSize(confirmDelete.size)}
+                </p>
+              </div>
+            </div>
+
+            <p className="text-xs font-sans text-muted leading-relaxed">
+              This action <span className="text-white font-semibold">cannot be undone</span>. The file will be unlinked from storage disk and any gallery references will be cleaned up.
+            </p>
+
+            <div className="flex items-center justify-end gap-3 pt-2">
+              <button
+                type="button"
+                disabled={isDeleting}
+                onClick={() => setConfirmDelete(null)}
+                className="px-4 py-2 rounded-xl bg-white/[0.05] hover:bg-white/[0.1] border border-white/10 text-xs font-mono uppercase tracking-wider text-g5 hover:text-white transition-all cursor-pointer disabled:opacity-50"
+              >
+                Cancel
+              </button>
+
+              <button
+                type="button"
+                disabled={isDeleting}
+                onClick={() => handleDeleteAsset(confirmDelete)}
+                className="px-5 py-2 rounded-xl bg-red hover:bg-red/90 text-white border border-red/50 text-xs font-mono uppercase tracking-wider font-bold shadow-[0_0_20px_rgba(200,16,46,0.4)] transition-all cursor-pointer flex items-center gap-2 disabled:opacity-50"
+              >
+                {isDeleting ? (
+                  <>
+                    <svg className="animate-spin h-3.5 w-3.5 text-white" viewBox="0 0 24 24">
+                      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" fill="none" />
+                      <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
+                    </svg>
+                    <span>Deleting...</span>
+                  </>
+                ) : (
+                  <>
+                    <span>🗑️</span>
+                    <span>Confirm & Delete</span>
+                  </>
+                )}
+              </button>
             </div>
           </div>
         </div>

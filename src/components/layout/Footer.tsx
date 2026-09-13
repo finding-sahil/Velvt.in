@@ -7,7 +7,6 @@ const footerLinks = {
     { href: "/tickets", label: "Tickets" },
     { href: "/gallery", label: "Archive" },
     { href: "/volunteers", label: "Volunteers" },
-    { href: "/volunteers/status", label: "Track Application" },
   ],
   organization: [
     { href: "/founder", label: "Founder's Story" },

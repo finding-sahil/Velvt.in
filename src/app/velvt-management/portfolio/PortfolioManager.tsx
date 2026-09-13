@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { updatePortfolioProfile, togglePortfolioSection } from "@/app/actions";
 import { ToastNotification, ToastMessage } from "@/components/ui/ToastNotification";
+import { ToggleSwitch } from "@/components/ui/ToggleSwitch";
 
 interface Member {
   id: string;
@@ -278,27 +279,17 @@ export function PortfolioManager({ members }: PortfolioManagerProps) {
           </div>
         </div>
 
-        <button
-          type="button"
-          onClick={() => handleToggleSection(sectionKey, title)}
-          className={`shrink-0 px-4 py-2 rounded-lg font-mono text-xs uppercase tracking-wider font-bold transition-all cursor-pointer flex items-center gap-1.5 ${
-            isVisible
-              ? "bg-red/15 text-red border border-red/40 hover:bg-red hover:text-white"
-              : "bg-emerald-500/20 text-emerald-300 border border-emerald-500/40 hover:bg-emerald-500 hover:text-white"
-          }`}
-        >
-          {isVisible ? (
-            <>
-              <span>👁️‍🗨️</span>
-              <span>Turn OFF Section</span>
-            </>
-          ) : (
-            <>
-              <span>✓</span>
-              <span>Turn ON Section</span>
-            </>
-          )}
-        </button>
+        {/* Real Toggle Switch */}
+        <div className="flex items-center gap-3 shrink-0">
+          <ToggleSwitch
+            checked={isVisible}
+            onChange={() => handleToggleSection(sectionKey, title)}
+            size="md"
+            activeLabel="ON"
+            inactiveLabel="OFF"
+            ariaLabel={`Toggle ${title}`}
+          />
+        </div>
       </div>
     );
   }
@@ -1082,15 +1073,21 @@ export function PortfolioManager({ members }: PortfolioManagerProps) {
                     </p>
                   </div>
 
-                  <span
-                    className={`shrink-0 px-2.5 py-1 rounded-full text-[10px] font-mono uppercase tracking-wider font-bold border transition-colors ${
-                      isVisible
-                        ? "bg-emerald-500/15 text-emerald-300 border-emerald-500/30"
-                        : "bg-red/15 text-red border-red/30"
-                    }`}
-                  >
-                    {isVisible ? "Active ✓" : "Hidden ✕"}
-                  </span>
+                  <div className="flex items-center gap-2.5 shrink-0">
+                    <span
+                      className={`text-[10px] font-mono uppercase tracking-wider font-bold ${
+                        isVisible ? "text-emerald-300" : "text-red"
+                      }`}
+                    >
+                      {isVisible ? "Active" : "Hidden"}
+                    </span>
+                    <ToggleSwitch
+                      checked={isVisible}
+                      onChange={() => handleToggleSection(sec.key, sec.label)}
+                      size="sm"
+                      ariaLabel={`Toggle ${sec.label}`}
+                    />
+                  </div>
                 </div>
               );
             })}

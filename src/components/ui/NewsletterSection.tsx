@@ -3,7 +3,17 @@
 import { useState, useTransition } from "react";
 import { subscribeNewsletter } from "@/app/actions";
 
-export function NewsletterSection() {
+interface NewsletterSectionProps {
+  badge?: string;
+  title?: string;
+  subtitle?: string;
+}
+
+export function NewsletterSection({
+  badge = "INNER CIRCLE DISPATCHES",
+  title = "Never Miss a Chapter",
+  subtitle = "Be the first to receive secret venue coordinates, artist drops, and priority ticket drops directly to your inbox.",
+}: NewsletterSectionProps = {}) {
   const [email, setEmail] = useState("");
   const [consent, setConsent] = useState(false);
   const [status, setStatus] = useState<"idle" | "success" | "error">("idle");
@@ -52,15 +62,15 @@ export function NewsletterSection() {
       <div className="max-w-3xl mx-auto text-center relative z-10 space-y-6">
         <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-white/[0.04] border border-white/10 text-[10px] font-mono uppercase tracking-widest text-g5">
           <span className="w-1.5 h-1.5 rounded-full bg-red animate-ping" />
-          <span>INNER CIRCLE DISPATCHES</span>
+          <span>{badge}</span>
         </div>
 
         <h2 className="font-display font-black text-3xl sm:text-4xl uppercase tracking-wider text-white">
-          Never Miss a Chapter
+          {title}
         </h2>
 
         <p className="text-sm sm:text-base text-g5 font-sans max-w-xl mx-auto leading-relaxed">
-          Be the first to receive secret venue coordinates, artist drops, and priority ticket drops directly to your inbox.
+          {subtitle}
         </p>
 
         <form onSubmit={handleSubmit} className="max-w-lg mx-auto space-y-3.5 pt-2">

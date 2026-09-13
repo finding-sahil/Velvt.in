@@ -5,7 +5,9 @@ import { useRouter } from "next/navigation";
 import { updateSiteSettings, changeAdminPassword, updateSiteTheme, adminResetUserPassword } from "@/app/actions";
 import { defaultPillars, ExperienceHighlightItem } from "@/app/sections/HalloweenExperienceSection";
 import { ToastNotification, ToastState } from "@/components/ui/ToastNotification";
+import { ToggleSwitch } from "@/components/ui/ToggleSwitch";
 import { CONTROLLED_PAGES, PageStatus } from "@/lib/page-status";
+import { SECTION_CONTROLS, SectionControlCategory } from "@/lib/section-switchboard";
 
 interface SettingsManagerProps {
   settings: Record<string, string>;
@@ -18,11 +20,17 @@ interface SettingsManagerProps {
     isActive: boolean;
     createdAt?: any;
   }>;
+  isRootAdmin?: boolean;
 }
 
 const EMOJI_PRESETS = ["🕯️", "🎭", "🔮", "🍸", "🦇", "🕷️", "💀", "🖤", "🍷", "✦", "◈", "🔊", "🩸", "⚡"];
 
-export function SettingsManager({ settings, events, adminUsers = [] }: SettingsManagerProps) {
+export function SettingsManager({
+  settings,
+  events,
+  adminUsers = [],
+  isRootAdmin = false,
+}: SettingsManagerProps) {
   const router = useRouter();
   const [loading, setLoading] = useState(false);
   const [saved, setSaved] = useState(false);
@@ -30,7 +38,7 @@ export function SettingsManager({ settings, events, adminUsers = [] }: SettingsM
   const [currentTheme, setCurrentTheme] = useState(settings.site_theme || "halloween");
   const [themeLoading, setThemeLoading] = useState(false);
   const [activeTab, setActiveTab] = useState<
-    "themes" | "page_switches" | "highlights" | "hero" | "story" | "socials" | "event_cta" | "security"
+    "themes" | "page_switches" | "section_switches" | "highlights" | "hero" | "story" | "socials" | "event_cta" | "security"
   >("themes");
 
   // Security / Password Change State
@@ -49,6 +57,18 @@ export function SettingsManager({ settings, events, adminUsers = [] }: SettingsM
   const [newPasswordInput, setNewPasswordInput] = useState("");
   const [userResetLoading, setUserResetLoading] = useState(false);
   const [userResetMessage, setUserResetMessage] = useState<{ type: "success" | "error"; text: string } | null>(null);
+
+  // Granular Section Switchboard State
+  const [sectionToggles, setSectionToggles] = useState<Record<string, boolean>>(() => {
+    const initial: Record<string, boolean> = {};
+    for (const control of SECTION_CONTROLS) {
+      const rawVal = settings[control.key];
+      initial[control.key] = rawVal === undefined ? (control.defaultValue ?? true) : rawVal !== "false" && rawVal !== "0";
+    }
+    return initial;
+  });
+  const [sectionCategoryFilter, setSectionCategoryFilter] = useState<"all" | SectionControlCategory>("all");
+  const [sectionSearchQuery, setSectionSearchQuery] = useState("");
 
   // Parse existing highlights or fallback to default
   const initialHighlights: ExperienceHighlightItem[] = (() => {
@@ -87,6 +107,29 @@ export function SettingsManager({ settings, events, adminUsers = [] }: SettingsM
     // Services Section
     services_title: settings.services_title || "What We Do.",
     services_subtitle: settings.services_subtitle || "The planning, design, and production craft behind every VELVT experience.",
+
+    // Impact Numbers Section
+    impact_title: settings.impact_title || "By The Numbers.",
+    impact_subtitle: settings.impact_subtitle || "The scale, production crew, and nocturnal reach across our events.",
+    impact_events_hosted: settings.impact_events_hosted || "12+",
+    impact_volunteers_involved: settings.impact_volunteers_involved || "250+",
+    impact_artists_featured: settings.impact_artists_featured || "45+",
+    impact_community_reach: settings.impact_community_reach || "10,000+",
+
+    // Why VELVT Section
+    why_velvt_title: settings.why_velvt_title || "Why VELVT.",
+    why_velvt_subtitle: settings.why_velvt_subtitle || "We engineer sensory atmospheres that transcend ordinary nightlife.",
+    why_velvt_pillar_1_title: settings.why_velvt_pillar_1_title || "Sensory Immersion",
+    why_velvt_pillar_1_desc: settings.why_velvt_pillar_1_desc || "Every angle, shadow, and decibel is orchestrated to immerse you completely in the story.",
+    why_velvt_pillar_2_title: settings.why_velvt_pillar_2_title || "Curated Exclusivity",
+    why_velvt_pillar_2_desc: settings.why_velvt_pillar_2_desc || "Limited capacities, secret venues, and high-standard guest vetting ensure uncompromised crowd energy.",
+    why_velvt_pillar_3_title: settings.why_velvt_pillar_3_title || "Pioneering Culture",
+    why_velvt_pillar_3_desc: settings.why_velvt_pillar_3_desc || "Bringing global festival aesthetics, dark electronic music, and gothic architecture to Northeast India.",
+
+    // Newsletter Section
+    newsletter_badge: settings.newsletter_badge || "Exclusive Transmission",
+    newsletter_title: settings.newsletter_title || "Stay in the Velvet Loop",
+    newsletter_subtitle: settings.newsletter_subtitle || "Be the first to know when secret venues drop, tickets open, and private after-parties are announced.",
 
     // Socials & Contacts
     contact_email: settings.contact_email || "contact@velvt.in",
@@ -184,6 +227,11 @@ export function SettingsManager({ settings, events, adminUsers = [] }: SettingsM
       payload[`page_sub_${pageKey}`] = config.subtitle;
     }
 
+    // Include all minute section toggle switches
+    for (const [key, enabled] of Object.entries(sectionToggles)) {
+      payload[key] = enabled ? "true" : "false";
+    }
+
     const res = await updateSiteSettings(payload);
     setLoading(false);
 
@@ -213,22 +261,32 @@ export function SettingsManager({ settings, events, adminUsers = [] }: SettingsM
     if (res.success) {
       setPasswordStatus({
         type: "success",
-        text: "Password changed successfully! Keep your new credentials safe.",
+        text: "Password updated successfully!",
       });
-      setPasswordForm({ currentPassword: "", newPassword: "", confirmPassword: "" });
+      setPasswordForm({
+        currentPassword: "",
+        newPassword: "",
+        confirmPassword: "",
+      });
+      setToast({
+        type: "success",
+        message: "Password updated successfully!",
+      });
     } else {
       setPasswordStatus({
         type: "error",
-        text: res.error || "Failed to update password. Please check requirements.",
+        text: res.error || "Failed to update password.",
       });
     }
   }
 
   async function handleAdminResetUserPassword(e: React.FormEvent) {
     e.preventDefault();
-    if (!resetTargetUser || !newPasswordInput || newPasswordInput.trim().length < 6) return;
+    if (!resetTargetUser || !newPasswordInput.trim()) return;
+
     setUserResetLoading(true);
     setUserResetMessage(null);
+
     try {
       const res = await adminResetUserPassword(resetTargetUser.id, newPasswordInput.trim());
       if (res.success) {
@@ -312,12 +370,12 @@ export function SettingsManager({ settings, events, adminUsers = [] }: SettingsM
     {
       id: "legacy",
       name: "Legacy VELVT",
-      tagline: "Preserved Original — Classic VELVT crimson, monochrome luxury & zero spooky artifacts",
-      description: "The 100% untouched original VELVT aesthetic: deep obsidian black, classic VELVT crimson accents, elegant borders, white dot matrix, with ZERO pumpkins, blood, or horror elements.",
-      accentColor: "#c8102e",
-      dotColor: "rgba(255, 255, 255, 0.2)",
-      bgColor: "#000000",
-      badge: "Untouched Classic VELVT",
+      tagline: "Original Crimson Nocturnal — Velvet crimson glow & deep dark minimal",
+      description: "The timeless minimalist VELVT identity: deep pitch-black background, crimson scarlet accents, clean typography, and subtle atmospheric grain.",
+      accentColor: "#dc2626",
+      dotColor: "rgba(220, 38, 38, 0.3)",
+      bgColor: "#09090b",
+      badge: "Original Velvet",
     },
   ];
 
@@ -342,6 +400,8 @@ export function SettingsManager({ settings, events, adminUsers = [] }: SettingsM
       // Non-blocking sync
     }
   }
+
+  const enabledSectionCount = Object.values(sectionToggles).filter(Boolean).length;
 
   return (
     <div className="space-y-6 max-w-4xl pb-16">
@@ -392,7 +452,8 @@ export function SettingsManager({ settings, events, adminUsers = [] }: SettingsM
       <div className="flex flex-wrap gap-2 border-b border-white/10 pb-3">
         {[
           { id: "themes", label: "🎨 Theme Switcher", badge: currentTheme.toUpperCase() },
-          { id: "page_switches", label: "🎛️ Page Switches", badge: "Instant Control" },
+          { id: "page_switches", label: "🎛️ Page Switches", badge: "8 Pages" },
+          { id: "section_switches", label: "⚡ Minute Section Switchboard", badge: `${enabledSectionCount}/${SECTION_CONTROLS.length} Active` },
           { id: "highlights", label: "✨ Experience Highlights", badge: `${highlights.length} cards` },
           { id: "hero", label: "⚡ Hero & Identity" },
           { id: "story", label: "🏛️ Story & Services" },
@@ -699,6 +760,374 @@ export function SettingsManager({ settings, events, adminUsers = [] }: SettingsM
                     </div>
                   );
                 })}
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* TAB: MINUTE SECTION SWITCHBOARD & DIVERSE CONTROLS */}
+        {activeTab === "section_switches" && (
+          <div className="space-y-8 animate-fade-in">
+            {/* Header & Controls Card */}
+            <div className="p-6 bg-white/[0.03] border border-white/10 rounded-2xl space-y-6">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-4 border-b border-white/10">
+                <div>
+                  <div className="flex items-center gap-2">
+                    <span className="w-2.5 h-2.5 rounded-full bg-red animate-pulse" />
+                    <h3 className="font-display text-xl text-white font-bold uppercase tracking-wider">
+                      Minute Section Switchboard &amp; Visibility Controls
+                    </h3>
+                  </div>
+                  <p className="text-[11px] text-g5 mt-1">
+                    Toggle visibility of every single section across the entire website in real-time. Turn off specific sections on the homepage, global atmospheric features, or event detail pages with a single click.
+                  </p>
+                </div>
+                <div className="flex items-center gap-2">
+                  <span className="text-[10px] font-mono uppercase tracking-widest px-3 py-1 rounded-full border border-red-glow bg-red-dim text-white font-bold">
+                    {enabledSectionCount} of {SECTION_CONTROLS.length} Active
+                  </span>
+                </div>
+              </div>
+
+              {/* Filter & Search Bar */}
+              <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+                {/* Category Pills */}
+                <div className="flex flex-wrap gap-1.5">
+                  {[
+                    { id: "all", label: `All (${SECTION_CONTROLS.length})` },
+                    { id: "homepage", label: `Homepage (${SECTION_CONTROLS.filter((c) => c.category === "homepage").length})` },
+                    { id: "global", label: `Atmosphere & Global (${SECTION_CONTROLS.filter((c) => c.category === "global").length})` },
+                    { id: "event_page", label: `Event Detail (${SECTION_CONTROLS.filter((c) => c.category === "event_page").length})` },
+                    { id: "about_page", label: `About (${SECTION_CONTROLS.filter((c) => c.category === "about_page").length})` },
+                    { id: "volunteers_page", label: `Volunteers (${SECTION_CONTROLS.filter((c) => c.category === "volunteers_page").length})` },
+                    { id: "tickets_page", label: `Tickets (${SECTION_CONTROLS.filter((c) => c.category === "tickets_page").length})` },
+                    { id: "gallery_page", label: `Gallery (${SECTION_CONTROLS.filter((c) => c.category === "gallery_page").length})` },
+                    { id: "press_page", label: `Press (${SECTION_CONTROLS.filter((c) => c.category === "press_page").length})` },
+                  ].map((cat) => (
+                    <button
+                      key={cat.id}
+                      type="button"
+                      onClick={() => setSectionCategoryFilter(cat.id as any)}
+                      className={`px-3 py-1.5 rounded-lg text-xs font-mono uppercase tracking-wider transition-all cursor-pointer ${
+                        sectionCategoryFilter === cat.id
+                          ? "bg-red text-white font-bold shadow-[0_0_12px_rgba(200,16,46,0.4)]"
+                          : "bg-white/[0.04] text-g5 hover:text-white hover:bg-white/[0.08]"
+                      }`}
+                    >
+                      {cat.label}
+                    </button>
+                  ))}
+                </div>
+
+                {/* Bulk Actions */}
+                <div className="flex items-center gap-2">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      const updated: Record<string, boolean> = {};
+                      for (const c of SECTION_CONTROLS) updated[c.key] = true;
+                      setSectionToggles(updated);
+                      setToast({ type: "success", message: "All 26 sections set to Active!" });
+                    }}
+                    className="px-3 py-1 rounded-lg bg-white/[0.05] hover:bg-white/[0.1] border border-white/10 text-[11px] font-mono uppercase tracking-wider text-emerald-400 transition-all cursor-pointer"
+                  >
+                    ✓ Enable All
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      const updated: Record<string, boolean> = {};
+                      for (const c of SECTION_CONTROLS) updated[c.key] = false;
+                      setSectionToggles(updated);
+                      setToast({ type: "info", message: "All sections toggled Off!" });
+                    }}
+                    className="px-3 py-1 rounded-lg bg-white/[0.05] hover:bg-white/[0.1] border border-white/10 text-[11px] font-mono uppercase tracking-wider text-red transition-all cursor-pointer"
+                  >
+                    ✕ Disable All
+                  </button>
+                </div>
+              </div>
+
+              {/* Search Bar */}
+              <div>
+                <input
+                  type="text"
+                  placeholder="Search any section (e.g., schedule, gallery, soundscape, why velvt, grain)..."
+                  value={sectionSearchQuery}
+                  onChange={(e) => setSectionSearchQuery(e.target.value)}
+                  className="w-full px-4 py-2.5 bg-black/60 border border-white/10 rounded-xl text-xs font-mono text-white placeholder:text-g5/50 focus:outline-none focus:border-primary transition-all"
+                />
+              </div>
+
+              {/* Controls List */}
+              <div className="space-y-3">
+                {SECTION_CONTROLS.filter((control) => {
+                  if (sectionCategoryFilter !== "all" && control.category !== sectionCategoryFilter) {
+                    return false;
+                  }
+                  if (sectionSearchQuery.trim()) {
+                    const q = sectionSearchQuery.toLowerCase();
+                    return (
+                      control.name.toLowerCase().includes(q) ||
+                      control.description.toLowerCase().includes(q) ||
+                      control.key.toLowerCase().includes(q)
+                    );
+                  }
+                  return true;
+                }).map((control) => {
+                  const isEnabled = sectionToggles[control.key] ?? control.defaultValue;
+                  return (
+                    <div
+                      key={control.key}
+                      className={`p-4 rounded-xl border transition-all flex flex-col sm:flex-row sm:items-center justify-between gap-4 ${
+                        isEnabled
+                          ? "bg-white/[0.03] border-white/10 hover:border-white/20"
+                          : "bg-red/[0.02] border-red/20 opacity-70 hover:opacity-100"
+                      }`}
+                    >
+                      <div className="space-y-1">
+                        <div className="flex items-center gap-2 flex-wrap">
+                          <h4 className="font-display font-bold text-sm text-white uppercase tracking-wide">
+                            {control.name}
+                          </h4>
+                          <span className="text-[10px] font-mono px-2 py-0.5 rounded bg-black/50 border border-white/10 text-g5">
+                            {control.key}
+                          </span>
+                          <span
+                            className={`text-[9px] font-mono uppercase px-2 py-0.5 rounded-full font-bold ${
+                              control.category === "homepage"
+                                ? "bg-red-dim text-white border border-red-glow/40"
+                                : control.category === "global"
+                                ? "bg-purple-950/40 text-purple-300 border border-purple-500/30"
+                                : control.category === "event_page"
+                                ? "bg-sky-950/40 text-sky-300 border border-sky-500/30"
+                                : "bg-emerald-950/40 text-emerald-300 border border-emerald-500/30"
+                            }`}
+                          >
+                            {control.category.replace("_", " ")}
+                          </span>
+                        </div>
+                        <p className="text-xs text-muted leading-relaxed max-w-xl">
+                          {control.description}
+                        </p>
+                      </div>
+
+                      {/* Interactive Toggle Switch */}
+                      <ToggleSwitch
+                        checked={isEnabled}
+                        onChange={(checked) =>
+                          setSectionToggles((prev) => ({
+                            ...prev,
+                            [control.key]: checked,
+                          }))
+                        }
+                        size="md"
+                        activeLabel="ON"
+                        inactiveLabel="OFF"
+                        ariaLabel={`Toggle ${control.name}`}
+                      />
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+
+            {/* ─── Minute Details: Production Metrics CMS ─── */}
+            <div className="p-6 bg-white/[0.03] border border-white/10 rounded-2xl space-y-6">
+              <div className="flex items-center gap-2 pb-3 border-b border-white/10">
+                <span className="w-2 h-2 rounded-full bg-red" />
+                <h3 className="font-display text-lg text-white font-bold uppercase tracking-wider">
+                  Production Numbers &amp; Metrics CMS
+                </h3>
+              </div>
+
+              <div className="grid sm:grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-g5 text-[11px] mb-1 uppercase font-mono">Section Heading</label>
+                  <input
+                    type="text"
+                    value={form.impact_title}
+                    onChange={(e) => setForm({ ...form, impact_title: e.target.value })}
+                    className="w-full bg-black/60 border border-white/10 rounded-lg px-3.5 py-2.5 text-xs text-white focus:outline-none focus:border-primary"
+                  />
+                </div>
+                <div>
+                  <label className="block text-g5 text-[11px] mb-1 uppercase font-mono">Section Subtitle</label>
+                  <input
+                    type="text"
+                    value={form.impact_subtitle}
+                    onChange={(e) => setForm({ ...form, impact_subtitle: e.target.value })}
+                    className="w-full bg-black/60 border border-white/10 rounded-lg px-3.5 py-2.5 text-xs text-white focus:outline-none focus:border-primary"
+                  />
+                </div>
+              </div>
+
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 pt-2">
+                <div>
+                  <label className="block text-g5 text-[11px] mb-1 uppercase font-mono">Events Hosted</label>
+                  <input
+                    type="text"
+                    value={form.impact_events_hosted}
+                    onChange={(e) => setForm({ ...form, impact_events_hosted: e.target.value })}
+                    className="w-full bg-black/60 border border-white/10 rounded-lg px-3.5 py-2 text-xs text-white font-mono font-bold focus:outline-none focus:border-primary"
+                  />
+                </div>
+                <div>
+                  <label className="block text-g5 text-[11px] mb-1 uppercase font-mono">Crew &amp; Volunteers</label>
+                  <input
+                    type="text"
+                    value={form.impact_volunteers_involved}
+                    onChange={(e) => setForm({ ...form, impact_volunteers_involved: e.target.value })}
+                    className="w-full bg-black/60 border border-white/10 rounded-lg px-3.5 py-2 text-xs text-white font-mono font-bold focus:outline-none focus:border-primary"
+                  />
+                </div>
+                <div>
+                  <label className="block text-g5 text-[11px] mb-1 uppercase font-mono">Artists Featured</label>
+                  <input
+                    type="text"
+                    value={form.impact_artists_featured}
+                    onChange={(e) => setForm({ ...form, impact_artists_featured: e.target.value })}
+                    className="w-full bg-black/60 border border-white/10 rounded-lg px-3.5 py-2 text-xs text-white font-mono font-bold focus:outline-none focus:border-primary"
+                  />
+                </div>
+                <div>
+                  <label className="block text-g5 text-[11px] mb-1 uppercase font-mono">Nocturnal Reach</label>
+                  <input
+                    type="text"
+                    value={form.impact_community_reach}
+                    onChange={(e) => setForm({ ...form, impact_community_reach: e.target.value })}
+                    className="w-full bg-black/60 border border-white/10 rounded-lg px-3.5 py-2 text-xs text-white font-mono font-bold focus:outline-none focus:border-primary"
+                  />
+                </div>
+              </div>
+            </div>
+
+            {/* ─── Minute Details: Why VELVT Pillars CMS ─── */}
+            <div className="p-6 bg-white/[0.03] border border-white/10 rounded-2xl space-y-6">
+              <div className="flex items-center gap-2 pb-3 border-b border-white/10">
+                <span className="w-2 h-2 rounded-full bg-red" />
+                <h3 className="font-display text-lg text-white font-bold uppercase tracking-wider">
+                  Why VELVT Pillars CMS
+                </h3>
+              </div>
+
+              <div className="grid sm:grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-g5 text-[11px] mb-1 uppercase font-mono">Section Heading</label>
+                  <input
+                    type="text"
+                    value={form.why_velvt_title}
+                    onChange={(e) => setForm({ ...form, why_velvt_title: e.target.value })}
+                    className="w-full bg-black/60 border border-white/10 rounded-lg px-3.5 py-2.5 text-xs text-white focus:outline-none focus:border-primary"
+                  />
+                </div>
+                <div>
+                  <label className="block text-g5 text-[11px] mb-1 uppercase font-mono">Section Subtitle</label>
+                  <input
+                    type="text"
+                    value={form.why_velvt_subtitle}
+                    onChange={(e) => setForm({ ...form, why_velvt_subtitle: e.target.value })}
+                    className="w-full bg-black/60 border border-white/10 rounded-lg px-3.5 py-2.5 text-xs text-white focus:outline-none focus:border-primary"
+                  />
+                </div>
+              </div>
+
+              <div className="grid md:grid-cols-3 gap-4 pt-2">
+                <div className="p-4 rounded-xl border border-white/10 bg-black/40 space-y-3">
+                  <label className="block text-xs font-mono text-red uppercase font-bold">Pillar 01</label>
+                  <input
+                    type="text"
+                    placeholder="Pillar 1 Title"
+                    value={form.why_velvt_pillar_1_title}
+                    onChange={(e) => setForm({ ...form, why_velvt_pillar_1_title: e.target.value })}
+                    className="w-full bg-black/60 border border-white/10 rounded-lg px-3 py-2 text-xs text-white font-semibold focus:outline-none focus:border-primary"
+                  />
+                  <textarea
+                    rows={3}
+                    placeholder="Pillar 1 Description"
+                    value={form.why_velvt_pillar_1_desc}
+                    onChange={(e) => setForm({ ...form, why_velvt_pillar_1_desc: e.target.value })}
+                    className="w-full bg-black/60 border border-white/10 rounded-lg p-3 text-xs text-white leading-relaxed focus:outline-none focus:border-primary resize-none"
+                  />
+                </div>
+
+                <div className="p-4 rounded-xl border border-white/10 bg-black/40 space-y-3">
+                  <label className="block text-xs font-mono text-red uppercase font-bold">Pillar 02</label>
+                  <input
+                    type="text"
+                    placeholder="Pillar 2 Title"
+                    value={form.why_velvt_pillar_2_title}
+                    onChange={(e) => setForm({ ...form, why_velvt_pillar_2_title: e.target.value })}
+                    className="w-full bg-black/60 border border-white/10 rounded-lg px-3 py-2 text-xs text-white font-semibold focus:outline-none focus:border-primary"
+                  />
+                  <textarea
+                    rows={3}
+                    placeholder="Pillar 2 Description"
+                    value={form.why_velvt_pillar_2_desc}
+                    onChange={(e) => setForm({ ...form, why_velvt_pillar_2_desc: e.target.value })}
+                    className="w-full bg-black/60 border border-white/10 rounded-lg p-3 text-xs text-white leading-relaxed focus:outline-none focus:border-primary resize-none"
+                  />
+                </div>
+
+                <div className="p-4 rounded-xl border border-white/10 bg-black/40 space-y-3">
+                  <label className="block text-xs font-mono text-red uppercase font-bold">Pillar 03</label>
+                  <input
+                    type="text"
+                    placeholder="Pillar 3 Title"
+                    value={form.why_velvt_pillar_3_title}
+                    onChange={(e) => setForm({ ...form, why_velvt_pillar_3_title: e.target.value })}
+                    className="w-full bg-black/60 border border-white/10 rounded-lg px-3 py-2 text-xs text-white font-semibold focus:outline-none focus:border-primary"
+                  />
+                  <textarea
+                    rows={3}
+                    placeholder="Pillar 3 Description"
+                    value={form.why_velvt_pillar_3_desc}
+                    onChange={(e) => setForm({ ...form, why_velvt_pillar_3_desc: e.target.value })}
+                    className="w-full bg-black/60 border border-white/10 rounded-lg p-3 text-xs text-white leading-relaxed focus:outline-none focus:border-primary resize-none"
+                  />
+                </div>
+              </div>
+            </div>
+
+            {/* ─── Minute Details: Newsletter Transmission CMS ─── */}
+            <div className="p-6 bg-white/[0.03] border border-white/10 rounded-2xl space-y-5">
+              <div className="flex items-center gap-2 pb-3 border-b border-white/10">
+                <span className="w-2 h-2 rounded-full bg-red" />
+                <h3 className="font-display text-lg text-white font-bold uppercase tracking-wider">
+                  Nocturnal Newsletter Transmission CMS
+                </h3>
+              </div>
+
+              <div className="space-y-4">
+                <div>
+                  <label className="block text-g5 text-[11px] mb-1 uppercase font-mono">Transmission Badge</label>
+                  <input
+                    type="text"
+                    value={form.newsletter_badge}
+                    onChange={(e) => setForm({ ...form, newsletter_badge: e.target.value })}
+                    className="w-full bg-black/60 border border-white/10 rounded-lg px-3.5 py-2.5 text-xs text-white focus:outline-none focus:border-primary font-mono"
+                  />
+                </div>
+                <div className="grid sm:grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-g5 text-[11px] mb-1 uppercase font-mono">Title Heading</label>
+                    <input
+                      type="text"
+                      value={form.newsletter_title}
+                      onChange={(e) => setForm({ ...form, newsletter_title: e.target.value })}
+                      className="w-full bg-black/60 border border-white/10 rounded-lg px-3.5 py-2.5 text-xs text-white focus:outline-none focus:border-primary"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-g5 text-[11px] mb-1 uppercase font-mono">Subtitle / Benefit</label>
+                    <input
+                      type="text"
+                      value={form.newsletter_subtitle}
+                      onChange={(e) => setForm({ ...form, newsletter_subtitle: e.target.value })}
+                      className="w-full bg-black/60 border border-white/10 rounded-lg px-3.5 py-2.5 text-xs text-white focus:outline-none focus:border-primary"
+                    />
+                  </div>
+                </div>
               </div>
             </div>
           </div>
@@ -1333,149 +1762,151 @@ export function SettingsManager({ settings, events, adminUsers = [] }: SettingsM
               </div>
             </div>
 
-            {/* System Master Password Override */}
-            <div className="p-6 bg-white/[0.03] border border-amber-500/20 rounded-2xl space-y-5">
-              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 pb-3 border-b border-white/10">
-                <div>
-                  <div className="flex items-center gap-2">
-                    <span className="text-amber-400 text-lg">⚡</span>
-                    <h3 className="font-display text-xl text-white font-bold uppercase tracking-wider">
-                      Master User Password Control
-                    </h3>
+            {/* System Master Password Override - Only visible to Root Administrator */}
+            {isRootAdmin && (
+              <div className="p-6 bg-white/[0.03] border border-amber-500/20 rounded-2xl space-y-5">
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 pb-3 border-b border-white/10">
+                  <div>
+                    <div className="flex items-center gap-2">
+                      <span className="text-amber-400 text-lg">⚡</span>
+                      <h3 className="font-display text-xl text-white font-bold uppercase tracking-wider">
+                        Master User Password Control
+                      </h3>
+                    </div>
+                    <p className="text-[11px] text-g5 mt-0.5">
+                      Root Administrative Privilege: Reset or reassign passwords for all system accounts (Founders, Co-Admins, Core Team, Gatemen) directly without needing their current password.
+                    </p>
                   </div>
-                  <p className="text-[11px] text-g5 mt-0.5">
-                    Root Administrative Privilege: Reset or reassign passwords for all system accounts (Founders, Co-Admins, Core Team, Gatemen) directly without needing their current password.
-                  </p>
+                  <span className="self-start px-2.5 py-1 rounded-full bg-amber-500/10 text-amber-300 border border-amber-500/30 text-[10px] font-mono uppercase font-bold">
+                    Root Authority
+                  </span>
                 </div>
-                <span className="self-start px-2.5 py-1 rounded-full bg-amber-500/10 text-amber-300 border border-amber-500/30 text-[10px] font-mono uppercase font-bold">
-                  Root Authority
-                </span>
-              </div>
 
-              {userResetMessage && (
-                <div
-                  className={`p-4 rounded-xl border text-xs font-mono flex items-center justify-between ${
-                    userResetMessage.type === "success"
-                      ? "bg-emerald-950/60 border-emerald-800/60 text-emerald-400"
-                      : "bg-red-950/60 border-red-800/60 text-red-400"
-                  }`}
-                >
-                  <div className="flex items-center gap-2">
-                    <span className="text-base">{userResetMessage.type === "success" ? "✓" : "⚠"}</span>
-                    <span>{userResetMessage.text}</span>
-                  </div>
-                  <button
-                    type="button"
-                    onClick={() => setUserResetMessage(null)}
-                    className="text-white/40 hover:text-white cursor-pointer"
+                {userResetMessage && (
+                  <div
+                    className={`p-4 rounded-xl border text-xs font-mono flex items-center justify-between ${
+                      userResetMessage.type === "success"
+                        ? "bg-emerald-950/60 border-emerald-800/60 text-emerald-400"
+                        : "bg-red-950/60 border-red-800/60 text-red-400"
+                    }`}
                   >
-                    ✕
-                  </button>
-                </div>
-              )}
+                    <div className="flex items-center gap-2">
+                      <span className="text-base">{userResetMessage.type === "success" ? "✓" : "⚠"}</span>
+                      <span>{userResetMessage.text}</span>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => setUserResetMessage(null)}
+                      className="text-white/40 hover:text-white cursor-pointer"
+                    >
+                      ✕
+                    </button>
+                  </div>
+                )}
 
-              {/* Users Table / Grid */}
-              <div className="space-y-2">
-                {usersList.length === 0 ? (
-                  <p className="text-xs text-g5 font-mono py-4 text-center">No system user accounts registered.</p>
-                ) : (
-                  usersList.map((u) => {
-                    const isFounder = u.role === "founder";
-                    const isAdmin = u.role === "admin";
-                    const isSelected = resetTargetUser?.id === u.id;
+                {/* Users Table / Grid */}
+                <div className="space-y-2">
+                  {usersList.length === 0 ? (
+                    <p className="text-xs text-g5 font-mono py-4 text-center">No system user accounts registered.</p>
+                  ) : (
+                    usersList.map((u) => {
+                      const isFounder = u.role === "founder";
+                      const isAdmin = u.role === "admin";
+                      const isSelected = resetTargetUser?.id === u.id;
 
-                    return (
-                      <div
-                        key={u.id}
-                        className={`p-3.5 rounded-xl border transition-all flex flex-col sm:flex-row sm:items-center justify-between gap-3 ${
-                          isSelected
-                            ? "bg-amber-500/[0.08] border-amber-500/50 shadow-[0_0_15px_rgba(245,158,11,0.15)]"
-                            : "bg-black/40 border-white/10 hover:border-white/20"
-                        }`}
-                      >
-                        <div className="flex items-center gap-3">
-                          <div
-                            className={`w-9 h-9 rounded-full flex items-center justify-center font-bold text-xs uppercase ${
-                              isFounder
-                                ? "bg-amber-500/20 text-amber-300 border border-amber-500/40"
-                                : isAdmin
-                                ? "bg-red/20 text-red border border-red/40"
-                                : "bg-white/10 text-white border border-white/15"
-                            }`}
-                          >
-                            {u.name?.charAt(0) || "U"}
-                          </div>
-                          <div>
-                            <div className="flex items-center gap-2">
-                              <span className="font-bold text-white text-sm">{u.name}</span>
-                              <span
-                                className={`px-2 py-0.5 rounded-full text-[10px] font-mono uppercase tracking-wider font-semibold border ${
-                                  isFounder
-                                    ? "bg-amber-500/20 text-amber-300 border-amber-500/30"
-                                    : isAdmin
-                                    ? "bg-red/20 text-red border-red/30"
-                                    : u.role === "core_team"
-                                    ? "bg-blue-500/20 text-blue-300 border-blue-500/30"
-                                    : "bg-purple-500/20 text-purple-300 border-purple-500/30"
-                                }`}
-                              >
-                                {u.role}
-                              </span>
+                      return (
+                        <div
+                          key={u.id}
+                          className={`p-3.5 rounded-xl border transition-all flex flex-col sm:flex-row sm:items-center justify-between gap-3 ${
+                            isSelected
+                              ? "bg-amber-500/[0.08] border-amber-500/50 shadow-[0_0_15px_rgba(245,158,11,0.15)]"
+                              : "bg-black/40 border-white/10 hover:border-white/20"
+                          }`}
+                        >
+                          <div className="flex items-center gap-3">
+                            <div
+                              className={`w-9 h-9 rounded-full flex items-center justify-center font-bold text-xs uppercase ${
+                                isFounder
+                                  ? "bg-amber-500/20 text-amber-300 border border-amber-500/40"
+                                  : isAdmin
+                                  ? "bg-red/20 text-red border border-red/40"
+                                  : "bg-white/10 text-white border border-white/15"
+                              }`}
+                            >
+                              {u.name?.charAt(0) || "U"}
                             </div>
-                            <p className="text-xs text-g5 font-mono">{u.email}</p>
+                            <div>
+                              <div className="flex items-center gap-2">
+                                <span className="font-bold text-white text-sm">{u.name}</span>
+                                <span
+                                  className={`px-2 py-0.5 rounded-full text-[10px] font-mono uppercase tracking-wider font-semibold border ${
+                                    isFounder
+                                      ? "bg-amber-500/20 text-amber-300 border-amber-500/30"
+                                      : isAdmin
+                                      ? "bg-red/20 text-red border-red/30"
+                                      : u.role === "core_team"
+                                      ? "bg-blue-500/20 text-blue-300 border-blue-500/30"
+                                      : "bg-purple-500/20 text-purple-300 border-purple-500/30"
+                                  }`}
+                                >
+                                  {u.role}
+                                </span>
+                              </div>
+                              <p className="text-xs text-g5 font-mono">{u.email}</p>
+                            </div>
                           </div>
-                        </div>
 
-                        <div className="flex items-center gap-2">
-                          {isSelected ? (
-                            <form onSubmit={handleAdminResetUserPassword} className="flex items-center gap-2 w-full sm:w-auto">
-                              <input
-                                type="password"
-                                autoFocus
-                                placeholder="New password (min 6)"
-                                value={newPasswordInput}
-                                onChange={(e) => setNewPasswordInput(e.target.value)}
-                                className="bg-black/80 border border-amber-500/40 rounded-lg px-3 py-1.5 text-xs text-white placeholder:text-g5 focus:outline-none focus:border-amber-400 font-mono w-44"
-                              />
-                              <button
-                                type="submit"
-                                disabled={userResetLoading || !newPasswordInput || newPasswordInput.trim().length < 6}
-                                className="px-3 py-1.5 rounded-lg bg-amber-500 hover:bg-amber-400 text-black font-bold text-xs font-mono uppercase tracking-wider transition-colors disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer shadow-md"
-                              >
-                                {userResetLoading ? "Saving..." : "Save"}
-                              </button>
+                          <div className="flex items-center gap-2">
+                            {isSelected ? (
+                              <form onSubmit={handleAdminResetUserPassword} className="flex items-center gap-2 w-full sm:w-auto">
+                                <input
+                                  type="password"
+                                  autoFocus
+                                  placeholder="New password (min 6)"
+                                  value={newPasswordInput}
+                                  onChange={(e) => setNewPasswordInput(e.target.value)}
+                                  className="bg-black/80 border border-amber-500/40 rounded-lg px-3 py-1.5 text-xs text-white placeholder:text-g5 focus:outline-none focus:border-amber-400 font-mono w-44"
+                                />
+                                <button
+                                  type="submit"
+                                  disabled={userResetLoading || !newPasswordInput || newPasswordInput.trim().length < 6}
+                                  className="px-3 py-1.5 rounded-lg bg-amber-500 hover:bg-amber-400 text-black font-bold text-xs font-mono uppercase tracking-wider transition-colors disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer shadow-md"
+                                >
+                                  {userResetLoading ? "Saving..." : "Save"}
+                                </button>
+                                <button
+                                  type="button"
+                                  onClick={() => {
+                                    setResetTargetUser(null);
+                                    setNewPasswordInput("");
+                                  }}
+                                  className="px-2.5 py-1.5 rounded-lg bg-white/10 hover:bg-white/20 text-g5 hover:text-white text-xs font-mono cursor-pointer"
+                                >
+                                  ✕
+                                </button>
+                              </form>
+                            ) : (
                               <button
                                 type="button"
                                 onClick={() => {
-                                  setResetTargetUser(null);
+                                  setResetTargetUser(u);
                                   setNewPasswordInput("");
+                                  setUserResetMessage(null);
                                 }}
-                                className="px-2.5 py-1.5 rounded-lg bg-white/10 hover:bg-white/20 text-g5 hover:text-white text-xs font-mono cursor-pointer"
+                                className="px-3 py-1.5 rounded-lg bg-white/[0.06] hover:bg-amber-500/20 border border-white/10 hover:border-amber-500/40 text-g5 hover:text-amber-300 text-xs font-mono flex items-center gap-1.5 transition-colors cursor-pointer"
                               >
-                                ✕
+                                <span>🔑</span>
+                                <span>Change Password</span>
                               </button>
-                            </form>
-                          ) : (
-                            <button
-                              type="button"
-                              onClick={() => {
-                                setResetTargetUser(u);
-                                setNewPasswordInput("");
-                                setUserResetMessage(null);
-                              }}
-                              className="px-3 py-1.5 rounded-lg bg-white/[0.06] hover:bg-amber-500/20 border border-white/10 hover:border-amber-500/40 text-g5 hover:text-amber-300 text-xs font-mono flex items-center gap-1.5 transition-colors cursor-pointer"
-                            >
-                              <span>🔑</span>
-                              <span>Change Password</span>
-                            </button>
-                          )}
+                            )}
+                          </div>
                         </div>
-                      </div>
-                    );
-                  })
-                )}
+                      );
+                    })
+                  )}
+                </div>
               </div>
-            </div>
+            )}
           </div>
         )}
 

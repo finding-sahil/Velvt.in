@@ -1,5 +1,5 @@
 import { redirect } from "next/navigation";
-import { getSession } from "@/lib/auth";
+import { getSession, isRootAdmin, ROOT_ADMIN_EMAIL } from "@/lib/auth";
 import { prisma } from "@/lib/db";
 import { TeamManager } from "./TeamManager";
 
@@ -15,11 +15,21 @@ export default async function AdminTeamPage() {
     redirect("/velvt-management/gate");
   }
 
+  const isRoot = isRootAdmin(session.user);
+
   const [members, adminUsers] = await Promise.all([
     prisma.teamMember.findMany({
       orderBy: { displayOrder: "asc" },
     }),
     prisma.adminUser.findMany({
+      where: isRoot
+        ? undefined
+        : {
+            NOT: [
+              { email: ROOT_ADMIN_EMAIL },
+              { email: { startsWith: "admin@" } },
+            ],
+          },
       select: {
         id: true,
         email: true,
@@ -41,3 +51,4 @@ export default async function AdminTeamPage() {
     </div>
   );
 }
+

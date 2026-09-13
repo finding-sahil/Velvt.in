@@ -283,3 +283,16 @@ export async function requireGatemanOrAdmin() {
   }
   return session;
 }
+
+export const ROOT_ADMIN_EMAIL = "admin@velvt.in";
+
+/**
+ * Checks if a user is the root system administrator.
+ * Root admin has master system authority and is kept strictly invisible from founder and core team views.
+ */
+export function isRootAdmin(user?: { email?: string; role?: string } | null): boolean {
+  if (!user?.email) return false;
+  const email = user.email.toLowerCase().trim();
+  return email === ROOT_ADMIN_EMAIL || (user.role === "admin" && email.startsWith("admin@"));
+}
+

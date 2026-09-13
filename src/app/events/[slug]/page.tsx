@@ -11,7 +11,10 @@ import {
   eventStatusLabels,
 } from "@/lib/utils";
 import { AddToCalendar } from "@/components/ui/AddToCalendar";
+import { isSectionEnabled } from "@/lib/section-switchboard";
 import type { Metadata } from "next";
+
+export const revalidate = 60;
 
 interface EventPageProps {
   params: Promise<{ slug: string }>;
@@ -37,35 +40,40 @@ export async function generateMetadata({
 export default async function EventDetailPage({ params }: EventPageProps) {
   const { slug } = await params;
 
-  const event = await prisma.event.findUnique({
-    where: { slug },
-    include: {
-      venue: true,
-      ticketTypes: {
-        where: { isActive: true },
-        orderBy: { displayOrder: "asc" },
+  const [event, siteSettings] = await Promise.all([
+    prisma.event.findUnique({
+      where: { slug },
+      include: {
+        venue: true,
+        ticketTypes: {
+          where: { isActive: true },
+          orderBy: { displayOrder: "asc" },
+        },
+        scheduleItems: { orderBy: { displayOrder: "asc" } },
+        announcements: {
+          where: { isPublished: true },
+          orderBy: { publishedAt: "desc" },
+        },
+        faqs: { orderBy: { displayOrder: "asc" } },
+        galleryItems: {
+          where: { isPublished: true },
+          orderBy: { displayOrder: "asc" },
+          take: 36,
+        },
+        partners: {
+          where: { isActive: true },
+          orderBy: { displayOrder: "asc" },
+        },
       },
-      scheduleItems: { orderBy: { displayOrder: "asc" } },
-      announcements: {
-        where: { isPublished: true },
-        orderBy: { publishedAt: "desc" },
-      },
-      faqs: { orderBy: { displayOrder: "asc" } },
-      galleryItems: {
-        where: { isPublished: true },
-        orderBy: { displayOrder: "asc" },
-        take: 36,
-      },
-      partners: {
-        where: { isActive: true },
-        orderBy: { displayOrder: "asc" },
-      },
-    },
-  });
+    }),
+    prisma.siteSetting.findMany().catch(() => []),
+  ]);
 
   if (!event || event.status === "draft") {
     notFound();
   }
+
+  const settings = Object.fromEntries(siteSettings.map((s) => [s.key, s.value]));
 
   const isCompleted = event.status === "completed" || event.status === "archived";
   const isUpcoming = event.status === "upcoming";
@@ -307,7 +315,7 @@ export default async function EventDetailPage({ params }: EventPageProps) {
 
       {/* ─── Schedule ───────────────────────────────────────────────────────── */}
       {/* Hide schedule completely on completed events if no schedule was logged, avoiding awkward "announcing soon" */}
-      {(!isCompleted || hasSchedule) && (
+      {isSectionEnabled(settings, "event_section_schedule") && (!isCompleted || hasSchedule) && (
         <section className="py-12 md:py-16 border-t border-white/[0.08]">
           <div className="container-velvt">
             <SectionHeading
@@ -550,7 +558,7 @@ export default async function EventDetailPage({ params }: EventPageProps) {
       )}
 
       {/* ─── FAQs ───────────────────────────────────────────────────────────── */}
-      {event.faqs.length > 0 && (
+      {isSectionEnabled(settings, "event_section_faqs") && event.faqs.length > 0 && (
         <section className="py-12 md:py-16 border-t border-white/[0.08]">
           <div className="container-velvt">
             <SectionHeading title="Frequently Asked Questions" subtitle="Everything you need to know about attending." />
@@ -578,7 +586,7 @@ export default async function EventDetailPage({ params }: EventPageProps) {
       )}
 
       {/* ─── Partners ───────────────────────────────────────────────────────── */}
-      {event.partners.length > 0 && (
+      {isSectionEnabled(settings, "event_section_partners") && event.partners.length > 0 && (
         <section className="py-12 md:py-16 border-t border-white/[0.08]">
           <div className="container-velvt">
             <SectionHeading title="Partners & Sponsors" />
@@ -607,7 +615,7 @@ export default async function EventDetailPage({ params }: EventPageProps) {
       )}
 
       {/* ─── Visual Archive / Gallery ────────────────────────────────────────── */}
-      {hasGallery && (
+      {isSectionEnabled(settings, "event_section_gallery") && hasGallery && (
         <section id="gallery" className="py-12 md:py-16 border-t border-white/[0.08]">
           <div className="container-velvt">
             <SectionHeading
@@ -620,34 +628,36 @@ export default async function EventDetailPage({ params }: EventPageProps) {
       )}
 
       {/* ─── Volunteer CTA ──────────────────────────────────────────────────── */}
-      <section className="py-16 md:py-24 border-t border-white/[0.08] text-center">
-        <div className="container-narrow">
-          <div className="rounded-[20px] bg-white/[0.05] border border-white/10 backdrop-blur-[14px] p-8 md:p-12 shadow-[0_0_30px_rgba(200,16,46,0.12)]">
-            <div className="w-14 h-0.5 bg-primary shadow-[0_0_14px_#c8102e] mx-auto mb-6" />
-            {isCompleted ? (
-              <>
-                <h2 className="font-display font-black text-3xl md:text-4xl text-white uppercase tracking-tight mb-4">
-                  Were You Part Of This Production?
-                </h2>
-                <p className="text-sm text-muted mb-8 max-w-md mx-auto leading-relaxed">
-                  Verify your volunteer credentials to confirm your official contribution to {event.name}.
-                </p>
-                <Button href="/verify" variant="primary" size="lg">Verify Your Volunteer ID →</Button>
-              </>
-            ) : (
-              <>
-                <h2 className="font-display font-black text-3xl md:text-4xl text-white uppercase tracking-tight mb-4">
-                  Join The Production Crew
-                </h2>
-                <p className="text-sm text-muted mb-8 max-w-md mx-auto leading-relaxed">
-                  Be part of the dedicated crew bringing {event.name} to life in Silchar.
-                </p>
-                <Button href="/volunteers/register" variant="primary" size="lg">Apply To Volunteer →</Button>
-              </>
-            )}
+      {isSectionEnabled(settings, "event_section_volunteer_cta") && (
+        <section className="py-16 md:py-24 border-t border-white/[0.08] text-center">
+          <div className="container-narrow">
+            <div className="rounded-[20px] bg-white/[0.05] border border-white/10 backdrop-blur-[14px] p-8 md:p-12 shadow-[0_0_30px_rgba(200,16,46,0.12)]">
+              <div className="w-14 h-0.5 bg-primary shadow-[0_0_14px_#c8102e] mx-auto mb-6" />
+              {isCompleted ? (
+                <>
+                  <h2 className="font-display font-black text-3xl md:text-4xl text-white uppercase tracking-tight mb-4">
+                    Were You Part Of This Production?
+                  </h2>
+                  <p className="text-sm text-muted mb-8 max-w-md mx-auto leading-relaxed">
+                    Verify your volunteer credentials to confirm your official contribution to {event.name}.
+                  </p>
+                  <Button href="/verify" variant="primary" size="lg">Verify Your Volunteer ID →</Button>
+                </>
+              ) : (
+                <>
+                  <h2 className="font-display font-black text-3xl md:text-4xl text-white uppercase tracking-tight mb-4">
+                    Join The Production Crew
+                  </h2>
+                  <p className="text-sm text-muted mb-8 max-w-md mx-auto leading-relaxed">
+                    Be part of the dedicated crew bringing {event.name} to life in Silchar.
+                  </p>
+                  <Button href="/volunteers/register" variant="primary" size="lg">Apply To Volunteer →</Button>
+                </>
+              )}
+            </div>
           </div>
-        </div>
-      </section>
+        </section>
+      )}
     </div>
   );
 }

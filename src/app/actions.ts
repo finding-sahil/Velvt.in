@@ -21,6 +21,9 @@ import { getAdminPrefix } from "@/lib/admin-path";
 import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
 import { headers } from "next/headers";
+import { unlink } from "fs/promises";
+import { existsSync } from "fs";
+import path from "path";
 
 // ─── Volunteer Registration ────────────────────────────────────────────────────
 
@@ -1690,6 +1693,108 @@ export async function updateSiteSettings(settings: Record<string, string>) {
   } catch (error: any) {
     return { success: false, error: error?.message || "Failed to update settings." };
   }
+}
+
+// ─── Admin: Media Library Deletion ─────────────────────────────────────────────
+
+export async function deleteMediaAsset(fileUrl: string) {
+  const session = await requireAdmin();
+
+  if (!fileUrl || typeof fileUrl !== "string") {
+    return { success: false, error: "Invalid file URL provided." };
+  }
+
+  const sanitized = fileUrl.trim();
+
+  // Protect system branding files
+  if (sanitized === "/logo.png" || sanitized.endsWith("/logo.png")) {
+    return { success: false, error: "System brand logo is protected and cannot be deleted." };
+  }
+
+  // Prevent path traversal attacks
+  if (sanitized.includes("..") || sanitized.includes("\0")) {
+    return { success: false, error: "Invalid path traversal sequence detected." };
+  }
+
+  let deletedFromDisk = false;
+
+  // 1. Supabase Storage deletion (if it's an external Supabase storage URL)
+  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
+  const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+
+  if (supabaseUrl && supabaseKey && sanitized.startsWith("http") && sanitized.includes("/storage/v1/object/public/uploads/")) {
+    try {
+      const filename = sanitized.split("/storage/v1/object/public/uploads/")[1];
+      if (filename) {
+        await fetch(`${supabaseUrl}/storage/v1/object/uploads/${filename}`, {
+          method: "DELETE",
+          headers: {
+            Authorization: `Bearer ${supabaseKey}`,
+            apikey: supabaseKey,
+          },
+        });
+      }
+    } catch (err) {
+      console.warn("Supabase storage delete failed:", err);
+    }
+  }
+
+  // 2. Local disk file deletion (for public/uploads, public/gallery, public/images)
+  try {
+    const publicDir = path.resolve(process.cwd(), "public");
+    const allowedDirs = [
+      path.resolve(publicDir, "uploads"),
+      path.resolve(publicDir, "gallery"),
+      path.resolve(publicDir, "images"),
+    ];
+
+    // Remove leading slash if present
+    const relativePath = sanitized.startsWith("/") ? sanitized.slice(1) : sanitized;
+    const targetFilePath = path.resolve(publicDir, relativePath);
+
+    // Verify the target path is strictly within one of the allowed directories
+    const isAllowed = allowedDirs.some(
+      (dir) => targetFilePath.startsWith(dir + path.sep) || targetFilePath === dir
+    );
+
+    if (isAllowed && existsSync(targetFilePath)) {
+      await unlink(targetFilePath);
+      deletedFromDisk = true;
+    }
+  } catch (err) {
+    console.warn("Local disk unlink error:", err);
+  }
+
+  // 3. Clean up matching GalleryItem in database if present
+  try {
+    await prisma.galleryItem.deleteMany({
+      where: {
+        OR: [
+          { url: sanitized },
+          { url: sanitized.startsWith("/") ? sanitized : `/${sanitized}` },
+        ],
+      },
+    });
+  } catch (err) {
+    console.warn("GalleryItem cleanup error:", err);
+  }
+
+  // 4. Audit logging
+  try {
+    await logAuditEvent({
+      action: "media.delete",
+      targetType: "MediaAsset",
+      targetId: sanitized,
+      actor: { id: session.userId, email: session.user.email },
+    });
+  } catch (e) {
+    console.error("Audit log error:", e);
+  }
+
+  revalidatePath("/velvt-management/media");
+  revalidatePath("/gallery");
+
+  return { success: true };
 }
 
 // ─── Admin: Event FAQs ────────────────────────────────────────────────────────

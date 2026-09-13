@@ -26,6 +26,12 @@ const inter = Inter({
   display: "swap",
 });
 
+export const viewport = {
+  width: "device-width",
+  initialScale: 1,
+  maximumScale: 5,
+};
+
 export const metadata: Metadata = {
   title: {
     default: "VELVT — It starts as a thought, ends as a memory",
@@ -61,23 +67,29 @@ export default async function RootLayout({
 }: Readonly<{
   children: React.ReactNode;
 }>) {
+  let siteSettings: Record<string, string> = {};
   let siteTheme = "legacy";
   try {
     const cookieStore = await cookies();
     const cookieTheme = cookieStore.get("velvt_theme")?.value;
+    const settingsList = await prisma.siteSetting.findMany().catch(() => []);
+    for (const s of settingsList) {
+      siteSettings[s.key] = s.value;
+    }
     if (cookieTheme) {
       siteTheme = cookieTheme;
-    } else {
-      const setting = await prisma.siteSetting.findUnique({
-        where: { key: "site_theme" },
-      });
-      if (setting?.value) {
-        siteTheme = setting.value;
-      }
+    } else if (siteSettings.site_theme) {
+      siteTheme = siteSettings.site_theme;
     }
   } catch {
     // fallback to legacy
   }
+
+  // Helper inside layout for feature toggles
+  const isEnabled = (key: string, def = true) => {
+    if (siteSettings[key] === undefined || siteSettings[key] === "") return def;
+    return siteSettings[key] === "true" || siteSettings[key] === "1";
+  };
 
   return (
     <html
@@ -111,19 +123,23 @@ export default async function RootLayout({
           }}
         />
       </head>
-      <body className="min-h-screen flex flex-col bg-black text-white relative">
+      <body className="min-h-screen flex flex-col bg-black text-white relative overflow-x-hidden">
         {/* Vercel Web Analytics */}
         <Analytics />
 
         {/* UNTOLDSURI Texture Layers: Film Grain & Scanlines */}
-        <div className="film-grain" aria-hidden="true" />
-        <div className="scanlines" aria-hidden="true" />
+        {isEnabled("feature_film_grain", true) && (
+          <>
+            <div className="film-grain" aria-hidden="true" />
+            <div className="scanlines" aria-hidden="true" />
+          </>
+        )}
 
         {/* Interactive Custom Cursor */}
-        <CustomCursor />
+        {isEnabled("feature_custom_cursor", true) && <CustomCursor />}
 
         {/* Ambient Floating Embers (Halloween Touch) */}
-        <HalloweenAtmosphere />
+        {isEnabled("feature_thematic_atmosphere", true) && <HalloweenAtmosphere />}
 
         {/* Floating Pill Glass Navigation */}
         <Navigation />
@@ -132,7 +148,7 @@ export default async function RootLayout({
         <AppShell
           footer={
             <>
-              <ScrollToTop />
+              {isEnabled("feature_scroll_to_top", true) && <ScrollToTop />}
               <Footer />
             </>
           }

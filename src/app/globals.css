@@ -37,10 +37,10 @@
   /* Grays */
   --color-g1: #111111;
   --color-g2: #1a1a1a;
-  --color-g3: rgba(255, 255, 255, 0.08);
-  --color-g4: #444444;
-  --color-g5: #888888;
-  --color-g6: #cccccc;
+  --color-g3: #d4d4d8;
+  --color-g4: #a1a1aa;
+  --color-g5: #9ca3af;
+  --color-g6: #f4f4f5;
 
   /* Typography */
   --font-display: var(--font-barlow), "Barlow Condensed", "Arial Narrow", sans-serif;
@@ -82,10 +82,10 @@
 
   --g1: #111111;
   --g2: #1a1a1a;
-  --g3: rgba(255, 255, 255, 0.08);
-  --g4: #444444;
-  --g5: #888888;
-  --g6: #cccccc;
+  --g3: #d4d4d8;
+  --g4: #a1a1aa;
+  --g5: #9ca3af;
+  --g6: #f4f4f5;
 
   --radius-card: 20px;
   --radius-pill: 999px;

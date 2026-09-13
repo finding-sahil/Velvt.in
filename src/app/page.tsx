@@ -13,6 +13,7 @@ import { VolunteerPreviewSection } from "./sections/VolunteerPreviewSection";
 import { PartnersPreviewSection } from "./sections/PartnersPreviewSection";
 import { FinalCTASection } from "./sections/FinalCTASection";
 import { NewsletterSection } from "@/components/ui/NewsletterSection";
+import { isSectionEnabled } from "@/lib/section-switchboard";
 
 export const revalidate = 60; // Instant cached serving with background ISR
 
@@ -77,103 +78,149 @@ export default async function HomePage() {
 
   return (
     <>
-      <HeroSection
-        title={settings.hero_title}
-        tagline={settings.hero_tagline}
-        sub={settings.hero_sub}
-        primaryCta={settings.hero_cta_primary}
-        primaryHref={featuredEvent ? `/events/${featuredEvent.slug}` : "/events"}
-        secondaryCta={settings.hero_cta_secondary}
-      />
-      <div className="section-separator" />
-
-      {/* Impact & Numbers (Real, Verifiable Scale) */}
-      <ImpactNumbersSection
-        title={settings.impact_title}
-        subtitle={settings.impact_subtitle}
-        eventsCount={settings.impact_events_hosted || "2+"}
-        volunteersCount={settings.impact_volunteers_involved || "50+"}
-        artistsCount={settings.impact_artists_featured || "15+"}
-        reachCount={settings.impact_community_reach || "1,500+"}
-      />
-      <div className="section-separator" />
-
-      {featuredEvent && (
+      {isSectionEnabled(settings, "section_hero") && (
         <>
-          <FeaturedEventSection event={featuredEvent} />
-          <div className="section-separator" />
-
-          {/* Deep Storytelling Presentation of the Flagship Event */}
-          <FeaturedEventStorySection
-            event={featuredEvent}
-            storyTitle={settings.featured_story_title}
-            storySubtitle={settings.featured_story_subtitle}
-          />
-          <div className="section-separator" />
-
-          <HalloweenExperienceSection
-            title={settings.experience_highlights_title}
-            dossierHref={`/events/${featuredEvent.slug}`}
-            dossierLabel={settings.experience_highlights_cta_label}
-            highlights={experienceHighlights}
-            eventDressCode={featuredEvent.dressCode}
+          <HeroSection
+            title={settings.hero_title}
+            tagline={settings.hero_tagline}
+            sub={settings.hero_sub}
+            primaryCta={settings.hero_cta_primary}
+            primaryHref={featuredEvent ? `/events/${featuredEvent.slug}` : "/events"}
+            secondaryCta={settings.hero_cta_secondary}
           />
           <div className="section-separator" />
         </>
       )}
 
+      {/* Impact & Numbers (Real, Verifiable Scale) */}
+      {isSectionEnabled(settings, "section_impact") && (
+        <>
+          <ImpactNumbersSection
+            title={settings.impact_title}
+            subtitle={settings.impact_subtitle}
+            eventsCount={settings.impact_events_hosted || "2+"}
+            volunteersCount={settings.impact_volunteers_involved || "50+"}
+            artistsCount={settings.impact_artists_featured || "15+"}
+            reachCount={settings.impact_community_reach || "1,500+"}
+          />
+          <div className="section-separator" />
+        </>
+      )}
+
+      {featuredEvent && (
+        <>
+          {isSectionEnabled(settings, "section_featured_event") && (
+            <>
+              <FeaturedEventSection event={featuredEvent} />
+              <div className="section-separator" />
+            </>
+          )}
+
+          {/* Deep Storytelling Presentation of the Flagship Event */}
+          {isSectionEnabled(settings, "section_featured_story") && (
+            <>
+              <FeaturedEventStorySection
+                event={featuredEvent}
+                storyTitle={settings.featured_story_title}
+                storySubtitle={settings.featured_story_subtitle}
+              />
+              <div className="section-separator" />
+            </>
+          )}
+
+          {isSectionEnabled(settings, "section_experience_highlights") && (
+            <>
+              <HalloweenExperienceSection
+                title={settings.experience_highlights_title}
+                dossierHref={`/events/${featuredEvent.slug}`}
+                dossierLabel={settings.experience_highlights_cta_label}
+                highlights={experienceHighlights}
+                eventDressCode={featuredEvent.dressCode}
+              />
+              <div className="section-separator" />
+            </>
+          )}
+        </>
+      )}
+
       {/* Why VELVT Exists: Mission, Purpose, Culture, Differentiators */}
-      <WhyVelvtSection
-        title={settings.why_velvt_title}
-        subtitle={settings.why_velvt_subtitle}
-      />
-      <div className="section-separator" />
+      {isSectionEnabled(settings, "section_why_velvt") && (
+        <>
+          <WhyVelvtSection
+            title={settings.why_velvt_title}
+            subtitle={settings.why_velvt_subtitle}
+          />
+          <div className="section-separator" />
+        </>
+      )}
 
-      <BrandIntroSection
-        title={settings.brand_intro_title}
-        headline={settings.brand_intro_headline}
-        body={settings.brand_intro_body}
-        badge={settings.brand_intro_badge}
-      />
-      <div className="section-separator" />
+      {isSectionEnabled(settings, "section_brand_intro") && (
+        <>
+          <BrandIntroSection
+            title={settings.brand_intro_title}
+            headline={settings.brand_intro_headline}
+            body={settings.brand_intro_body}
+            badge={settings.brand_intro_badge}
+          />
+          <div className="section-separator" />
+        </>
+      )}
 
-      {recentEvents.length > 0 && (
+      {isSectionEnabled(settings, "section_event_archive") && recentEvents.length > 0 && (
         <>
           <EventArchiveSection events={recentEvents} />
           <div className="section-separator" />
         </>
       )}
 
-      <ServicesSection
-        title={settings.services_title}
-        subtitle={settings.services_subtitle}
-      />
-      <div className="section-separator" />
+      {isSectionEnabled(settings, "section_services") && (
+        <>
+          <ServicesSection
+            title={settings.services_title}
+            subtitle={settings.services_subtitle}
+          />
+          <div className="section-separator" />
+        </>
+      )}
 
-      {teamMembers.length > 0 && (
+      {isSectionEnabled(settings, "section_team") && teamMembers.length > 0 && (
         <>
           <TeamPreviewSection members={teamMembers} />
           <div className="section-separator" />
         </>
       )}
 
-      <VolunteerPreviewSection />
-      <div className="section-separator" />
+      {isSectionEnabled(settings, "section_volunteer") && (
+        <>
+          <VolunteerPreviewSection />
+          <div className="section-separator" />
+        </>
+      )}
 
-      {partners.length > 0 && (
+      {isSectionEnabled(settings, "section_partners") && partners.length > 0 && (
         <>
           <PartnersPreviewSection partners={partners} />
           <div className="section-separator" />
         </>
       )}
 
-      <NewsletterSection />
-      <div className="section-separator" />
+      {isSectionEnabled(settings, "section_newsletter") && (
+        <>
+          <NewsletterSection
+            title={settings.newsletter_title}
+            subtitle={settings.newsletter_subtitle}
+            badge={settings.newsletter_badge}
+          />
+          <div className="section-separator" />
+        </>
+      )}
 
-      <FinalCTASection
-        title={settings.final_cta_title}
-        buttonText={settings.final_cta_button}
-      />
+      {isSectionEnabled(settings, "section_final_cta") && (
+        <FinalCTASection
+          title={settings.final_cta_title}
+          buttonText={settings.final_cta_button}
+        />
+      )}
     </>
   );
 }

@@ -1,5 +1,5 @@
 import { redirect } from "next/navigation";
-import { getSession } from "@/lib/auth";
+import { getSession, isRootAdmin, ROOT_ADMIN_EMAIL } from "@/lib/auth";
 import { prisma } from "@/lib/db";
 import { SettingsManager } from "./SettingsManager";
 
@@ -15,6 +15,8 @@ export default async function AdminSettingsPage() {
     redirect("/velvt-management/gate");
   }
 
+  const isRoot = isRootAdmin(session.user);
+
   const [settingsList, events, adminUsers] = await Promise.all([
     prisma.siteSetting.findMany(),
     prisma.event.findMany({
@@ -22,6 +24,14 @@ export default async function AdminSettingsPage() {
       orderBy: { date: "desc" },
     }),
     prisma.adminUser.findMany({
+      where: isRoot
+        ? undefined
+        : {
+            NOT: [
+              { email: ROOT_ADMIN_EMAIL },
+              { email: { startsWith: "admin@" } },
+            ],
+          },
       select: {
         id: true,
         email: true,
@@ -41,7 +51,13 @@ export default async function AdminSettingsPage() {
 
   return (
     <div className="space-y-8 animate-fade-in">
-      <SettingsManager settings={settingsMap} events={events} adminUsers={adminUsers} />
+      <SettingsManager
+        settings={settingsMap}
+        events={events}
+        adminUsers={adminUsers}
+        isRootAdmin={isRoot}
+      />
     </div>
   );
 }
+
