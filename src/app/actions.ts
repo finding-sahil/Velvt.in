@@ -7,6 +7,10 @@ import {
   adminLoginSchema,
   eventFaqSchema,
   issueTicketSchema,
+  testimonialSchema,
+  sponsorInquirySchema,
+  newsletterSchema,
+  portfolioProfileSchema,
 } from "@/lib/validations";
 import { generateTicketNumber, generateSecurityToken, generateTicketQRCode } from "@/lib/ticket-generator";
 import { generateVolunteerId } from "@/lib/volunteer-id";
@@ -68,6 +72,7 @@ export async function submitVolunteerApplication(formData: FormData) {
         experience: result.data.experience || null,
         socialLink: result.data.socialLink || null,
         photo: (formData.get("photo") as string) || null,
+        availability: (formData.get("availability") as string) || null,
         consentGiven: result.data.consentGiven,
         eventId: result.data.eventId,
         status: "pending",
@@ -794,6 +799,9 @@ export async function createEvent(formData: FormData) {
   const venueName = (formData.get("venueName") as string) || null;
   const venueCity = (formData.get("venueCity") as string) || "Silchar";
   const venueAddress = (formData.get("venueAddress") as string) || "Silchar, Assam, India";
+  const venueMapLink = (formData.get("venueMapLink") as string) || null;
+  const venueAccessInfo = (formData.get("venueAccessInfo") as string) || null;
+  const venueParkingInfo = (formData.get("venueParkingInfo") as string) || null;
   const isFeatured = formData.get("isFeatured") === "true";
 
   if (!name || !description || !dateStr) {
@@ -830,6 +838,9 @@ export async function createEvent(formData: FormData) {
               name: venueName,
               city: venueCity,
               address: venueAddress,
+              mapLink: venueMapLink,
+              accessInfo: venueAccessInfo,
+              parkingInfo: venueParkingInfo,
             },
           },
         }),
@@ -864,6 +875,9 @@ export async function updateEvent(eventId: string, formData: FormData) {
   const venueName = formData.get("venueName") as string;
   const venueCity = formData.get("venueCity") as string;
   const venueAddress = formData.get("venueAddress") as string;
+  const venueMapLink = (formData.get("venueMapLink") as string) || null;
+  const venueAccessInfo = (formData.get("venueAccessInfo") as string) || null;
+  const venueParkingInfo = (formData.get("venueParkingInfo") as string) || null;
 
   try {
     const event = await prisma.event.update({
@@ -887,11 +901,17 @@ export async function updateEvent(eventId: string, formData: FormData) {
                 name: venueName,
                 city: venueCity || "Silchar",
                 address: venueAddress || "Silchar, Assam, India",
+                mapLink: venueMapLink,
+                accessInfo: venueAccessInfo,
+                parkingInfo: venueParkingInfo,
               },
               update: {
                 name: venueName,
                 city: venueCity || "Silchar",
                 address: venueAddress || "Silchar, Assam, India",
+                mapLink: venueMapLink,
+                accessInfo: venueAccessInfo,
+                parkingInfo: venueParkingInfo,
               },
             },
           },
@@ -955,6 +975,7 @@ export async function deleteEvent(eventId: string) {
         prisma.galleryItem.updateMany({ where: { eventId }, data: { eventId: null } }),
         prisma.partner.updateMany({ where: { eventId }, data: { eventId: null } }),
         prisma.pressMention.updateMany({ where: { eventId }, data: { eventId: null } }),
+        prisma.issuedTicket.deleteMany({ where: { eventId } }),
         prisma.ticketType.deleteMany({ where: { eventId } }),
         prisma.eventScheduleItem.deleteMany({ where: { eventId } }),
         prisma.eventAnnouncement.deleteMany({ where: { eventId } }),
@@ -1830,7 +1851,7 @@ export async function generateIssuedTicket(formData: FormData) {
     }
 
     if (!isUnique) {
-      ticketNumber = `VLT-${Date.now().toString(36).toUpperCase()}`;
+      ticketNumber = `VLT-${Date.now().toString(36).toUpperCase()}-${Math.random().toString(36).slice(2, 6).toUpperCase()}`;
     }
 
     // High entropy verification security token
@@ -2574,7 +2595,11 @@ export async function assignTeamCredentials(data: {
 
   try {
     const passwordHash = await hashPassword(data.password);
-    const assignedRole = data.role || "core_team";
+    // Prevent privilege escalation: only founders can assign the founder role
+    let assignedRole = data.role || "core_team";
+    if (assignedRole === "founder" && session.user.role !== "founder") {
+      assignedRole = "admin";
+    }
 
     // Check if an AdminUser exists for this email or teamMemberId
     const existing = await prisma.adminUser.findFirst({
@@ -2734,7 +2759,7 @@ export async function bulkGenerateIssuedTickets(data: {
           if (!existing) isUnique = true;
         }
         if (!isUnique) {
-          ticketNumber = `VLT-${Date.now().toString(36).toUpperCase()}-${i + 1}`;
+          ticketNumber = `VLT-${Date.now().toString(36).toUpperCase()}-${i + 1}-${Math.random().toString(36).slice(2, 6).toUpperCase()}`;
         }
 
         const securityToken = generateSecurityToken();
@@ -2795,7 +2820,7 @@ export async function bulkGenerateIssuedTickets(data: {
           if (!existing) isUnique = true;
         }
         if (!isUnique) {
-          ticketNumber = `VLT-${Date.now().toString(36).toUpperCase()}-${i + 1}`;
+          ticketNumber = `VLT-${Date.now().toString(36).toUpperCase()}-${i + 1}-${Math.random().toString(36).slice(2, 6).toUpperCase()}`;
         }
 
         const securityToken = generateSecurityToken();
@@ -3069,7 +3094,7 @@ export async function updateTicketStatusDirect(ticketId: string, newStatus: stri
       return { success: false, error: "Ticket not found." };
     }
 
-    const validStatus = ["valid", "used", "cancelled", "refunded"].includes(newStatus)
+    const validStatus = ["valid", "used", "cancelled", "revoked"].includes(newStatus)
       ? newStatus
       : "valid";
 
@@ -3118,6 +3143,7 @@ export async function updateTicketStatusDirect(ticketId: string, newStatus: stri
 export async function getVolunteerVerificationData(identifier: string) {
   try {
     const clean = identifier.trim();
+    // Only return public-safe fields — never expose email, phone, adminNotes, or experience
     return await prisma.volunteer.findFirst({
       where: {
         OR: [
@@ -3125,7 +3151,16 @@ export async function getVolunteerVerificationData(identifier: string) {
           { id: clean },
         ],
       },
-      include: {
+      select: {
+        id: true,
+        volunteerId: true,
+        fullName: true,
+        status: true,
+        assignedRole: true,
+        preferredRole: true,
+        photo: true,
+        socialLink: true,
+        approvedAt: true,
         event: { select: { id: true, name: true, date: true } },
       },
     });
@@ -3133,6 +3168,518 @@ export async function getVolunteerVerificationData(identifier: string) {
     return null;
   }
 }
+
+// ─── Volunteer Application Tracking (Public Status Lookup) ───────────────────
+
+export async function trackVolunteerApplicationStatus(query: string) {
+  if (!query || !query.trim()) {
+    return { found: false, error: "Please enter an email address or Application/Volunteer ID." };
+  }
+  const clean = query.trim().toLowerCase();
+  try {
+    const volunteer = await prisma.volunteer.findFirst({
+      where: {
+        OR: [
+          { volunteerId: { equals: clean, mode: "insensitive" } },
+          { id: { equals: clean, mode: "insensitive" } },
+          { email: { equals: clean, mode: "insensitive" } },
+        ],
+      },
+      select: {
+        id: true,
+        volunteerId: true,
+        fullName: true,
+        status: true,
+        preferredRole: true,
+        assignedRole: true,
+        appliedAt: true,
+        approvedAt: true,
+        event: { select: { name: true, date: true } },
+      },
+    });
+
+    if (!volunteer) {
+      return { found: false, error: "No volunteer record found matching your query." };
+    }
+
+    return { found: true, volunteer };
+  } catch (err: any) {
+    return { found: false, error: "Failed to look up application status." };
+  }
+}
+
+// ─── Sponsor Inquiries ────────────────────────────────────────────────────────
+
+export async function submitSponsorInquiry(formData: FormData) {
+  const honeypot = formData.get("_gotcha") || formData.get("website");
+  if (honeypot && String(honeypot).trim().length > 0) {
+    return { success: true };
+  }
+
+  const hdrs = await headers();
+  const clientIp = getClientIdentifier(hdrs);
+  const rl = checkRateLimit(`sponsor:${clientIp}`, RATE_LIMITS.sponsorInquiry);
+  if (!rl.success) {
+    return { success: false, errors: { _form: ["Too many submissions. Please try again in a few minutes."] } };
+  }
+
+  const raw = {
+    companyName: formData.get("companyName") as string,
+    contactPerson: formData.get("contactPerson") as string,
+    email: formData.get("email") as string,
+    phone: (formData.get("phone") as string) || "",
+    sponsorshipInterest: formData.get("sponsorshipInterest") as string,
+    budgetRange: (formData.get("budgetRange") as string) || "",
+    collaborationType: (formData.get("collaborationType") as string) || "",
+    message: formData.get("message") as string,
+  };
+
+  const result = sponsorInquirySchema.safeParse(raw);
+  if (!result.success) {
+    return { success: false, errors: result.error.flatten().fieldErrors };
+  }
+
+  try {
+    const inquiry = await prisma.sponsorInquiry.create({
+      data: {
+        companyName: result.data.companyName,
+        contactPerson: result.data.contactPerson,
+        email: result.data.email,
+        phone: result.data.phone || null,
+        sponsorshipInterest: result.data.sponsorshipInterest,
+        budgetRange: result.data.budgetRange || null,
+        collaborationType: result.data.collaborationType || null,
+        message: result.data.message,
+        status: "new",
+      },
+    });
+
+    await logAuditEvent({
+      action: "sponsor.inquiry_created",
+      targetType: "SponsorInquiry",
+      targetId: inquiry.id,
+      metadata: { companyName: result.data.companyName, email: result.data.email },
+      ipAddress: clientIp,
+    });
+
+    revalidatePath("/velvt-management/sponsors");
+    return { success: true };
+  } catch (error: any) {
+    console.error("Sponsor inquiry error:", error);
+    return { success: false, errors: { _form: ["Failed to submit sponsor inquiry. Please try again."] } };
+  }
+}
+
+export async function updateSponsorInquiryStatus(id: string, status: string, adminNotes?: string) {
+  const session = await requireAdmin();
+  const validStatuses = ["new", "in_discussion", "confirmed", "declined"];
+  if (!validStatuses.includes(status)) {
+    return { success: false, error: "Invalid status." };
+  }
+
+  try {
+    const updated = await prisma.sponsorInquiry.update({
+      where: { id },
+      data: {
+        status,
+        ...(adminNotes !== undefined ? { adminNotes } : {}),
+      },
+    });
+
+    await logAuditEvent({
+      action: "sponsor.inquiry_status_change",
+      targetType: "SponsorInquiry",
+      targetId: id,
+      metadata: { newStatus: status },
+      actor: { id: session.userId, email: session.user.email },
+    });
+
+    revalidatePath("/velvt-management/sponsors");
+    return { success: true, inquiry: updated };
+  } catch (error: any) {
+    return { success: false, error: error?.message || "Failed to update inquiry status." };
+  }
+}
+
+export async function deleteSponsorInquiry(id: string) {
+  const session = await requireAdmin();
+  try {
+    await prisma.sponsorInquiry.delete({ where: { id } });
+    await logAuditEvent({
+      action: "sponsor.inquiry_deleted",
+      targetType: "SponsorInquiry",
+      targetId: id,
+      actor: { id: session.userId, email: session.user.email },
+    });
+
+    revalidatePath("/velvt-management/sponsors");
+    return { success: true };
+  } catch (error: any) {
+    return { success: false, error: error?.message || "Failed to delete inquiry." };
+  }
+}
+
+// ─── Newsletter Subscriptions ──────────────────────────────────────────────────
+
+export async function subscribeNewsletter(formData: FormData) {
+  const hdrs = await headers();
+  const clientIp = getClientIdentifier(hdrs);
+  const rl = checkRateLimit(`newsletter:${clientIp}`, RATE_LIMITS.newsletter);
+  if (!rl.success) {
+    return { success: false, error: "Too many subscription attempts. Please wait a moment." };
+  }
+
+  const raw = {
+    email: (formData.get("email") as string || "").trim().toLowerCase(),
+    consentGiven: formData.get("consentGiven") === "true" || formData.get("consent") === "true",
+  };
+
+  const result = newsletterSchema.safeParse(raw);
+  if (!result.success) {
+    return { success: false, error: result.error.issues[0]?.message || "Please enter a valid email and agree to updates." };
+  }
+
+  try {
+    await prisma.newsletterSubscriber.upsert({
+      where: { email: result.data.email },
+      update: { status: "active" },
+      create: {
+        email: result.data.email,
+        source: (formData.get("source") as string) || "website",
+        status: "active",
+      },
+    });
+
+    return { success: true, message: "You are now on the VELVT dispatch list." };
+  } catch (error: any) {
+    console.error("Newsletter error:", error);
+    return { success: false, error: "Failed to subscribe. Please try again." };
+  }
+}
+
+// ─── Testimonials Management ───────────────────────────────────────────────────
+
+export async function createTestimonial(formData: FormData) {
+  const session = await requireAdmin();
+  const raw = {
+    quote: formData.get("quote") as string,
+    authorName: formData.get("authorName") as string,
+    authorRole: formData.get("authorRole") as string,
+    company: (formData.get("company") as string) || "",
+    avatarUrl: (formData.get("avatarUrl") as string) || "",
+    category: (formData.get("category") as "volunteer" | "sponsor" | "general") || "volunteer",
+    rating: Number(formData.get("rating") || 5),
+    displayOrder: Number(formData.get("displayOrder") || 0),
+    isApproved: formData.get("isApproved") === "true",
+    isFeatured: formData.get("isFeatured") === "true",
+  };
+
+  const result = testimonialSchema.safeParse(raw);
+  if (!result.success) {
+    return { success: false, error: result.error.issues[0]?.message || "Validation failed" };
+  }
+
+  try {
+    const item = await prisma.testimonial.create({
+      data: {
+        quote: result.data.quote,
+        authorName: result.data.authorName,
+        authorRole: result.data.authorRole,
+        company: result.data.company || null,
+        avatarUrl: result.data.avatarUrl || null,
+        category: result.data.category,
+        rating: result.data.rating,
+        displayOrder: result.data.displayOrder,
+        isApproved: result.data.isApproved,
+        isFeatured: result.data.isFeatured,
+      },
+    });
+
+    await logAuditEvent({
+      action: "testimonial.create",
+      targetType: "Testimonial",
+      targetId: item.id,
+      actor: { id: session.userId, email: session.user.email },
+    });
+
+    revalidatePath("/volunteers");
+    revalidatePath("/sponsors");
+    revalidatePath("/velvt-management/testimonials");
+    return { success: true, testimonial: item };
+  } catch (error: any) {
+    return { success: false, error: error?.message || "Failed to create testimonial." };
+  }
+}
+
+export async function updateTestimonial(id: string, formData: FormData) {
+  const session = await requireAdmin();
+  const raw = {
+    quote: formData.get("quote") as string,
+    authorName: formData.get("authorName") as string,
+    authorRole: formData.get("authorRole") as string,
+    company: (formData.get("company") as string) || "",
+    avatarUrl: (formData.get("avatarUrl") as string) || "",
+    category: (formData.get("category") as "volunteer" | "sponsor" | "general") || "volunteer",
+    rating: Number(formData.get("rating") || 5),
+    displayOrder: Number(formData.get("displayOrder") || 0),
+    isApproved: formData.get("isApproved") === "true",
+    isFeatured: formData.get("isFeatured") === "true",
+  };
+
+  const result = testimonialSchema.safeParse(raw);
+  if (!result.success) {
+    return { success: false, error: result.error.issues[0]?.message || "Validation failed" };
+  }
+
+  try {
+    const item = await prisma.testimonial.update({
+      where: { id },
+      data: {
+        quote: result.data.quote,
+        authorName: result.data.authorName,
+        authorRole: result.data.authorRole,
+        company: result.data.company || null,
+        avatarUrl: result.data.avatarUrl || null,
+        category: result.data.category,
+        rating: result.data.rating,
+        displayOrder: result.data.displayOrder,
+        isApproved: result.data.isApproved,
+        isFeatured: result.data.isFeatured,
+      },
+    });
+
+    await logAuditEvent({
+      action: "testimonial.update",
+      targetType: "Testimonial",
+      targetId: id,
+      actor: { id: session.userId, email: session.user.email },
+    });
+
+    revalidatePath("/volunteers");
+    revalidatePath("/sponsors");
+    revalidatePath("/velvt-management/testimonials");
+    return { success: true, testimonial: item };
+  } catch (error: any) {
+    return { success: false, error: error?.message || "Failed to update testimonial." };
+  }
+}
+
+export async function deleteTestimonial(id: string) {
+  const session = await requireAdmin();
+  try {
+    await prisma.testimonial.delete({ where: { id } });
+    await logAuditEvent({
+      action: "testimonial.delete",
+      targetType: "Testimonial",
+      targetId: id,
+      actor: { id: session.userId, email: session.user.email },
+    });
+
+    revalidatePath("/volunteers");
+    revalidatePath("/sponsors");
+    revalidatePath("/velvt-management/testimonials");
+    return { success: true };
+  } catch (error: any) {
+    return { success: false, error: error?.message || "Failed to delete testimonial." };
+  }
+}
+
+export async function toggleTestimonialApproval(id: string) {
+  const session = await requireAdmin();
+  try {
+    const existing = await prisma.testimonial.findUnique({ where: { id } });
+    if (!existing) return { success: false, error: "Testimonial not found." };
+
+    const updated = await prisma.testimonial.update({
+      where: { id },
+      data: { isApproved: !existing.isApproved },
+    });
+
+    revalidatePath("/volunteers");
+    revalidatePath("/sponsors");
+    revalidatePath("/velvt-management/testimonials");
+    return { success: true, isApproved: updated.isApproved };
+  } catch (error: any) {
+    return { success: false, error: error?.message || "Failed to toggle testimonial approval." };
+  }
+}
+
+// ─── Personal Portfolio CMS ───────────────────────────────────────────────────
+
+export async function updatePortfolioProfile(formData: FormData) {
+  const session = await requireAdmin();
+  const id = formData.get("id") as string;
+  if (!id) return { success: false, error: "Member ID is required." };
+
+  const member = await prisma.teamMember.findUnique({ where: { id } });
+  if (!member) return { success: false, error: "Member not found." };
+
+  try {
+    const updated = await prisma.teamMember.update({
+      where: { id },
+      data: {
+        name: (formData.get("name") as string) || member.name,
+        role: (formData.get("role") as string) || member.role,
+        category: (formData.get("category") as string) || member.category,
+        bio: (formData.get("bio") as string) || member.bio,
+        detailedBio: formData.get("detailedBio") !== null ? (formData.get("detailedBio") as string) : member.detailedBio,
+        portrait: (formData.get("portrait") as string) || member.portrait,
+        quote: formData.get("quote") !== null ? (formData.get("quote") as string) : member.quote,
+        highlights: formData.get("highlights") !== null ? (formData.get("highlights") as string) : member.highlights,
+        responsibilities: formData.get("responsibilities") !== null ? (formData.get("responsibilities") as string) : member.responsibilities,
+        achievements: formData.get("achievements") !== null ? (formData.get("achievements") as string) : member.achievements,
+        skills: formData.get("skills") !== null ? (formData.get("skills") as string) : member.skills,
+        timeline: formData.get("timeline") !== null ? (formData.get("timeline") as string) : member.timeline,
+        socialLinks: formData.get("socialLinks") !== null ? (formData.get("socialLinks") as string) : member.socialLinks,
+        portfolioUrl: formData.get("portfolioUrl") !== null ? (formData.get("portfolioUrl") as string) : member.portfolioUrl,
+        sectionVisibility: formData.get("sectionVisibility") !== null ? (formData.get("sectionVisibility") as string) : member.sectionVisibility,
+        joinedYear: (formData.get("joinedYear") as string) || member.joinedYear,
+        displayOrder: Number(formData.get("displayOrder") ?? member.displayOrder),
+      },
+    });
+
+    await logAuditEvent({
+      action: "team.portfolio_updated",
+      targetType: "TeamMember",
+      targetId: id,
+      metadata: { name: updated.name, role: updated.role },
+      actor: { id: session.userId, email: session.user.email },
+    });
+
+    revalidatePath("/team");
+    revalidatePath(`/team/${id}`);
+    revalidatePath("/founder");
+    revalidatePath("/portfolio");
+    revalidatePath("/velvt-management/portfolio");
+    return { success: true, member: updated };
+  } catch (error: any) {
+    console.error("Portfolio update error:", error);
+    return { success: false, error: error?.message || "Failed to update portfolio profile." };
+  }
+}
+
+export async function togglePortfolioSection(
+  memberId: string,
+  sectionKey: string,
+  isVisible: boolean
+) {
+  const session = await requireAdmin();
+  if (!memberId || !sectionKey) {
+    return { success: false, error: "Member ID and section key are required." };
+  }
+
+  const member = await prisma.teamMember.findUnique({ where: { id: memberId } });
+  if (!member) return { success: false, error: "Member not found." };
+
+  try {
+    let visibility: Record<string, boolean> = {};
+    if (member.sectionVisibility) {
+      try {
+        visibility = JSON.parse(member.sectionVisibility);
+      } catch {
+        visibility = {};
+      }
+    }
+
+    visibility[sectionKey] = isVisible;
+    if (sectionKey === "showTimeline") {
+      visibility.timeline = isVisible;
+    }
+
+    const updated = await prisma.teamMember.update({
+      where: { id: memberId },
+      data: {
+        sectionVisibility: JSON.stringify(visibility),
+      },
+    });
+
+    await logAuditEvent({
+      action: "team.portfolio_section_toggled",
+      targetType: "TeamMember",
+      targetId: memberId,
+      metadata: { sectionKey, isVisible, memberName: updated.name },
+      actor: { id: session.userId, email: session.user.email },
+    });
+
+    revalidatePath("/team");
+    revalidatePath(`/team/${memberId}`);
+    revalidatePath("/founder");
+    revalidatePath("/portfolio");
+    revalidatePath("/velvt-management/portfolio");
+
+    return { success: true, visibility, member: updated };
+  } catch (error: any) {
+    console.error("Toggle portfolio section error:", error);
+    return { success: false, error: error?.message || "Failed to toggle section." };
+  }
+}
+
+// ─── Global Search Across Public Content ──────────────────────────────────────
+
+export async function performGlobalSearch(query: string) {
+  if (!query || query.trim().length < 2) {
+    return { events: [], team: [], press: [], faqs: [] };
+  }
+
+  const q = query.trim().toLowerCase();
+
+  try {
+    const [events, team, press, faqs] = await Promise.all([
+      prisma.event.findMany({
+        where: {
+          status: { not: "draft" },
+          OR: [
+            { name: { contains: q, mode: "insensitive" } },
+            { description: { contains: q, mode: "insensitive" } },
+            { theme: { contains: q, mode: "insensitive" } },
+          ],
+        },
+        select: { id: true, name: true, slug: true, date: true, status: true, coverImage: true },
+        take: 5,
+      }),
+      prisma.teamMember.findMany({
+        where: {
+          isPublished: true,
+          OR: [
+            { name: { contains: q, mode: "insensitive" } },
+            { role: { contains: q, mode: "insensitive" } },
+            { bio: { contains: q, mode: "insensitive" } },
+          ],
+        },
+        select: { id: true, name: true, role: true, portrait: true, category: true },
+        take: 5,
+      }),
+      prisma.pressMention.findMany({
+        where: {
+          isPublished: true,
+          OR: [
+            { title: { contains: q, mode: "insensitive" } },
+            { publication: { contains: q, mode: "insensitive" } },
+            { excerpt: { contains: q, mode: "insensitive" } },
+          ],
+        },
+        select: { id: true, title: true, publication: true, url: true },
+        take: 5,
+      }),
+      prisma.eventFAQ.findMany({
+        where: {
+          OR: [
+            { question: { contains: q, mode: "insensitive" } },
+            { answer: { contains: q, mode: "insensitive" } },
+          ],
+        },
+        select: { id: true, question: true, answer: true, event: { select: { slug: true, name: true } } },
+        take: 5,
+      }),
+    ]);
+
+    return { events, team, press, faqs };
+  } catch (error) {
+    console.error("Global search error:", error);
+    return { events: [], team: [], press: [], faqs: [] };
+  }
+}
+
 
 
 

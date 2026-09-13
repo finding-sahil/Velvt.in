@@ -1,5 +1,6 @@
 import { SectionHeading } from "@/components/ui/SectionHeading";
 import { Button } from "@/components/ui/Button";
+import Link from "next/link";
 import type { TeamMember } from "@prisma/client";
 
 interface TeamPreviewSectionProps {
@@ -168,9 +169,13 @@ export function TeamPreviewSection({ members }: TeamPreviewSectionProps) {
                       )}
                     </div>
 
-                    <span className="text-[9px] font-mono tracking-widest text-white/30 uppercase">
-                      VELVT
-                    </span>
+                    <Link
+                      href={`/team/${member.id}`}
+                      className="h-7 px-3 rounded-full bg-red/15 hover:bg-red text-red hover:text-white border border-red/40 hover:border-red flex items-center gap-1.5 text-[10px] font-mono tracking-wider font-semibold uppercase transition-all duration-200 shadow-[0_0_10px_var(--red-glow)]"
+                    >
+                      <span>Profile</span>
+                      <span>&rarr;</span>
+                    </Link>
                   </div>
                 </div>
               </div>

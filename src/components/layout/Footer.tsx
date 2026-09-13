@@ -7,11 +7,13 @@ const footerLinks = {
     { href: "/tickets", label: "Tickets" },
     { href: "/gallery", label: "Archive" },
     { href: "/volunteers", label: "Volunteers" },
+    { href: "/volunteers/status", label: "Track Application" },
   ],
   organization: [
-    { href: "/about", label: "About" },
+    { href: "/founder", label: "Founder's Story" },
     { href: "/team", label: "Core Team" },
-    { href: "/press", label: "Press & Sponsors" },
+    { href: "/sponsors", label: "Sponsorship Deck" },
+    { href: "/press", label: "Press & Partners" },
     { href: "/contact", label: "Contact" },
   ],
   resources: [

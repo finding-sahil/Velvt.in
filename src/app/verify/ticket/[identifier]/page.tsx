@@ -30,7 +30,7 @@ export default async function VerifyTicketPage({ params }: PageProps) {
   ]);
 
   const isAuthorizedStaff = Boolean(
-    session && (session.user.role === "admin" || session.user.role === "gateman")
+    session && (session.user.role === "admin" || session.user.role === "gateman" || session.user.role === "founder")
   );
 
   return (

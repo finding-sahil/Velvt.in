@@ -1,4 +1,6 @@
 import type { Metadata } from "next";
+import Script from "next/script";
+import { Analytics } from "@vercel/analytics/react";
 import { Barlow_Condensed, Inter } from "next/font/google";
 import { Navigation } from "@/components/layout/Navigation";
 import { Footer } from "@/components/layout/Footer";
@@ -85,13 +87,34 @@ export default async function RootLayout({
       className={`${barlowCondensed.variable} ${inter.variable}`}
     >
       <head>
+        {/* Theme Initializer */}
         <script
           dangerouslySetInnerHTML={{
             __html: `(function(){try{var m=document.cookie.match(/velvt_theme=([^;]+)/);var s=(m&&m[1])||localStorage.getItem('velvt_theme');if(s){document.documentElement.setAttribute('data-theme',s);}}catch(e){}})();`,
           }}
         />
+        {/* Google Analytics (gtag.js) */}
+        <Script
+          strategy="afterInteractive"
+          src="https://www.googletagmanager.com/gtag/js?id=G-BMVXLZPMEQ"
+        />
+        <Script
+          id="google-analytics"
+          strategy="afterInteractive"
+          dangerouslySetInnerHTML={{
+            __html: `
+              window.dataLayer = window.dataLayer || [];
+              function gtag(){dataLayer.push(arguments);}
+              gtag('js', new Date());
+              gtag('config', 'G-BMVXLZPMEQ');
+            `,
+          }}
+        />
       </head>
       <body className="min-h-screen flex flex-col bg-black text-white relative">
+        {/* Vercel Web Analytics */}
+        <Analytics />
+
         {/* UNTOLDSURI Texture Layers: Film Grain & Scanlines */}
         <div className="film-grain" aria-hidden="true" />
         <div className="scanlines" aria-hidden="true" />

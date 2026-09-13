@@ -35,6 +35,7 @@ export default async function AdminEventsPage() {
           scheduleItems: true,
           announcements: true,
           faqs: true,
+          galleryItems: true,
         },
       },
     },

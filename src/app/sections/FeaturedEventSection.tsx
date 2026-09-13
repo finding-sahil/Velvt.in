@@ -2,6 +2,7 @@ import { Button } from "@/components/ui/Button";
 import { Countdown } from "@/components/ui/Countdown";
 import { StatusBadge } from "@/components/ui/StatusBadge";
 import { formatDate, eventStatusLabels } from "@/lib/utils";
+import { AddToCalendar } from "@/components/ui/AddToCalendar";
 import type { Event, Venue, TicketType } from "@prisma/client";
 
 interface FeaturedEventSectionProps {
@@ -128,14 +129,33 @@ export function FeaturedEventSection({ event }: FeaturedEventSectionProps) {
               {/* Action Buttons */}
               <div className="flex flex-wrap items-center gap-3 pt-1">
                 <Button href={`/events/${event.slug}`} variant="primary" size="md">
-                  Event Details &rarr;
+                  {isUpcoming ? "Event Details →" : "Explore Archive →"}
                 </Button>
-                <Button href="/tickets" variant="secondary" size="md">
-                  Secure Passes
-                </Button>
-                <Button href="/volunteers/register" variant="outline" size="md">
-                  Join The Crew
-                </Button>
+                {isUpcoming ? (
+                  <>
+                    <Button href="/tickets" variant="secondary" size="md">
+                      Secure Passes
+                    </Button>
+                    <Button href="/volunteers/register" variant="outline" size="md">
+                      Join The Crew
+                    </Button>
+                    <AddToCalendar
+                      title={event.name}
+                      description={event.description}
+                      location={event.venue?.city ? `${event.venue.name || "Main Stage"}, ${event.venue.city}` : "Silchar, Assam"}
+                      startDate={event.date}
+                    />
+                  </>
+                ) : (
+                  <>
+                    <Button href={`/events/${event.slug}#gallery`} variant="secondary" size="md">
+                      Visual Archive
+                    </Button>
+                    <Button href="/verify" variant="outline" size="md">
+                      Verify Volunteer ID
+                    </Button>
+                  </>
+                )}
               </div>
             </div>
           </div>

@@ -193,4 +193,72 @@ export const checkInTicketSchema = z.object({
 
 export type CheckInTicketInput = z.infer<typeof checkInTicketSchema>;
 
+// ─── Testimonials ─────────────────────────────────────────────────────────────
+
+export const testimonialSchema = z.object({
+  quote: z.string().min(5, "Testimonial quote must be at least 5 characters"),
+  authorName: z.string().min(2, "Author name is required"),
+  authorRole: z.string().min(2, "Author role/title is required"),
+  company: z.string().optional().or(z.literal("")),
+  avatarUrl: z.string().optional().or(z.literal("")),
+  category: z.enum(["volunteer", "sponsor", "general"]).default("volunteer"),
+  rating: z.number().min(1).max(5).default(5),
+  displayOrder: z.number().default(0),
+  isApproved: z.boolean().default(true),
+  isFeatured: z.boolean().default(false),
+});
+
+export type TestimonialInput = z.infer<typeof testimonialSchema>;
+
+// ─── Sponsor Inquiry ──────────────────────────────────────────────────────────
+
+export const sponsorInquirySchema = z.object({
+  companyName: z.string().min(2, "Company or brand name is required"),
+  contactPerson: z.string().min(2, "Contact person name is required"),
+  email: z.string().email("Valid business email is required"),
+  phone: z.string().optional().or(z.literal("")),
+  sponsorshipInterest: z.string().min(1, "Please select an area of interest"),
+  budgetRange: z.string().optional().or(z.literal("")),
+  collaborationType: z.string().optional().or(z.literal("")),
+  message: z.string().min(10, "Message must be at least 10 characters"),
+});
+
+export type SponsorInquiryInput = z.infer<typeof sponsorInquirySchema>;
+
+// ─── Newsletter Subscription ───────────────────────────────────────────────────
+
+export const newsletterSchema = z.object({
+  email: z.string().email("Please enter a valid email address"),
+  consentGiven: z.literal(true, {
+    message: "You must consent to receive VELVT communications",
+  }),
+});
+
+export type NewsletterInput = z.infer<typeof newsletterSchema>;
+
+// ─── Personal Portfolio ───────────────────────────────────────────────────────
+
+export const portfolioProfileSchema = z.object({
+  id: z.string().min(1),
+  name: z.string().min(2, "Name is required"),
+  role: z.string().min(2, "Role/Designation is required"),
+  category: z.string().default("Core Team"),
+  bio: z.string().optional().or(z.literal("")),
+  detailedBio: z.string().optional().or(z.literal("")),
+  portrait: z.string().optional().or(z.literal("")),
+  quote: z.string().optional().or(z.literal("")),
+  highlights: z.string().optional().or(z.literal("")),
+  responsibilities: z.string().optional().or(z.literal("")),
+  achievements: z.string().optional().or(z.literal("")),
+  skills: z.string().optional().or(z.literal("")),
+  timeline: z.string().optional().or(z.literal("")),
+  socialLinks: z.string().optional().or(z.literal("")),
+  portfolioUrl: z.string().optional().or(z.literal("")),
+  sectionVisibility: z.string().optional().or(z.literal("")),
+  joinedYear: z.string().optional().or(z.literal("")),
+  displayOrder: z.number().default(0),
+});
+
+export type PortfolioProfileInput = z.infer<typeof portfolioProfileSchema>;
+
 

@@ -98,6 +98,10 @@ export const RATE_LIMITS = {
   upload: { maxRequests: 10, windowSeconds: 300 },
   /** Public API: 60 per minute */
   publicApi: { maxRequests: 60, windowSeconds: 60 },
+  /** Sponsor inquiry: 5 per 15 minutes */
+  sponsorInquiry: { maxRequests: 5, windowSeconds: 900 },
+  /** Newsletter subscription: 5 per 10 minutes */
+  newsletter: { maxRequests: 5, windowSeconds: 600 },
 } as const;
 
 /**

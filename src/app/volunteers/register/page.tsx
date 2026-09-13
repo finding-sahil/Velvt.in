@@ -206,6 +206,25 @@ export default function VolunteerRegisterPage() {
               )}
             </div>
 
+            {/* Availability */}
+            <div>
+              <label className="block text-xs font-mono font-medium uppercase tracking-[0.15em] text-muted mb-2">
+                Availability &amp; Commitment Window <span className="text-primary">*</span>
+              </label>
+              <select
+                name="availability"
+                required
+                defaultValue="Full Event (Setup + Night + Wrap)"
+                className="w-full px-5 py-3.5 bg-black/80 border border-white/10 rounded-xl text-white text-sm focus:outline-none focus:border-primary focus:shadow-[0_0_14px_rgba(200,16,46,0.35)] transition-all"
+              >
+                <option value="Full Event (Setup + Night + Wrap)">Full Event (Setup + Night Execution + Wrap-up)</option>
+                <option value="Event Night Operations Only">Event Night Operations Only (Entry, Scanning &amp; Stage Flow)</option>
+                <option value="Pre-Event Setup & Buildout">Pre-Event Setup &amp; Creative Buildout</option>
+                <option value="Post-Event Wrap-up & Logistics">Post-Event Wrap-up &amp; Logistics</option>
+                <option value="Media & Creative Coverage">Media &amp; Creative Coverage (Reels, Photo, Film)</option>
+              </select>
+            </div>
+
             {/* Experience */}
             <div>
               <label className="block text-xs font-mono font-medium uppercase tracking-[0.15em] text-muted mb-2">

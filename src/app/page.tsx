@@ -1,6 +1,9 @@
 import { prisma } from "@/lib/db";
 import { HeroSection } from "./sections/HeroSection";
 import { FeaturedEventSection } from "./sections/FeaturedEventSection";
+import { FeaturedEventStorySection } from "./sections/FeaturedEventStorySection";
+import { ImpactNumbersSection } from "./sections/ImpactNumbersSection";
+import { WhyVelvtSection } from "./sections/WhyVelvtSection";
 import { HalloweenExperienceSection } from "./sections/HalloweenExperienceSection";
 import { BrandIntroSection } from "./sections/BrandIntroSection";
 import { EventArchiveSection } from "./sections/EventArchiveSection";
@@ -9,6 +12,7 @@ import { TeamPreviewSection } from "./sections/TeamPreviewSection";
 import { VolunteerPreviewSection } from "./sections/VolunteerPreviewSection";
 import { PartnersPreviewSection } from "./sections/PartnersPreviewSection";
 import { FinalCTASection } from "./sections/FinalCTASection";
+import { NewsletterSection } from "@/components/ui/NewsletterSection";
 
 export const revalidate = 60; // Instant cached serving with background ISR
 
@@ -82,10 +86,31 @@ export default async function HomePage() {
         secondaryCta={settings.hero_cta_secondary}
       />
       <div className="section-separator" />
+
+      {/* Impact & Numbers (Real, Verifiable Scale) */}
+      <ImpactNumbersSection
+        title={settings.impact_title}
+        subtitle={settings.impact_subtitle}
+        eventsCount={settings.impact_events_hosted || "2+"}
+        volunteersCount={settings.impact_volunteers_involved || "50+"}
+        artistsCount={settings.impact_artists_featured || "15+"}
+        reachCount={settings.impact_community_reach || "1,500+"}
+      />
+      <div className="section-separator" />
+
       {featuredEvent && (
         <>
           <FeaturedEventSection event={featuredEvent} />
           <div className="section-separator" />
+
+          {/* Deep Storytelling Presentation of the Flagship Event */}
+          <FeaturedEventStorySection
+            event={featuredEvent}
+            storyTitle={settings.featured_story_title}
+            storySubtitle={settings.featured_story_subtitle}
+          />
+          <div className="section-separator" />
+
           <HalloweenExperienceSection
             title={settings.experience_highlights_title}
             dossierHref={`/events/${featuredEvent.slug}`}
@@ -96,6 +121,14 @@ export default async function HomePage() {
           <div className="section-separator" />
         </>
       )}
+
+      {/* Why VELVT Exists: Mission, Purpose, Culture, Differentiators */}
+      <WhyVelvtSection
+        title={settings.why_velvt_title}
+        subtitle={settings.why_velvt_subtitle}
+      />
+      <div className="section-separator" />
+
       <BrandIntroSection
         title={settings.brand_intro_title}
         headline={settings.brand_intro_headline}
@@ -103,31 +136,40 @@ export default async function HomePage() {
         badge={settings.brand_intro_badge}
       />
       <div className="section-separator" />
+
       {recentEvents.length > 0 && (
         <>
           <EventArchiveSection events={recentEvents} />
           <div className="section-separator" />
         </>
       )}
+
       <ServicesSection
         title={settings.services_title}
         subtitle={settings.services_subtitle}
       />
       <div className="section-separator" />
+
       {teamMembers.length > 0 && (
         <>
           <TeamPreviewSection members={teamMembers} />
           <div className="section-separator" />
         </>
       )}
+
       <VolunteerPreviewSection />
       <div className="section-separator" />
+
       {partners.length > 0 && (
         <>
           <PartnersPreviewSection partners={partners} />
           <div className="section-separator" />
         </>
       )}
+
+      <NewsletterSection />
+      <div className="section-separator" />
+
       <FinalCTASection
         title={settings.final_cta_title}
         buttonText={settings.final_cta_button}
@@ -135,4 +177,3 @@ export default async function HomePage() {
     </>
   );
 }
-

@@ -192,6 +192,7 @@ model Volunteer {
   // Admin-managed fields
   status        String   @default("pending") // pending, approved, verified, revoked, rejected
   assignedRole  String?  // Role assigned by admin (may differ from preferred)
+  availability  String?  // Availability: full event, setup, execution, wrap-up
   adminNotes    String?  // Internal notes — NEVER exposed publicly
   appliedAt     DateTime @default(now())
   approvedAt    DateTime?
@@ -216,13 +217,19 @@ model TeamMember {
   portrait     String? // Portrait image URL/path
   socialLinks  String? // JSON string of social links
   portfolioUrl String?
-  quote        String? // Personal philosophy or statement
-  highlights   String? // JSON array or comma separated accomplishments/specialties
-  joinedYear   String? // e.g. "2024" or "Founding Member"
-  displayOrder Int     @default(0)
-  isPublished  Boolean @default(true)
-  createdAt    DateTime @default(now())
-  updatedAt    DateTime @updatedAt
+  quote              String? // Personal philosophy or statement
+  highlights         String? // JSON array or comma separated accomplishments/specialties
+  detailedBio        String? // Polished first-person narrative
+  responsibilities   String? // JSON array of roles / responsibilities
+  achievements       String? // JSON array of { title, year, description, metric }
+  skills             String? // JSON array of { name, category, level }
+  timeline           String? // JSON array of { year, title, organization, description }
+  sectionVisibility String? // JSON object of boolean flags: { showBio, showRoles, showAchievements, showSkills, showTimeline, showQuote, showSocials }
+  joinedYear         String? // e.g. "2024" or "Founding Member"
+  displayOrder       Int     @default(0)
+  isPublished        Boolean @default(true)
+  createdAt          DateTime @default(now())
+  updatedAt          DateTime @updatedAt
 
   @@index([isPublished, displayOrder])
 }
@@ -326,4 +333,57 @@ model AuditLog {
   @@index([action, createdAt])
   @@index([targetType, targetId])
 }
+
+// ─── Testimonials ─────────────────────────────────────────────────────────────
+
+model Testimonial {
+  id           String   @id @default(cuid())
+  quote        String
+  authorName   String
+  authorRole   String
+  company      String?
+  avatarUrl    String?
+  category     String   @default("volunteer") // "volunteer" | "sponsor" | "general"
+  rating       Int      @default(5)
+  displayOrder Int      @default(0)
+  isApproved   Boolean  @default(true)
+  isFeatured   Boolean  @default(false)
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  @@index([category, isApproved, displayOrder])
+}
+
+// ─── Sponsor Inquiries ────────────────────────────────────────────────────────
+
+model SponsorInquiry {
+  id                  String   @id @default(cuid())
+  companyName         String
+  contactPerson       String
+  email               String
+  phone               String?
+  sponsorshipInterest String?  // Title Partner, Powered By, Beverage & Hospitality, Experiential Zone, Media Partner, Custom
+  budgetRange         String?  // < ₹25k, ₹25k-₹50k, ₹50k-₹100k, ₹100k+, Custom
+  collaborationType   String?
+  message             String
+  status              String   @default("new") // new, in_discussion, confirmed, declined
+  adminNotes          String?
+  createdAt           DateTime @default(now())
+  updatedAt           DateTime @updatedAt
+
+  @@index([status, createdAt])
+}
+
+// ─── Newsletter Subscribers ───────────────────────────────────────────────────
+
+model NewsletterSubscriber {
+  id         String   @id @default(cuid())
+  email      String   @unique
+  source     String   @default("website")
+  status     String   @default("active") // active, unsubscribed
+  createdAt  DateTime @default(now())
+
+  @@index([status, createdAt])
+}
+
 

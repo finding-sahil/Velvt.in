@@ -36,6 +36,7 @@ export function EventManager({ events }: EventManagerProps) {
   const [editingEvent, setEditingEvent] = useState<any | null>(null);
   const [managingTicketsFor, setManagingTicketsFor] = useState<any | null>(null);
   const [managingScheduleFor, setManagingScheduleFor] = useState<any | null>(null);
+  const [editingScheduleItem, setEditingScheduleItem] = useState<any | null>(null);
   const [scheduleForm, setScheduleForm] = useState({
     time: "7:00 PM",
     title: "",
@@ -92,6 +93,9 @@ export function EventManager({ events }: EventManagerProps) {
     venueName: "",
     venueCity: "Silchar",
     venueAddress: "Silchar, Assam, India",
+    venueMapLink: "",
+    venueAccessInfo: "",
+    venueParkingInfo: "",
     isFeatured: false,
   });
 
@@ -131,6 +135,9 @@ export function EventManager({ events }: EventManagerProps) {
     fd.append("venueName", formData.venueName);
     fd.append("venueCity", formData.venueCity);
     fd.append("venueAddress", formData.venueAddress);
+    fd.append("venueMapLink", formData.venueMapLink);
+    fd.append("venueAccessInfo", formData.venueAccessInfo);
+    fd.append("venueParkingInfo", formData.venueParkingInfo);
     fd.append("isFeatured", String(formData.isFeatured));
 
     const res = await createEvent(fd);
@@ -153,6 +160,9 @@ export function EventManager({ events }: EventManagerProps) {
         venueName: "",
         venueCity: "Silchar",
         venueAddress: "Silchar, Assam, India",
+        venueMapLink: "",
+        venueAccessInfo: "",
+        venueParkingInfo: "",
         isFeatured: false,
       });
       router.refresh();
@@ -188,6 +198,9 @@ export function EventManager({ events }: EventManagerProps) {
     fd.append("venueName", editingEvent.venue?.name || "");
     fd.append("venueCity", editingEvent.venue?.city || "Silchar");
     fd.append("venueAddress", editingEvent.venue?.address || "");
+    fd.append("venueMapLink", editingEvent.venue?.mapLink || "");
+    fd.append("venueAccessInfo", editingEvent.venue?.accessInfo || "");
+    fd.append("venueParkingInfo", editingEvent.venue?.parkingInfo || "");
     fd.append("isFeatured", String(editingEvent.isFeatured));
 
     const res = await updateEvent(editingEvent.id, fd);
@@ -470,38 +483,101 @@ export function EventManager({ events }: EventManagerProps) {
   }
 
   // ─── Schedule Handlers ──────────────────────────────────────────────────────
-  async function handleAddScheduleItem(e: React.FormEvent) {
+  function handleEditScheduleItem(item: any) {
+    setEditingScheduleItem(item);
+    setScheduleForm({
+      time: item.time,
+      title: item.title,
+      description: item.description || "",
+      displayOrder: item.displayOrder || 1,
+    });
+  }
+
+  async function handleSaveScheduleItem(e: React.FormEvent) {
     e.preventDefault();
     if (!managingScheduleFor || !scheduleForm.title || !scheduleForm.time) return;
     setScheduleLoading(true);
 
     try {
-      const res = await createScheduleItem({
-        eventId: managingScheduleFor.id,
-        time: scheduleForm.time,
-        title: scheduleForm.title,
-        description: scheduleForm.description,
-        displayOrder: scheduleForm.displayOrder || (managingScheduleFor.scheduleItems?.length || 0) + 1,
-      });
-
-      if (res.success && res.item) {
-        setManagingScheduleFor((prev: any) => ({
-          ...prev,
-          scheduleItems: [...(prev?.scheduleItems || []), res.item],
-        }));
-        setScheduleForm({
-          time: "8:00 PM",
-          title: "",
-          description: "",
-          displayOrder: (managingScheduleFor.scheduleItems?.length || 0) + 2,
+      if (editingScheduleItem) {
+        const res = await updateScheduleItem(editingScheduleItem.id, {
+          time: scheduleForm.time,
+          title: scheduleForm.title,
+          description: scheduleForm.description,
+          displayOrder: scheduleForm.displayOrder,
         });
-        setToast({ message: "Schedule item added to timeline", type: "success" });
-        router.refresh();
+
+        if (res.success && res.item) {
+          const updatedItem = res.item;
+          setManagingScheduleFor((prev: any) => ({
+            ...prev,
+            scheduleItems: (prev?.scheduleItems || []).map((s: any) =>
+              s.id === editingScheduleItem.id ? updatedItem : s
+            ),
+          }));
+          setEventList((prev) =>
+            prev.map((ev) =>
+              ev.id === managingScheduleFor.id
+                ? {
+                    ...ev,
+                    scheduleItems: (ev.scheduleItems || []).map((s: any) =>
+                      s.id === editingScheduleItem.id ? updatedItem : s
+                    ),
+                  }
+                : ev
+            )
+          );
+          setEditingScheduleItem(null);
+          setScheduleForm({
+            time: "8:00 PM",
+            title: "",
+            description: "",
+            displayOrder: (managingScheduleFor.scheduleItems?.length || 0) + 1,
+          });
+          setToast({ message: "Schedule item updated", type: "success" });
+          router.refresh();
+        } else {
+          setToast({ message: res.error || "Failed to update schedule item", type: "error" });
+        }
       } else {
-        setToast({ message: res.error || "Failed to add schedule item", type: "error" });
+        const res = await createScheduleItem({
+          eventId: managingScheduleFor.id,
+          time: scheduleForm.time,
+          title: scheduleForm.title,
+          description: scheduleForm.description,
+          displayOrder: scheduleForm.displayOrder || (managingScheduleFor.scheduleItems?.length || 0) + 1,
+        });
+
+        if (res.success && res.item) {
+          const newItem = res.item;
+          setManagingScheduleFor((prev: any) => ({
+            ...prev,
+            scheduleItems: [...(prev?.scheduleItems || []), newItem],
+          }));
+          setEventList((prev) =>
+            prev.map((ev) =>
+              ev.id === managingScheduleFor.id
+                ? {
+                    ...ev,
+                    scheduleItems: [...(ev.scheduleItems || []), newItem],
+                  }
+                : ev
+            )
+          );
+          setScheduleForm({
+            time: "8:00 PM",
+            title: "",
+            description: "",
+            displayOrder: (managingScheduleFor.scheduleItems?.length || 0) + 2,
+          });
+          setToast({ message: "Schedule item added to timeline", type: "success" });
+          router.refresh();
+        } else {
+          setToast({ message: res.error || "Failed to add schedule item", type: "error" });
+        }
       }
     } catch (err: any) {
-      setToast({ message: err?.message || "Error adding schedule item", type: "error" });
+      setToast({ message: err?.message || "Error saving schedule item", type: "error" });
     } finally {
       setScheduleLoading(false);
     }
@@ -675,6 +751,21 @@ export function EventManager({ events }: EventManagerProps) {
                   </button>
                   <button
                     onClick={() => {
+                      setManagingScheduleFor(event);
+                      setEditingScheduleItem(null);
+                      setScheduleForm({
+                        time: "7:00 PM",
+                        title: "",
+                        description: "",
+                        displayOrder: (event.scheduleItems?.length || 0) + 1,
+                      });
+                    }}
+                    className="px-3 py-1.5 text-xs font-mono uppercase tracking-wider rounded-full border border-blue-500/30 bg-blue-500/10 text-blue-300 hover:bg-blue-500/20 transition-colors cursor-pointer"
+                  >
+                    Schedule ({event.scheduleItems?.length || 0})
+                  </button>
+                  <button
+                    onClick={() => {
                       setManagingFaqsFor(event);
                       setEditingFaq(null);
                       setFaqForm({
@@ -691,7 +782,7 @@ export function EventManager({ events }: EventManagerProps) {
                     onClick={() => setEditingEvent(event)}
                     className="px-3 py-1.5 text-xs font-mono uppercase tracking-wider rounded-full border border-white/15 bg-white/[0.05] text-white hover:bg-white/10 transition-colors cursor-pointer"
                   >
-                    Edit / Poster
+                    Edit / Details
                   </button>
                   {event.status !== "archived" && (
                     <button
@@ -711,7 +802,7 @@ export function EventManager({ events }: EventManagerProps) {
               </div>
 
               {/* Event Details Grid */}
-              <div className="grid sm:grid-cols-4 gap-4 pt-4 border-t border-white/[0.06] text-xs font-mono">
+              <div className="grid sm:grid-cols-5 gap-4 pt-4 border-t border-white/[0.06] text-xs font-mono">
                 <div>
                   <span className="text-g5 block text-[10px] uppercase">
                     Date &amp; Time
@@ -722,15 +813,15 @@ export function EventManager({ events }: EventManagerProps) {
                 </div>
                 <div>
                   <span className="text-g5 block text-[10px] uppercase">
-                    Venue
+                    Venue &amp; City
                   </span>
-                  <p className="text-white mt-0.5">
+                  <p className="text-white mt-0.5 truncate">
                     {event.venue?.name || "TBA"} ({event.venue?.city || "Silchar"})
                   </p>
                 </div>
                 <div>
                   <span className="text-g5 block text-[10px] uppercase">
-                    Ticket Tiers
+                    Tickets &amp; Passes
                   </span>
                   <p className="text-white mt-0.5">
                     {event.ticketTypes?.length || 0} active tiers
@@ -738,10 +829,18 @@ export function EventManager({ events }: EventManagerProps) {
                 </div>
                 <div>
                   <span className="text-g5 block text-[10px] uppercase">
-                    Poster Art
+                    Timeline Slots
                   </span>
                   <p className="text-white mt-0.5">
-                    {event.coverImage ? "✓ Uploaded" : "No image (using fallback)"}
+                    {event.scheduleItems?.length ? `${event.scheduleItems.length} slots` : "Announcing Soon"}
+                  </p>
+                </div>
+                <div>
+                  <span className="text-g5 block text-[10px] uppercase">
+                    Visual Archive
+                  </span>
+                  <p className="text-white mt-0.5">
+                    {event._count?.galleryItems ? `${event._count.galleryItems} photos` : event.coverImage ? "✓ Cover uploaded" : "No media"}
                   </p>
                 </div>
               </div>
@@ -820,12 +919,30 @@ export function EventManager({ events }: EventManagerProps) {
               </div>
 
               <div>
-                <label className="block text-g5 mb-1 uppercase">Theme / Concept</label>
+                <div className="flex items-center justify-between mb-1">
+                  <label className="text-g5 uppercase">Theme / Concept</label>
+                  <div className="flex gap-1.5">
+                    <button
+                      type="button"
+                      onClick={() => setFormData({ ...formData, theme: "Cinematic Halloween Experience" })}
+                      className="text-[10px] px-2 py-0.5 rounded bg-white/[0.05] hover:bg-white/10 text-g4 hover:text-white"
+                    >
+                      Halloween
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setFormData({ ...formData, theme: "To Be Announced" })}
+                      className="text-[10px] px-2 py-0.5 rounded bg-amber-500/10 text-amber-300 border border-amber-500/20"
+                    >
+                      Announcing Soon
+                    </button>
+                  </div>
+                </div>
                 <input
                   type="text"
                   value={formData.theme}
                   onChange={(e) => setFormData({ ...formData, theme: e.target.value })}
-                  placeholder="e.g. Gothic Masquerade"
+                  placeholder="e.g. Gothic Masquerade or Dark Immersive Set"
                   className="w-full bg-black/50 border border-white/10 rounded-lg p-2.5 text-white"
                 />
               </div>
@@ -842,11 +959,12 @@ export function EventManager({ events }: EventManagerProps) {
                   />
                 </div>
                 <div>
-                  <label className="block text-g5 mb-1 uppercase">Time</label>
+                  <label className="block text-g5 mb-1 uppercase">Doors / Event Time</label>
                   <input
                     type="text"
                     value={formData.time}
                     onChange={(e) => setFormData({ ...formData, time: e.target.value })}
+                    placeholder="e.g. 7:00 PM onwards"
                     className="w-full bg-black/50 border border-white/10 rounded-lg p-2.5 text-white"
                   />
                 </div>
@@ -859,7 +977,7 @@ export function EventManager({ events }: EventManagerProps) {
                     type="text"
                     value={formData.venueName}
                     onChange={(e) => setFormData({ ...formData, venueName: e.target.value })}
-                    placeholder="e.g. Nocturne Club"
+                    placeholder="e.g. Biva Hotel or Venue To Be Announced"
                     className="w-full bg-black/50 border border-white/10 rounded-lg p-2.5 text-white"
                   />
                 </div>
@@ -875,14 +993,25 @@ export function EventManager({ events }: EventManagerProps) {
                 </div>
               </div>
 
+              <div>
+                <label className="block text-g5 mb-1 uppercase">Full Venue Address</label>
+                <input
+                  type="text"
+                  value={formData.venueAddress}
+                  onChange={(e) => setFormData({ ...formData, venueAddress: e.target.value })}
+                  placeholder="e.g. Club Road, Silchar, Assam, India"
+                  className="w-full bg-black/50 border border-white/10 rounded-lg p-2.5 text-white"
+                />
+              </div>
+
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label className="block text-g5 mb-1 uppercase">Dress Code</label>
+                  <label className="block text-g5 mb-1 uppercase">Google Maps Link</label>
                   <input
-                    type="text"
-                    value={formData.dressCode}
-                    onChange={(e) => setFormData({ ...formData, dressCode: e.target.value })}
-                    placeholder="e.g. Dark tailoring, crushed velvt"
+                    type="url"
+                    value={formData.venueMapLink}
+                    onChange={(e) => setFormData({ ...formData, venueMapLink: e.target.value })}
+                    placeholder="https://maps.google.com/..."
                     className="w-full bg-black/50 border border-white/10 rounded-lg p-2.5 text-white"
                   />
                 </div>
@@ -892,7 +1021,70 @@ export function EventManager({ events }: EventManagerProps) {
                     type="text"
                     value={formData.ageRestriction}
                     onChange={(e) => setFormData({ ...formData, ageRestriction: e.target.value })}
-                    placeholder="18+ only"
+                    placeholder="18+ only. Valid ID required."
+                    className="w-full bg-black/50 border border-white/10 rounded-lg p-2.5 text-white"
+                  />
+                </div>
+              </div>
+
+              <div>
+                <div className="flex items-center justify-between mb-1">
+                  <label className="text-g5 uppercase">Masquerade &amp; Dress Code</label>
+                  <div className="flex gap-1.5">
+                    <button
+                      type="button"
+                      onClick={() => setFormData({ ...formData, dressCode: "Dark formal, gothic, masquerade costumes encouraged." })}
+                      className="text-[10px] px-2 py-0.5 rounded bg-white/[0.05] hover:bg-white/10 text-g4 hover:text-white"
+                    >
+                      Gothic
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setFormData({ ...formData, dressCode: "Dress code announcing soon." })}
+                      className="text-[10px] px-2 py-0.5 rounded bg-amber-500/10 text-amber-300 border border-amber-500/20"
+                    >
+                      Announcing Soon
+                    </button>
+                  </div>
+                </div>
+                <input
+                  type="text"
+                  value={formData.dressCode}
+                  onChange={(e) => setFormData({ ...formData, dressCode: e.target.value })}
+                  placeholder="e.g. Dark formal, masquerade masks encouraged"
+                  className="w-full bg-black/50 border border-white/10 rounded-lg p-2.5 text-white"
+                />
+              </div>
+
+              <div>
+                <label className="block text-g5 mb-1 uppercase">Entry Guidelines / Info</label>
+                <textarea
+                  rows={2}
+                  value={formData.entryInfo}
+                  onChange={(e) => setFormData({ ...formData, entryInfo: e.target.value })}
+                  placeholder="e.g. Entry is by ticket only. Gates open at 7:00 PM. No re-entry allowed."
+                  className="w-full bg-black/50 border border-white/10 rounded-lg p-2.5 text-white"
+                />
+              </div>
+
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-g5 mb-1 uppercase">Venue Access / Directions</label>
+                  <input
+                    type="text"
+                    value={formData.venueAccessInfo}
+                    onChange={(e) => setFormData({ ...formData, venueAccessInfo: e.target.value })}
+                    placeholder="Directions will be shared prior to event"
+                    className="w-full bg-black/50 border border-white/10 rounded-lg p-2.5 text-white"
+                  />
+                </div>
+                <div>
+                  <label className="block text-g5 mb-1 uppercase">Parking Information</label>
+                  <input
+                    type="text"
+                    value={formData.venueParkingInfo}
+                    onChange={(e) => setFormData({ ...formData, venueParkingInfo: e.target.value })}
+                    placeholder="Valet and on-site parking available"
                     className="w-full bg-black/50 border border-white/10 rounded-lg p-2.5 text-white"
                   />
                 </div>
@@ -1005,12 +1197,30 @@ export function EventManager({ events }: EventManagerProps) {
               </div>
 
               <div>
-                <label className="block text-g5 mb-1 uppercase">Theme / Concept</label>
+                <div className="flex items-center justify-between mb-1">
+                  <label className="text-g5 uppercase">Theme / Concept</label>
+                  <div className="flex gap-1.5">
+                    <button
+                      type="button"
+                      onClick={() => setEditingEvent({ ...editingEvent, theme: "Cinematic Halloween Experience" })}
+                      className="text-[10px] px-2 py-0.5 rounded bg-white/[0.05] hover:bg-white/10 text-g4 hover:text-white"
+                    >
+                      Halloween
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setEditingEvent({ ...editingEvent, theme: "To Be Announced" })}
+                      className="text-[10px] px-2 py-0.5 rounded bg-amber-500/10 text-amber-300 border border-amber-500/20"
+                    >
+                      Announcing Soon
+                    </button>
+                  </div>
+                </div>
                 <input
                   type="text"
                   value={editingEvent.theme || ""}
                   onChange={(e) => setEditingEvent({ ...editingEvent, theme: e.target.value })}
-                  placeholder="e.g. Gothic Masquerade"
+                  placeholder="e.g. Gothic Masquerade or Dark Immersive Set"
                   className="w-full bg-black/50 border border-white/10 rounded-lg p-2.5 text-white"
                 />
               </div>
@@ -1031,12 +1241,12 @@ export function EventManager({ events }: EventManagerProps) {
                   />
                 </div>
                 <div>
-                  <label className="block text-g5 mb-1 uppercase">Time</label>
+                  <label className="block text-g5 mb-1 uppercase">Doors / Event Time</label>
                   <input
                     type="text"
                     value={editingEvent.time || ""}
                     onChange={(e) => setEditingEvent({ ...editingEvent, time: e.target.value })}
-                    placeholder="7:00 PM onwards"
+                    placeholder="e.g. 7:00 PM onwards"
                     className="w-full bg-black/50 border border-white/10 rounded-lg p-2.5 text-white"
                   />
                 </div>
@@ -1054,11 +1264,12 @@ export function EventManager({ events }: EventManagerProps) {
                         venue: { ...editingEvent.venue, name: e.target.value },
                       })
                     }
+                    placeholder="e.g. Biva Hotel or Venue To Be Announced"
                     className="w-full bg-black/50 border border-white/10 rounded-lg p-2.5 text-white"
                   />
                 </div>
                 <div>
-                  <label className="block text-g5 mb-1 uppercase">Venue City</label>
+                  <label className="block text-g5 mb-1 uppercase">City</label>
                   <input
                     type="text"
                     value={editingEvent.venue?.city || ""}
@@ -1068,19 +1279,41 @@ export function EventManager({ events }: EventManagerProps) {
                         venue: { ...editingEvent.venue, city: e.target.value },
                       })
                     }
+                    placeholder="Silchar"
                     className="w-full bg-black/50 border border-white/10 rounded-lg p-2.5 text-white"
                   />
                 </div>
               </div>
 
+              <div>
+                <label className="block text-g5 mb-1 uppercase">Full Venue Address</label>
+                <input
+                  type="text"
+                  value={editingEvent.venue?.address || ""}
+                  onChange={(e) =>
+                    setEditingEvent({
+                      ...editingEvent,
+                      venue: { ...editingEvent.venue, address: e.target.value },
+                    })
+                  }
+                  placeholder="e.g. Club Road, Silchar, Assam, India"
+                  className="w-full bg-black/50 border border-white/10 rounded-lg p-2.5 text-white"
+                />
+              </div>
+
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label className="block text-g5 mb-1 uppercase">Dress Code</label>
+                  <label className="block text-g5 mb-1 uppercase">Google Maps Link</label>
                   <input
-                    type="text"
-                    value={editingEvent.dressCode || ""}
-                    onChange={(e) => setEditingEvent({ ...editingEvent, dressCode: e.target.value })}
-                    placeholder="e.g. Dark formal, masquerade"
+                    type="url"
+                    value={editingEvent.venue?.mapLink || ""}
+                    onChange={(e) =>
+                      setEditingEvent({
+                        ...editingEvent,
+                        venue: { ...editingEvent.venue, mapLink: e.target.value },
+                      })
+                    }
+                    placeholder="https://maps.google.com/..."
                     className="w-full bg-black/50 border border-white/10 rounded-lg p-2.5 text-white"
                   />
                 </div>
@@ -1092,7 +1325,80 @@ export function EventManager({ events }: EventManagerProps) {
                     onChange={(e) =>
                       setEditingEvent({ ...editingEvent, ageRestriction: e.target.value })
                     }
-                    placeholder="18+ only"
+                    placeholder="18+ only. Valid ID required."
+                    className="w-full bg-black/50 border border-white/10 rounded-lg p-2.5 text-white"
+                  />
+                </div>
+              </div>
+
+              <div>
+                <div className="flex items-center justify-between mb-1">
+                  <label className="text-g5 uppercase">Masquerade &amp; Dress Code</label>
+                  <div className="flex gap-1.5">
+                    <button
+                      type="button"
+                      onClick={() => setEditingEvent({ ...editingEvent, dressCode: "Dark formal, gothic, masquerade costumes encouraged." })}
+                      className="text-[10px] px-2 py-0.5 rounded bg-white/[0.05] hover:bg-white/10 text-g4 hover:text-white"
+                    >
+                      Gothic
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setEditingEvent({ ...editingEvent, dressCode: "Dress code announcing soon." })}
+                      className="text-[10px] px-2 py-0.5 rounded bg-amber-500/10 text-amber-300 border border-amber-500/20"
+                    >
+                      Announcing Soon
+                    </button>
+                  </div>
+                </div>
+                <input
+                  type="text"
+                  value={editingEvent.dressCode || ""}
+                  onChange={(e) => setEditingEvent({ ...editingEvent, dressCode: e.target.value })}
+                  placeholder="e.g. Dark formal, masquerade masks encouraged"
+                  className="w-full bg-black/50 border border-white/10 rounded-lg p-2.5 text-white"
+                />
+              </div>
+
+              <div>
+                <label className="block text-g5 mb-1 uppercase">Entry Guidelines / Info</label>
+                <textarea
+                  rows={2}
+                  value={editingEvent.entryInfo || ""}
+                  onChange={(e) => setEditingEvent({ ...editingEvent, entryInfo: e.target.value })}
+                  placeholder="e.g. Entry is by ticket only. Gates open at 7:00 PM. No re-entry allowed."
+                  className="w-full bg-black/50 border border-white/10 rounded-lg p-2.5 text-white"
+                />
+              </div>
+
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-g5 mb-1 uppercase">Venue Access / Directions</label>
+                  <input
+                    type="text"
+                    value={editingEvent.venue?.accessInfo || ""}
+                    onChange={(e) =>
+                      setEditingEvent({
+                        ...editingEvent,
+                        venue: { ...editingEvent.venue, accessInfo: e.target.value },
+                      })
+                    }
+                    placeholder="Directions will be shared prior to event"
+                    className="w-full bg-black/50 border border-white/10 rounded-lg p-2.5 text-white"
+                  />
+                </div>
+                <div>
+                  <label className="block text-g5 mb-1 uppercase">Parking Information</label>
+                  <input
+                    type="text"
+                    value={editingEvent.venue?.parkingInfo || ""}
+                    onChange={(e) =>
+                      setEditingEvent({
+                        ...editingEvent,
+                        venue: { ...editingEvent.venue, parkingInfo: e.target.value },
+                      })
+                    }
+                    placeholder="Valet and on-site parking available"
                     className="w-full bg-black/50 border border-white/10 rounded-lg p-2.5 text-white"
                   />
                 </div>
@@ -1466,6 +1772,210 @@ export function EventManager({ events }: EventManagerProps) {
                     className="px-5 py-2 text-xs font-bold rounded-full bg-purple-600 text-white hover:bg-purple-500 cursor-pointer shadow-[0_0_15px_rgba(168,85,247,0.4)] transition-all"
                   >
                     {loading ? "Saving..." : editingFaq ? "Update FAQ" : "Add FAQ"}
+                  </button>
+                </div>
+              </form>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Manage Event Schedule Modal */}
+      {managingScheduleFor && (
+        <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-md flex items-center justify-center p-4 overflow-y-auto">
+          <div className="bg-[#0e0e0e] border border-white/15 rounded-2xl max-w-2xl w-full p-6 space-y-6 max-h-[90vh] overflow-y-auto shadow-2xl">
+            <div className="flex justify-between items-center pb-2 border-b border-white/10">
+              <div>
+                <h3 className="font-display font-bold text-xl text-white uppercase tracking-wide flex items-center gap-2">
+                  <span>Event Schedule &amp; Timeline</span>
+                  <span className="text-xs text-blue-400 font-mono px-2 py-0.5 rounded bg-blue-950/60 border border-blue-800/60">
+                    {managingScheduleFor.name}
+                  </span>
+                </h3>
+                <p className="text-[11px] font-mono text-g5 mt-0.5">
+                  Control the night timeline displayed on the event page. If empty on upcoming events, &quot;Schedule Announcing Soon&quot; will display safely.
+                </p>
+              </div>
+              <button
+                onClick={() => {
+                  setManagingScheduleFor(null);
+                  setEditingScheduleItem(null);
+                  setScheduleForm({ time: "7:00 PM", title: "", description: "", displayOrder: 1 });
+                }}
+                className="text-g5 hover:text-white cursor-pointer text-lg"
+              >
+                ✕
+              </button>
+            </div>
+
+            {/* Quick Template Actions */}
+            <div className="flex flex-wrap items-center gap-2 p-3 rounded-xl bg-white/[0.03] border border-white/10 justify-between">
+              <span className="text-[11px] font-mono text-g5 uppercase tracking-wider">Quick Actions:</span>
+              <div className="flex flex-wrap items-center gap-2">
+                <button
+                  type="button"
+                  disabled={scheduleLoading}
+                  onClick={() => handleLoadTemplateSchedule(managingScheduleFor.id)}
+                  className="px-3 py-1.5 rounded-lg text-xs font-mono uppercase tracking-wider font-bold bg-blue-500/20 text-blue-300 border border-blue-500/30 hover:bg-blue-500/30 cursor-pointer transition-all disabled:opacity-50"
+                >
+                  ⚡ Load 5-Point Template
+                </button>
+                <button
+                  type="button"
+                  disabled={scheduleLoading}
+                  onClick={() => handleClearSchedule(managingScheduleFor.id)}
+                  className="px-3 py-1.5 rounded-lg text-xs font-mono uppercase tracking-wider font-bold bg-amber-500/15 text-amber-300 border border-amber-500/30 hover:bg-amber-500/25 cursor-pointer transition-all disabled:opacity-50"
+                >
+                  Clear / Announcing Soon
+                </button>
+              </div>
+            </div>
+
+            {/* Current Schedule Items List */}
+            <div className="space-y-3">
+              <h4 className="text-xs font-mono uppercase tracking-wider text-white font-bold flex items-center justify-between">
+                <span>Timeline Itinerary ({managingScheduleFor.scheduleItems?.length || 0} Slots)</span>
+                {editingScheduleItem && (
+                  <span className="text-[10px] text-amber-400 font-normal">
+                    Editing Slot Active
+                  </span>
+                )}
+              </h4>
+
+              {(!managingScheduleFor.scheduleItems || managingScheduleFor.scheduleItems.length === 0) ? (
+                <div className="p-6 rounded-xl border border-dashed border-white/10 text-center space-y-2">
+                  <span className="text-2xl">⏳</span>
+                  <p className="text-xs text-g5 font-mono italic">
+                    No schedule slots added yet.
+                  </p>
+                  <p className="text-[10px] text-g5/70 font-mono max-w-md mx-auto">
+                    Public site will render &quot;Schedule Announcing Soon&quot; for upcoming events, or hide schedule for completed events. Click &quot;Load 5-Point Template&quot; above to instantly populate default festival hours.
+                  </p>
+                </div>
+              ) : (
+                <div className="space-y-2.5 max-h-64 overflow-y-auto pr-1">
+                  {managingScheduleFor.scheduleItems.map((item: any, idx: number) => (
+                    <div
+                      key={item.id || idx}
+                      className={`p-3.5 rounded-xl border transition-all text-xs font-mono flex items-start justify-between gap-3 ${
+                        editingScheduleItem?.id === item.id
+                          ? "border-blue-500 bg-blue-950/30"
+                          : "border-white/10 bg-white/[0.02]"
+                      }`}
+                    >
+                      <div className="space-y-1">
+                        <div className="flex items-center gap-2">
+                          <span className="px-2 py-0.5 rounded-full bg-red-dim border border-red-glow text-white text-[10px] font-bold">
+                            {item.time}
+                          </span>
+                          <span className="text-white font-bold text-xs">{item.title}</span>
+                          <span className="text-[10px] text-g5">#{item.displayOrder || idx + 1}</span>
+                        </div>
+                        {item.description && (
+                          <p className="text-g5 text-[11px] leading-relaxed pl-1">
+                            {item.description}
+                          </p>
+                        )}
+                      </div>
+                      <div className="flex items-center gap-1.5 shrink-0">
+                        <button
+                          type="button"
+                          onClick={() => handleEditScheduleItem(item)}
+                          className="px-2 py-1 rounded text-[10px] uppercase font-mono font-bold bg-white/[0.06] text-blue-300 hover:bg-blue-950 hover:text-blue-200 cursor-pointer transition-colors"
+                        >
+                          Edit
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => handleDeleteScheduleItem(item.id)}
+                          className="px-2 py-1 rounded text-[10px] uppercase font-mono font-bold bg-red-950/40 text-red hover:bg-red-950 hover:text-red-300 cursor-pointer transition-colors"
+                        >
+                          Delete
+                        </button>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+
+            {/* Add / Edit Schedule Form */}
+            <div className="pt-4 border-t border-white/10 space-y-4">
+              <div className="flex items-center justify-between">
+                <h4 className="text-xs font-mono uppercase tracking-wider text-white font-bold">
+                  {editingScheduleItem ? "✏️ Edit Timeline Slot" : "+ Add Timeline Slot"}
+                </h4>
+                {editingScheduleItem && (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setEditingScheduleItem(null);
+                      setScheduleForm({ time: "8:00 PM", title: "", description: "", displayOrder: 1 });
+                    }}
+                    className="text-[10px] font-mono text-g5 hover:text-white underline cursor-pointer"
+                  >
+                    Cancel Editing
+                  </button>
+                )}
+              </div>
+
+              <form onSubmit={handleSaveScheduleItem} className="space-y-3 text-xs font-mono">
+                <div className="grid grid-cols-3 gap-3">
+                  <div>
+                    <label className="block text-g5 mb-1 uppercase">Time Slot *</label>
+                    <input
+                      type="text"
+                      required
+                      placeholder="e.g. 7:00 PM"
+                      value={scheduleForm.time}
+                      onChange={(e) => setScheduleForm({ ...scheduleForm, time: e.target.value })}
+                      className="w-full bg-black/50 border border-white/10 rounded-lg p-2.5 text-white placeholder:text-g5/40 focus:outline-none focus:border-blue-500 font-mono"
+                    />
+                  </div>
+                  <div className="col-span-2">
+                    <label className="block text-g5 mb-1 uppercase">Title *</label>
+                    <input
+                      type="text"
+                      required
+                      placeholder="e.g. Immersive Experience Begins"
+                      value={scheduleForm.title}
+                      onChange={(e) => setScheduleForm({ ...scheduleForm, title: e.target.value })}
+                      className="w-full bg-black/50 border border-white/10 rounded-lg p-2.5 text-white placeholder:text-g5/40 focus:outline-none focus:border-blue-500 font-sans"
+                    />
+                  </div>
+                </div>
+
+                <div>
+                  <label className="block text-g5 mb-1 uppercase">Description (Optional)</label>
+                  <input
+                    type="text"
+                    placeholder="e.g. Explore themed installations and atmospheric zones..."
+                    value={scheduleForm.description}
+                    onChange={(e) => setScheduleForm({ ...scheduleForm, description: e.target.value })}
+                    className="w-full bg-black/50 border border-white/10 rounded-lg p-2.5 text-white placeholder:text-g5/40 focus:outline-none focus:border-blue-500 font-sans"
+                  />
+                </div>
+
+                <div className="flex items-center justify-between pt-2">
+                  <div className="flex items-center gap-2">
+                    <label className="text-g5 uppercase">Order:</label>
+                    <input
+                      type="number"
+                      min={0}
+                      value={scheduleForm.displayOrder}
+                      onChange={(e) =>
+                        setScheduleForm({ ...scheduleForm, displayOrder: parseInt(e.target.value, 10) || 0 })
+                      }
+                      className="w-20 bg-black/50 border border-white/10 rounded-lg p-1.5 text-white font-mono text-center"
+                    />
+                  </div>
+
+                  <button
+                    type="submit"
+                    disabled={scheduleLoading}
+                    className="px-5 py-2 text-xs font-bold rounded-full bg-blue-600 text-white hover:bg-blue-500 cursor-pointer shadow-[0_0_15px_rgba(37,99,235,0.4)] transition-all disabled:opacity-50"
+                  >
+                    {scheduleLoading ? "Saving..." : editingScheduleItem ? "Update Slot" : "Add Slot"}
                   </button>
                 </div>
               </form>

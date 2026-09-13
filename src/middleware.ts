@@ -33,7 +33,7 @@ export function middleware(request: NextRequest) {
   // Basic Content-Security-Policy (allows unsafe-eval in development for React / Turbopack)
   const scriptSrc =
     process.env.NODE_ENV === "production"
-      ? "script-src 'self' 'unsafe-inline'"
+      ? "script-src 'self' 'unsafe-inline' https://www.googletagmanager.com https://www.google-analytics.com https://va.vercel-scripts.com"
       : "script-src 'self' 'unsafe-inline' 'unsafe-eval'";
 
   response.headers.set(
@@ -44,7 +44,7 @@ export function middleware(request: NextRequest) {
       "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
       "font-src 'self' https://fonts.gstatic.com data:",
       "img-src 'self' data: blob: https:",
-      "connect-src 'self' https:",
+      "connect-src 'self' https: https://www.google-analytics.com https://www.googletagmanager.com https://va.vercel-scripts.com",
       "frame-ancestors 'none'",
     ].join("; ")
   );
