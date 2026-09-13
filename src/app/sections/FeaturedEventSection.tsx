@@ -14,7 +14,7 @@ export function FeaturedEventSection({ event }: FeaturedEventSectionProps) {
   const displayTheme = event.theme && event.theme.length <= 40 ? event.theme : "Halloween Edition 2.O";
 
   return (
-    <section className="py-10 md:py-14 relative overflow-hidden">
+    <section className="py-10 md:py-14 relative overflow-x-clip">
       {/* Subtle Ambient Red Glow */}
       <div className="absolute top-1/2 -right-20 w-[380px] h-[380px] rounded-full bg-red filter blur-[120px] opacity-[0.12] pointer-events-none" />
 
@@ -28,7 +28,7 @@ export function FeaturedEventSection({ event }: FeaturedEventSectionProps) {
         </div>
 
         {/* UNTOLDSURI Glassmorphic Showcase Card */}
-        <div className="glass-card p-6 sm:p-8 lg:p-10 relative overflow-hidden">
+        <div className="glass-card p-6 sm:p-8 lg:p-10 relative">
           <div className="grid lg:grid-cols-12 gap-8 items-center">
             {/* Left: Poster with Clean Theatrical Frame (5 cols) */}
             <div className="lg:col-span-5 relative">
@@ -144,6 +144,7 @@ export function FeaturedEventSection({ event }: FeaturedEventSectionProps) {
                       description={event.description}
                       location={event.venue?.city ? `${event.venue.name || "Main Stage"}, ${event.venue.city}` : "Silchar, Assam"}
                       startDate={event.date}
+                      dropdownPosition="top"
                     />
                   </>
                 ) : (

@@ -83,6 +83,22 @@ export function checkRateLimit(
   };
 }
 
+/**
+ * Reset rate limits. If prefix is provided, removes matching keys.
+ * If no prefix is provided, clears all rate limits across the system.
+ */
+export function resetRateLimits(prefix?: string): void {
+  if (!prefix) {
+    store.clear();
+    return;
+  }
+  for (const key of store.keys()) {
+    if (key.startsWith(prefix) || key === prefix) {
+      store.delete(key);
+    }
+  }
+}
+
 // ─── Pre-configured Rate Limiters ──────────────────────────────────────────────
 
 export const RATE_LIMITS = {

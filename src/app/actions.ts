@@ -15,7 +15,7 @@ import {
 import { generateTicketNumber, generateSecurityToken, generateTicketQRCode } from "@/lib/ticket-generator";
 import { generateVolunteerId } from "@/lib/volunteer-id";
 import { verifyPassword, hashPassword, createSession, destroySession, getSession, requireAdmin, requireStaffOrAdmin, requireGatemanOrAdmin } from "@/lib/auth";
-import { checkRateLimit, RATE_LIMITS, getClientIdentifier } from "@/lib/rate-limit";
+import { checkRateLimit, RATE_LIMITS, getClientIdentifier, resetRateLimits } from "@/lib/rate-limit";
 import { logAuditEvent } from "@/lib/audit";
 import { getAdminPrefix } from "@/lib/admin-path";
 import { redirect } from "next/navigation";
@@ -2935,6 +2935,18 @@ export async function adminResetUserPassword(userId: string, newPassword: string
   } catch (error: any) {
     console.error("adminResetUserPassword error:", error);
     return { success: false, error: error?.message || "Failed to reset password." };
+  }
+}
+
+/**
+ * Reset rate limits across the entire platform or for a specific prefix
+ */
+export async function adminResetRateLimits(prefix?: string) {
+  try {
+    resetRateLimits(prefix);
+    return { success: true, message: prefix ? `Rate limits for ${prefix} reset.` : "All rate limits have been cleared." };
+  } catch (error: any) {
+    return { success: false, error: error?.message || "Failed to reset rate limits." };
   }
 }
 

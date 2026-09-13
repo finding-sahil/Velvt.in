@@ -11,6 +11,7 @@ interface AddToCalendarProps {
   className?: string;
   size?: "sm" | "md" | "lg";
   variant?: "secondary" | "outline";
+  dropdownPosition?: "top" | "bottom" | "auto";
 }
 
 export function AddToCalendar({
@@ -22,8 +23,10 @@ export function AddToCalendar({
   className = "",
   size = "md",
   variant = "secondary",
+  dropdownPosition = "auto",
 }: AddToCalendarProps) {
   const [isOpen, setIsOpen] = useState(false);
+  const [openUp, setOpenUp] = useState(dropdownPosition === "top");
   const containerRef = useRef<HTMLDivElement>(null);
 
   // Close on outside click
@@ -40,6 +43,28 @@ export function AddToCalendar({
       document.removeEventListener("mousedown", handleClickOutside);
     };
   }, [isOpen]);
+
+  // Dynamically detect available space below
+  useEffect(() => {
+    if (isOpen && containerRef.current) {
+      if (dropdownPosition === "top") {
+        setOpenUp(true);
+      } else if (dropdownPosition === "bottom") {
+        setOpenUp(false);
+      } else {
+        const rect = containerRef.current.getBoundingClientRect();
+        const spaceBelow = window.innerHeight - rect.bottom;
+        const parentCard = containerRef.current.closest(".glass-card, section, main, [class*='overflow-']");
+        let parentSpaceBelow = 9999;
+        if (parentCard) {
+          const parentRect = parentCard.getBoundingClientRect();
+          parentSpaceBelow = parentRect.bottom - rect.bottom;
+        }
+        // If less than 240px below in viewport or inside parent card, open upwards
+        setOpenUp(spaceBelow < 240 || parentSpaceBelow < 240);
+      }
+    }
+  }, [isOpen, dropdownPosition]);
 
   // Format dates for calendar URLs and ICS (YYYYMMDDTHHmmssZ)
   const formatIsoUtc = (dateInput: string | Date) => {
@@ -107,7 +132,7 @@ export function AddToCalendar({
     : "bg-white/[0.06] hover:bg-white/[0.12] text-white border-white/[0.12] hover:border-red/40 backdrop-blur-md shadow-[0_4px_20px_rgba(0,0,0,0.4)]";
 
   return (
-    <div ref={containerRef} className={`relative inline-block text-left ${className}`}>
+    <div ref={containerRef} className={`relative inline-block text-left ${isOpen ? "z-[60]" : "z-10"} ${className}`}>
       <button
         type="button"
         onClick={() => setIsOpen(!isOpen)}
@@ -139,7 +164,13 @@ export function AddToCalendar({
       </button>
 
       {isOpen && (
-        <div className="absolute left-0 mt-2 w-60 rounded-2xl bg-[#0a0a0d]/95 backdrop-blur-2xl border border-white/15 shadow-[0_16px_50px_rgba(0,0,0,0.9),0_0_30px_rgba(200,16,46,0.15)] p-2 z-50 animate-fade-in-up space-y-1.5">
+        <div
+          className={`absolute left-0 ${
+            openUp
+              ? "bottom-full mb-3 origin-bottom shadow-[0_-16px_50px_rgba(0,0,0,0.95),0_0_35px_rgba(200,16,46,0.2)]"
+              : "top-full mt-2.5 origin-top shadow-[0_16px_50px_rgba(0,0,0,0.95),0_0_35px_rgba(200,16,46,0.2)]"
+          } w-60 max-w-[calc(100vw-2rem)] rounded-2xl bg-[#0a0a0d]/98 backdrop-blur-2xl border border-white/20 p-2 z-[70] transition-all space-y-1.5`}
+        >
           <div className="px-3 py-1.5 border-b border-white/[0.08] mb-1">
             <span className="text-[10px] font-mono uppercase tracking-[0.2em] text-red font-bold flex items-center gap-1.5">
               <span className="w-1.5 h-1.5 rounded-full bg-red animate-pulse" />
