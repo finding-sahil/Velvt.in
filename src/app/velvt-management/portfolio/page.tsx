@@ -1,5 +1,5 @@
 import { prisma } from "@/lib/db";
-import { requireAdmin } from "@/lib/auth";
+import { requireStaffOrAdmin } from "@/lib/auth";
 import { PortfolioManager } from "./PortfolioManager";
 import type { Metadata } from "next";
 
@@ -10,9 +10,15 @@ export const metadata: Metadata = {
 export const dynamic = "force-dynamic";
 
 export default async function PortfolioAdminPage() {
-  await requireAdmin();
+  const session = await requireStaffOrAdmin();
+
+  const whereClause: any = {};
+  if (session.user.role === "core_team" && session.user.teamMemberId) {
+    whereClause.id = session.user.teamMemberId;
+  }
 
   const members = await prisma.teamMember.findMany({
+    where: whereClause,
     orderBy: { displayOrder: "asc" },
   });
 
@@ -21,7 +27,7 @@ export default async function PortfolioAdminPage() {
       <div>
         <div className="flex items-center gap-2 text-xs font-mono uppercase tracking-widest text-red mb-1">
           <span>●</span>
-          <span>Core Team &amp; Founder</span>
+          <span>{session.user.role === "core_team" ? "My Personal Portfolio" : "Core Team & Founder"}</span>
         </div>
         <h1 className="text-2xl sm:text-3xl font-display font-black text-white uppercase tracking-tight">
           Personal Portfolio CMS

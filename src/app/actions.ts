@@ -14,7 +14,7 @@ import {
 } from "@/lib/validations";
 import { generateTicketNumber, generateSecurityToken, generateTicketQRCode } from "@/lib/ticket-generator";
 import { generateVolunteerId } from "@/lib/volunteer-id";
-import { verifyPassword, hashPassword, createSession, destroySession, requireAdmin, requireGatemanOrAdmin } from "@/lib/auth";
+import { verifyPassword, hashPassword, createSession, destroySession, getSession, requireAdmin, requireStaffOrAdmin, requireGatemanOrAdmin } from "@/lib/auth";
 import { checkRateLimit, RATE_LIMITS, getClientIdentifier } from "@/lib/rate-limit";
 import { logAuditEvent } from "@/lib/audit";
 import { getAdminPrefix } from "@/lib/admin-path";
@@ -172,14 +172,15 @@ export async function adminLogin(formData: FormData) {
   }
 
   try {
+    const normalizedEmail = result.data.email.trim().toLowerCase();
     const admin = await prisma.adminUser.findUnique({
-      where: { email: result.data.email },
+      where: { email: normalizedEmail },
     });
 
     if (!admin) {
       await logAuditEvent({
         action: "admin.login.failed",
-        metadata: { attemptedEmail: result.data.email },
+        metadata: { attemptedEmail: normalizedEmail },
         ipAddress: clientIp,
       });
       return { success: false, error: "Invalid email or password." };
@@ -241,7 +242,10 @@ export async function adminLogin(formData: FormData) {
 }
 
 export async function changeAdminPassword(formData: FormData) {
-  const session = await requireAdmin();
+  const session = await getSession();
+  if (!session) {
+    return { success: false, error: "Unauthorized: Please log in to update your password." };
+  }
   const currentPassword = formData.get("currentPassword") as string;
   const newPassword = formData.get("newPassword") as string;
   const confirmPassword = formData.get("confirmPassword") as string;
@@ -342,6 +346,8 @@ export async function approveVolunteer(volunteerId: string, assignedRole?: strin
     actor: { id: session.userId, email: session.user.email },
   });
 
+  revalidatePath("/velvt-management/volunteers");
+  revalidatePath("/volunteers");
   return { success: true, volunteerId: generatedId };
 }
 
@@ -785,8 +791,11 @@ export async function deleteInquiry(inquiryId: string) {
 export async function createEvent(formData: FormData) {
   await requireAdmin();
 
-  const name = formData.get("name") as string;
-  const slug = (formData.get("slug") as string) || name.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/(^-|-$)/g, "");
+  const name = (formData.get("name") as string || "").trim();
+  const rawSlug = (formData.get("slug") as string || "").trim().toLowerCase();
+  const slug = rawSlug
+    ? rawSlug.replace(/[^a-z0-9]+/g, "-").replace(/(^-|-$)/g, "")
+    : name.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/(^-|-$)/g, "") || `event-${Date.now()}`;
   const description = formData.get("description") as string;
   const theme = (formData.get("theme") as string) || null;
   const coverImage = (formData.get("coverImage") as string) || null;
@@ -871,6 +880,7 @@ export async function updateEvent(eventId: string, formData: FormData) {
   const dateStr = formData.get("date") as string;
   const time = formData.get("time") as string;
   const status = formData.get("status") as string;
+  const hasFeaturedField = formData.has("isFeatured");
   const isFeatured = formData.get("isFeatured") === "true";
   const venueName = formData.get("venueName") as string;
   const venueCity = formData.get("venueCity") as string;
@@ -893,7 +903,7 @@ export async function updateEvent(eventId: string, formData: FormData) {
         ...(dateStr && { date: new Date(dateStr) }),
         ...(time !== undefined && { time }),
         ...(status && { status }),
-        isFeatured,
+        ...(hasFeaturedField ? { isFeatured } : {}),
         ...(venueName && {
           venue: {
             upsert: {
@@ -1230,10 +1240,18 @@ export async function deleteTicketType(ticketId: string) {
   try {
     await requireAdmin();
 
+    const existing = await prisma.ticketType.findUnique({
+      where: { id: ticketId },
+      include: { event: { select: { slug: true } } },
+    });
+
     await prisma.ticketType.delete({ where: { id: ticketId } });
 
     revalidatePath("/tickets");
     revalidatePath("/velvt-management/events");
+    if (existing?.event?.slug) {
+      revalidatePath(`/events/${existing.event.slug}`);
+    }
     return { success: true };
   } catch (error: any) {
     return { success: false, error: error?.message || "Failed to delete ticket." };
@@ -1836,6 +1854,19 @@ export async function generateIssuedTicket(formData: FormData) {
   }
 
   try {
+    // If ticketTypeId is provided, verify capacity before issuing
+    if (parsed.data.ticketTypeId) {
+      const ticketType = await prisma.ticketType.findUnique({
+        where: { id: parsed.data.ticketTypeId },
+      });
+      if (ticketType && ticketType.totalQuantity > 0 && ticketType.soldCount >= ticketType.totalQuantity) {
+        return {
+          success: false,
+          error: `Capacity reached for ${ticketType.name} (${ticketType.soldCount}/${ticketType.totalQuantity} passes issued). Cannot issue further passes.`,
+        };
+      }
+    }
+
     // Generate unique serial ticket number (guaranteeing uniqueness with loop check)
     let ticketNumber = "";
     let isUnique = false;
@@ -1897,6 +1928,14 @@ export async function generateIssuedTicket(formData: FormData) {
         },
       },
     });
+
+    // Atomically increment soldCount on the associated ticket type
+    if (parsed.data.ticketTypeId) {
+      await prisma.ticketType.update({
+        where: { id: parsed.data.ticketTypeId },
+        data: { soldCount: { increment: 1 } },
+      }).catch((e) => console.warn("Failed to increment soldCount:", e));
+    }
 
     await logAuditEvent({
       action: "ticket.issue",
@@ -1988,20 +2027,14 @@ export async function checkInIssuedTicket(
       };
     }
 
-    // Check if already checked in!
-    if (ticket.isCheckedIn) {
-      return {
-        success: false,
-        status: "already_checked_in",
-        ticket,
-        message: `Pass ALREADY SCANNED and admitted on ${ticket.checkedInAt ? new Date(ticket.checkedInAt).toLocaleTimeString("en-IN", { hour: "2-digit", minute: "2-digit", hour12: true }) : "earlier"} by ${ticket.checkedInBy || "Gate Staff"}. Verify identity before admitting.`,
-      };
-    }
-
-    // Mark as checked in
+    // Mark as checked in atomically to eliminate race conditions / double-admittance
     const checkInTime = new Date();
-    const updated = await prisma.issuedTicket.update({
-      where: { id: ticket.id },
+    const updateResult = await prisma.issuedTicket.updateMany({
+      where: {
+        id: ticket.id,
+        isCheckedIn: false,
+        status: { notIn: ["cancelled", "revoked"] },
+      },
       data: {
         isCheckedIn: true,
         checkedInAt: checkInTime,
@@ -2009,6 +2042,42 @@ export async function checkInIssuedTicket(
         status: "used",
         ...(notes ? { notes: ticket.notes ? `${ticket.notes} | ${notes}` : notes } : {}),
       },
+    });
+
+    if (updateResult.count === 0) {
+      // Race condition caught: ticket was scanned and admitted concurrently
+      const latest = await prisma.issuedTicket.findUnique({
+        where: { id: ticket.id },
+        include: {
+          event: {
+            select: {
+              id: true,
+              name: true,
+              date: true,
+              time: true,
+            },
+          },
+        },
+      });
+
+      return {
+        success: false,
+        status: "already_checked_in",
+        ticket: latest || ticket,
+        message: `Pass ALREADY SCANNED and admitted on ${
+          latest?.checkedInAt
+            ? new Date(latest.checkedInAt).toLocaleTimeString("en-IN", {
+                hour: "2-digit",
+                minute: "2-digit",
+                hour12: true,
+              })
+            : "earlier"
+        } by ${latest?.checkedInBy || "Gate Staff"}. Verify identity before admitting.`,
+      };
+    }
+
+    const updated = await prisma.issuedTicket.findUnique({
+      where: { id: ticket.id },
       include: {
         event: {
           select: {
@@ -2020,6 +2089,10 @@ export async function checkInIssuedTicket(
         },
       },
     });
+
+    if (!updated) {
+      return { success: false, status: "error", message: "Failed to retrieve admitted ticket record." };
+    }
 
     await logAuditEvent({
       action: "ticket.checkin",
@@ -2092,6 +2165,13 @@ export async function deleteIssuedTicket(id: string) {
       where: { id },
     });
 
+    if (ticket.ticketTypeId) {
+      await prisma.ticketType.update({
+        where: { id: ticket.ticketTypeId },
+        data: { soldCount: { decrement: 1 } },
+      }).catch((e) => console.warn("Failed to decrement soldCount:", e));
+    }
+
     await logAuditEvent({
       action: "ticket.delete",
       targetType: "IssuedTicket",
@@ -2113,6 +2193,19 @@ export async function deleteIssuedTicket(id: string) {
 export async function getTicketVerificationData(identifier: string) {
   if (!identifier) return null;
   const clean = identifier.trim();
+
+  // Rate limiting to prevent token brute-forcing and automated scraping
+  const hdrs = await headers();
+  const clientIp = getClientIdentifier(hdrs);
+  const rl = checkRateLimit(`verify-ticket:${clientIp}`, { maxRequests: 40, windowSeconds: 60 });
+  if (!rl.success) {
+    return null;
+  }
+
+  const session = await getSession().catch(() => null);
+  const isAuthorizedStaff = Boolean(
+    session && ["admin", "founder", "gateman", "core_team"].includes(session.user.role)
+  );
 
   try {
     const ticket = await prisma.issuedTicket.findFirst({
@@ -2138,21 +2231,39 @@ export async function getTicketVerificationData(identifier: string) {
 
     if (!ticket) return null;
 
+    // Mask attendee email and phone for unauthenticated public viewers
+    let displayEmail = ticket.attendeeEmail;
+    let displayPhone = ticket.attendeePhone;
+
+    if (!isAuthorizedStaff) {
+      if (displayEmail && displayEmail.includes("@")) {
+        const [local, domain] = displayEmail.split("@");
+        displayEmail =
+          local.length <= 2
+            ? `${local[0] || "*"}***@${domain}`
+            : `${local[0]}***${local[local.length - 1]}@${domain}`;
+      }
+      if (displayPhone) {
+        const digits = displayPhone.replace(/\D/g, "");
+        displayPhone = digits.length >= 4 ? `+91 ******${digits.slice(-4)}` : "******";
+      }
+    }
+
     // Return sanitized ticket data for verification view
     return {
       id: ticket.id,
       ticketNumber: ticket.ticketNumber,
       securityToken: ticket.securityToken,
       attendeeName: ticket.attendeeName,
-      attendeeEmail: ticket.attendeeEmail,
-      attendeePhone: ticket.attendeePhone,
+      attendeeEmail: displayEmail,
+      attendeePhone: displayPhone,
       tierName: ticket.tierName,
       priceInPaise: ticket.priceInPaise,
       status: ticket.status,
       isCheckedIn: ticket.isCheckedIn,
       checkedInAt: ticket.checkedInAt ? ticket.checkedInAt.toISOString() : null,
       checkedInBy: ticket.checkedInBy,
-      notes: ticket.notes,
+      notes: isAuthorizedStaff ? ticket.notes : null,
       createdAt: ticket.createdAt.toISOString(),
       event: {
         id: ticket.event.id,
@@ -2413,6 +2524,11 @@ export async function createGatemanUser(formData: FormData) {
 export async function toggleGatemanStatus(id: string, currentStatus: boolean) {
   const session = await requireAdmin();
   try {
+    const target = await prisma.adminUser.findUnique({ where: { id } });
+    if (!target || target.role !== "gateman") {
+      return { success: false, error: "Target account is not a gateman staff member or does not exist." };
+    }
+
     const user = await prisma.adminUser.update({
       where: { id },
       data: { isActive: !currentStatus },
@@ -2439,6 +2555,11 @@ export async function toggleGatemanStatus(id: string, currentStatus: boolean) {
 export async function deleteGatemanUser(id: string) {
   const session = await requireAdmin();
   try {
+    const target = await prisma.adminUser.findUnique({ where: { id } });
+    if (!target || target.role !== "gateman") {
+      return { success: false, error: "Target account is not a gateman staff member or does not exist." };
+    }
+
     const user = await prisma.adminUser.delete({
       where: { id },
     });
@@ -2475,6 +2596,11 @@ export async function resetGatemanPassword(formData: FormData) {
   }
 
   try {
+    const target = await prisma.adminUser.findUnique({ where: { id } });
+    if (!target || target.role !== "gateman") {
+      return { success: false, error: "Target account is not a gateman staff member or does not exist." };
+    }
+
     const passwordHash = await hashPassword(newPassword);
     await prisma.adminUser.update({
       where: { id },
@@ -2608,6 +2734,11 @@ export async function assignTeamCredentials(data: {
       },
     });
 
+    // Guard: A non-founder admin CANNOT modify or take over a Founder account!
+    if (existing && existing.role === "founder" && session.user.role !== "founder") {
+      return { success: false, error: "Unauthorized: Only a Founder can modify Founder credentials." };
+    }
+
     if (existing) {
       await prisma.adminUser.update({
         where: { id: existing.id },
@@ -2655,6 +2786,15 @@ export async function removeTeamCredentials(teamMemberId: string) {
   }
 
   try {
+    const existingAccounts = await prisma.adminUser.findMany({
+      where: { teamMemberId },
+    });
+
+    // Guard: A non-founder admin CANNOT delete Founder credentials!
+    if (existingAccounts.some((a) => a.role === "founder") && session.user.role !== "founder") {
+      return { success: false, error: "Unauthorized: Only a Founder can remove Founder credentials." };
+    }
+
     await prisma.adminUser.deleteMany({
       where: { teamMemberId },
     });
@@ -3175,6 +3315,15 @@ export async function trackVolunteerApplicationStatus(query: string) {
   if (!query || !query.trim()) {
     return { found: false, error: "Please enter an email address or Application/Volunteer ID." };
   }
+
+  // Rate limiting to prevent email harvesting and brute force queries
+  const hdrs = await headers();
+  const clientIp = getClientIdentifier(hdrs);
+  const rl = checkRateLimit(`track-vol:${clientIp}`, { maxRequests: 25, windowSeconds: 60 });
+  if (!rl.success) {
+    return { found: false, error: "Too many status lookup attempts. Please try again in a few minutes." };
+  }
+
   const clean = query.trim().toLowerCase();
   try {
     const volunteer = await prisma.volunteer.findFirst({
@@ -3507,9 +3656,13 @@ export async function toggleTestimonialApproval(id: string) {
 // ─── Personal Portfolio CMS ───────────────────────────────────────────────────
 
 export async function updatePortfolioProfile(formData: FormData) {
-  const session = await requireAdmin();
+  const session = await requireStaffOrAdmin();
   const id = formData.get("id") as string;
   if (!id) return { success: false, error: "Member ID is required." };
+
+  if (session.user.role === "core_team" && session.user.teamMemberId !== id) {
+    return { success: false, error: "Core team members can only edit their own profile." };
+  }
 
   const member = await prisma.teamMember.findUnique({ where: { id } });
   if (!member) return { success: false, error: "Member not found." };
@@ -3563,9 +3716,13 @@ export async function togglePortfolioSection(
   sectionKey: string,
   isVisible: boolean
 ) {
-  const session = await requireAdmin();
+  const session = await requireStaffOrAdmin();
   if (!memberId || !sectionKey) {
     return { success: false, error: "Member ID and section key are required." };
+  }
+
+  if (session.user.role === "core_team" && session.user.teamMemberId !== memberId) {
+    return { success: false, error: "Core team members can only edit their own profile." };
   }
 
   const member = await prisma.teamMember.findUnique({ where: { id: memberId } });

@@ -1,6 +1,4 @@
 import { prisma } from "@/lib/db";
-import { getSession } from "@/lib/auth";
-import { PortfolioQuickControls } from "./PortfolioQuickControls";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import type { Metadata } from "next";
@@ -31,9 +29,6 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
 
 export default async function TeamMemberPortfolioPage({ params }: PageProps) {
   const { id } = await params;
-
-  const session = await getSession();
-  const isAdmin = !!session;
 
   const member = await prisma.teamMember.findUnique({
     where: { id },
@@ -139,7 +134,7 @@ export default async function TeamMemberPortfolioPage({ params }: PageProps) {
                   {isFounder ? (
                     <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-black/80 backdrop-blur-md border border-red/80 text-[10px] font-mono font-bold uppercase tracking-widest text-red shadow-[0_0_15px_var(--red-glow)]">
                       <span className="w-1.5 h-1.5 rounded-full bg-red animate-pulse" />
-                      FOUNDER &amp; DIRECTOR
+                      {member.role.toUpperCase()}
                     </span>
                   ) : (
                     <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-black/80 backdrop-blur-md border border-white/20 text-[10px] font-mono uppercase tracking-widest text-white/90">
@@ -449,15 +444,6 @@ export default async function TeamMemberPortfolioPage({ params }: PageProps) {
               ))}
             </div>
           </div>
-        )}
-
-        {/* In-Page Admin Section Controls (Rendered strictly for authenticated admins) */}
-        {isAdmin && (
-          <PortfolioQuickControls
-            memberId={member.id}
-            memberName={member.name}
-            initialVisibility={visibility}
-          />
         )}
       </div>
     </div>

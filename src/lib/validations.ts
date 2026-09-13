@@ -12,7 +12,7 @@ export const volunteerRegistrationSchema = z.object({
   phone: z
     .string()
     .min(10, "Please enter a valid phone number")
-    .max(15, "Phone number is too long"),
+    .max(20, "Phone number is too long"),
   city: z.string().min(2, "City is required"),
   preferredRole: z.string().min(1, "Please select a role"),
   experience: z.string().optional(),
@@ -53,7 +53,7 @@ export type ContactFormInput = z.infer<typeof contactFormSchema>;
 // ─── Admin Login ───────────────────────────────────────────────────────────────
 
 export const adminLoginSchema = z.object({
-  email: z.string().email("Please enter a valid email"),
+  email: z.string().email("Please enter a valid email").transform((v) => v.trim().toLowerCase()),
   password: z.string().min(1, "Password is required"),
 });
 
