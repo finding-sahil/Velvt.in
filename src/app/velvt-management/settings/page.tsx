@@ -15,11 +15,22 @@ export default async function AdminSettingsPage() {
     redirect("/velvt-management/gate");
   }
 
-  const [settingsList, events] = await Promise.all([
+  const [settingsList, events, adminUsers] = await Promise.all([
     prisma.siteSetting.findMany(),
     prisma.event.findMany({
       select: { id: true, name: true, status: true },
       orderBy: { date: "desc" },
+    }),
+    prisma.adminUser.findMany({
+      select: {
+        id: true,
+        email: true,
+        name: true,
+        role: true,
+        isActive: true,
+        createdAt: true,
+      },
+      orderBy: [{ role: "asc" }, { name: "asc" }],
     }),
   ]);
 
@@ -30,7 +41,7 @@ export default async function AdminSettingsPage() {
 
   return (
     <div className="space-y-8 animate-fade-in">
-      <SettingsManager settings={settingsMap} events={events} />
+      <SettingsManager settings={settingsMap} events={events} adminUsers={adminUsers} />
     </div>
   );
 }

@@ -2721,23 +2721,14 @@ export async function assignTeamCredentials(data: {
 
   try {
     const passwordHash = await hashPassword(data.password);
-    // Prevent privilege escalation: only founders can assign the founder role
-    let assignedRole = data.role || "core_team";
-    if (assignedRole === "founder" && session.user.role !== "founder") {
-      assignedRole = "admin";
-    }
-
-    // Check if an AdminUser exists for this email or teamMemberId
+    // VELVT Admin has root system authority: preserve existing role if already set, or use requested role
     const existing = await prisma.adminUser.findFirst({
       where: {
         OR: [{ email: cleanEmail }, { teamMemberId: member.id }],
       },
     });
 
-    // Guard: A non-founder admin CANNOT modify or take over a Founder account!
-    if (existing && existing.role === "founder" && session.user.role !== "founder") {
-      return { success: false, error: "Unauthorized: Only a Founder can modify Founder credentials." };
-    }
+    const assignedRole = data.role || (existing?.role) || (member.category?.toLowerCase().includes("founder") ? "founder" : "core_team");
 
     if (existing) {
       await prisma.adminUser.update({
@@ -2786,15 +2777,6 @@ export async function removeTeamCredentials(teamMemberId: string) {
   }
 
   try {
-    const existingAccounts = await prisma.adminUser.findMany({
-      where: { teamMemberId },
-    });
-
-    // Guard: A non-founder admin CANNOT delete Founder credentials!
-    if (existingAccounts.some((a) => a.role === "founder") && session.user.role !== "founder") {
-      return { success: false, error: "Unauthorized: Only a Founder can remove Founder credentials." };
-    }
-
     await prisma.adminUser.deleteMany({
       where: { teamMemberId },
     });
@@ -2810,6 +2792,44 @@ export async function removeTeamCredentials(teamMemberId: string) {
     return { success: true };
   } catch (error: any) {
     return { success: false, error: error?.message || "Failed to remove credentials." };
+  }
+}
+
+/**
+ * Root Administrator password override action:
+ * Allows the VELVT administrator to update/reset any user's password (Founders, Core Team, Gatemen, Admins)
+ */
+export async function adminResetUserPassword(userId: string, newPassword: string) {
+  const session = await requireAdmin();
+
+  if (!userId || !newPassword || newPassword.trim().length < 6) {
+    return { success: false, error: "Valid user ID and a password of at least 6 characters are required." };
+  }
+
+  try {
+    const target = await prisma.adminUser.findUnique({ where: { id: userId } });
+    if (!target) {
+      return { success: false, error: "Account not found." };
+    }
+
+    const passwordHash = await hashPassword(newPassword.trim());
+    await prisma.adminUser.update({
+      where: { id: target.id },
+      data: { passwordHash },
+    });
+
+    await logAuditEvent({
+      action: "admin.user_password_reset",
+      targetType: "AdminUser",
+      targetId: target.id,
+      metadata: { targetEmail: target.email, targetRole: target.role },
+      actor: { id: session.userId, email: session.user.email },
+    });
+
+    return { success: true, message: `Password successfully updated for ${target.name} (${target.email}).` };
+  } catch (error: any) {
+    console.error("adminResetUserPassword error:", error);
+    return { success: false, error: error?.message || "Failed to reset password." };
   }
 }
 

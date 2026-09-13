@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { updateSiteSettings, changeAdminPassword, updateSiteTheme } from "@/app/actions";
+import { updateSiteSettings, changeAdminPassword, updateSiteTheme, adminResetUserPassword } from "@/app/actions";
 import { defaultPillars, ExperienceHighlightItem } from "@/app/sections/HalloweenExperienceSection";
 import { ToastNotification, ToastState } from "@/components/ui/ToastNotification";
 import { CONTROLLED_PAGES, PageStatus } from "@/lib/page-status";
@@ -10,11 +10,19 @@ import { CONTROLLED_PAGES, PageStatus } from "@/lib/page-status";
 interface SettingsManagerProps {
   settings: Record<string, string>;
   events: any[];
+  adminUsers?: Array<{
+    id: string;
+    email: string;
+    name: string;
+    role: string;
+    isActive: boolean;
+    createdAt?: any;
+  }>;
 }
 
 const EMOJI_PRESETS = ["🕯️", "🎭", "🔮", "🍸", "🦇", "🕷️", "💀", "🖤", "🍷", "✦", "◈", "🔊", "🩸", "⚡"];
 
-export function SettingsManager({ settings, events }: SettingsManagerProps) {
+export function SettingsManager({ settings, events, adminUsers = [] }: SettingsManagerProps) {
   const router = useRouter();
   const [loading, setLoading] = useState(false);
   const [saved, setSaved] = useState(false);
@@ -34,6 +42,13 @@ export function SettingsManager({ settings, events }: SettingsManagerProps) {
   const [passwordLoading, setPasswordLoading] = useState(false);
   const [passwordStatus, setPasswordStatus] = useState<{ type: "success" | "error"; text: string } | null>(null);
   const [showPassword, setShowPassword] = useState(false);
+
+  // Master User Password State (Root Override)
+  const [usersList, setUsersList] = useState(adminUsers);
+  const [resetTargetUser, setResetTargetUser] = useState<any | null>(null);
+  const [newPasswordInput, setNewPasswordInput] = useState("");
+  const [userResetLoading, setUserResetLoading] = useState(false);
+  const [userResetMessage, setUserResetMessage] = useState<{ type: "success" | "error"; text: string } | null>(null);
 
   // Parse existing highlights or fallback to default
   const initialHighlights: ExperienceHighlightItem[] = (() => {
@@ -206,6 +221,40 @@ export function SettingsManager({ settings, events }: SettingsManagerProps) {
         type: "error",
         text: res.error || "Failed to update password. Please check requirements.",
       });
+    }
+  }
+
+  async function handleAdminResetUserPassword(e: React.FormEvent) {
+    e.preventDefault();
+    if (!resetTargetUser || !newPasswordInput || newPasswordInput.trim().length < 6) return;
+    setUserResetLoading(true);
+    setUserResetMessage(null);
+    try {
+      const res = await adminResetUserPassword(resetTargetUser.id, newPasswordInput.trim());
+      if (res.success) {
+        setUserResetMessage({
+          type: "success",
+          text: `Password successfully updated for ${resetTargetUser.name} (${resetTargetUser.email})!`,
+        });
+        setToast({
+          type: "success",
+          message: `Password updated for ${resetTargetUser.name}!`,
+        });
+        setNewPasswordInput("");
+        setResetTargetUser(null);
+      } else {
+        setUserResetMessage({
+          type: "error",
+          text: res.error || "Failed to reset user password.",
+        });
+      }
+    } catch (err: any) {
+      setUserResetMessage({
+        type: "error",
+        text: err?.message || "Failed to reset password.",
+      });
+    } finally {
+      setUserResetLoading(false);
     }
   }
 
@@ -1281,6 +1330,150 @@ export function SettingsManager({ settings, events }: SettingsManagerProps) {
                     {passwordLoading ? "Updating..." : "Update Admin Password"}
                   </button>
                 </div>
+              </div>
+            </div>
+
+            {/* System Master Password Override */}
+            <div className="p-6 bg-white/[0.03] border border-amber-500/20 rounded-2xl space-y-5">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 pb-3 border-b border-white/10">
+                <div>
+                  <div className="flex items-center gap-2">
+                    <span className="text-amber-400 text-lg">⚡</span>
+                    <h3 className="font-display text-xl text-white font-bold uppercase tracking-wider">
+                      Master User Password Control
+                    </h3>
+                  </div>
+                  <p className="text-[11px] text-g5 mt-0.5">
+                    Root Administrative Privilege: Reset or reassign passwords for all system accounts (Founders, Co-Admins, Core Team, Gatemen) directly without needing their current password.
+                  </p>
+                </div>
+                <span className="self-start px-2.5 py-1 rounded-full bg-amber-500/10 text-amber-300 border border-amber-500/30 text-[10px] font-mono uppercase font-bold">
+                  Root Authority
+                </span>
+              </div>
+
+              {userResetMessage && (
+                <div
+                  className={`p-4 rounded-xl border text-xs font-mono flex items-center justify-between ${
+                    userResetMessage.type === "success"
+                      ? "bg-emerald-950/60 border-emerald-800/60 text-emerald-400"
+                      : "bg-red-950/60 border-red-800/60 text-red-400"
+                  }`}
+                >
+                  <div className="flex items-center gap-2">
+                    <span className="text-base">{userResetMessage.type === "success" ? "✓" : "⚠"}</span>
+                    <span>{userResetMessage.text}</span>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => setUserResetMessage(null)}
+                    className="text-white/40 hover:text-white cursor-pointer"
+                  >
+                    ✕
+                  </button>
+                </div>
+              )}
+
+              {/* Users Table / Grid */}
+              <div className="space-y-2">
+                {usersList.length === 0 ? (
+                  <p className="text-xs text-g5 font-mono py-4 text-center">No system user accounts registered.</p>
+                ) : (
+                  usersList.map((u) => {
+                    const isFounder = u.role === "founder";
+                    const isAdmin = u.role === "admin";
+                    const isSelected = resetTargetUser?.id === u.id;
+
+                    return (
+                      <div
+                        key={u.id}
+                        className={`p-3.5 rounded-xl border transition-all flex flex-col sm:flex-row sm:items-center justify-between gap-3 ${
+                          isSelected
+                            ? "bg-amber-500/[0.08] border-amber-500/50 shadow-[0_0_15px_rgba(245,158,11,0.15)]"
+                            : "bg-black/40 border-white/10 hover:border-white/20"
+                        }`}
+                      >
+                        <div className="flex items-center gap-3">
+                          <div
+                            className={`w-9 h-9 rounded-full flex items-center justify-center font-bold text-xs uppercase ${
+                              isFounder
+                                ? "bg-amber-500/20 text-amber-300 border border-amber-500/40"
+                                : isAdmin
+                                ? "bg-red/20 text-red border border-red/40"
+                                : "bg-white/10 text-white border border-white/15"
+                            }`}
+                          >
+                            {u.name?.charAt(0) || "U"}
+                          </div>
+                          <div>
+                            <div className="flex items-center gap-2">
+                              <span className="font-bold text-white text-sm">{u.name}</span>
+                              <span
+                                className={`px-2 py-0.5 rounded-full text-[10px] font-mono uppercase tracking-wider font-semibold border ${
+                                  isFounder
+                                    ? "bg-amber-500/20 text-amber-300 border-amber-500/30"
+                                    : isAdmin
+                                    ? "bg-red/20 text-red border-red/30"
+                                    : u.role === "core_team"
+                                    ? "bg-blue-500/20 text-blue-300 border-blue-500/30"
+                                    : "bg-purple-500/20 text-purple-300 border-purple-500/30"
+                                }`}
+                              >
+                                {u.role}
+                              </span>
+                            </div>
+                            <p className="text-xs text-g5 font-mono">{u.email}</p>
+                          </div>
+                        </div>
+
+                        <div className="flex items-center gap-2">
+                          {isSelected ? (
+                            <form onSubmit={handleAdminResetUserPassword} className="flex items-center gap-2 w-full sm:w-auto">
+                              <input
+                                type="password"
+                                autoFocus
+                                placeholder="New password (min 6)"
+                                value={newPasswordInput}
+                                onChange={(e) => setNewPasswordInput(e.target.value)}
+                                className="bg-black/80 border border-amber-500/40 rounded-lg px-3 py-1.5 text-xs text-white placeholder:text-g5 focus:outline-none focus:border-amber-400 font-mono w-44"
+                              />
+                              <button
+                                type="submit"
+                                disabled={userResetLoading || !newPasswordInput || newPasswordInput.trim().length < 6}
+                                className="px-3 py-1.5 rounded-lg bg-amber-500 hover:bg-amber-400 text-black font-bold text-xs font-mono uppercase tracking-wider transition-colors disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer shadow-md"
+                              >
+                                {userResetLoading ? "Saving..." : "Save"}
+                              </button>
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  setResetTargetUser(null);
+                                  setNewPasswordInput("");
+                                }}
+                                className="px-2.5 py-1.5 rounded-lg bg-white/10 hover:bg-white/20 text-g5 hover:text-white text-xs font-mono cursor-pointer"
+                              >
+                                ✕
+                              </button>
+                            </form>
+                          ) : (
+                            <button
+                              type="button"
+                              onClick={() => {
+                                setResetTargetUser(u);
+                                setNewPasswordInput("");
+                                setUserResetMessage(null);
+                              }}
+                              className="px-3 py-1.5 rounded-lg bg-white/[0.06] hover:bg-amber-500/20 border border-white/10 hover:border-amber-500/40 text-g5 hover:text-amber-300 text-xs font-mono flex items-center gap-1.5 transition-colors cursor-pointer"
+                            >
+                              <span>🔑</span>
+                              <span>Change Password</span>
+                            </button>
+                          )}
+                        </div>
+                      </div>
+                    );
+                  })
+                )}
               </div>
             </div>
           </div>
