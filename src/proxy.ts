@@ -1,4 +1,4 @@
-// VELVT — Edge Middleware
+// VELVT — Edge Proxy (Next.js 16)
 // Route protection, security headers, and admin path obfuscation
 
 import { NextResponse } from "next/server";
@@ -6,7 +6,7 @@ import type { NextRequest } from "next/server";
 
 const ADMIN_PREFIX = process.env.ADMIN_ROUTE_PREFIX || "/velvt-management";
 
-export function middleware(request: NextRequest) {
+export function proxy(request: NextRequest) {
   const { pathname } = request.nextUrl;
   const response = NextResponse.next();
 
@@ -109,7 +109,7 @@ export function middleware(request: NextRequest) {
 
 export const config = {
   matcher: [
-    // Match all paths except static assets and internals
-    "/((?!_next/static|_next/image|favicon.ico|uploads/).*)",
+    // Match all page and API paths, strictly exclude static assets, images, media, and fonts
+    "/((?!_next/static|_next/image|favicon\\.ico|apple-icon\\.png|icon\\.png|robots\\.txt|.*\\.(?:svg|png|jpg|jpeg|gif|webp|avif|ico|mp4|webm|woff|woff2|ttf|eot)$).*)",
   ],
 };

@@ -133,6 +133,8 @@ model IssuedTicket {
   @@index([securityToken])
   @@index([attendeeName])
   @@index([attendeeEmail])
+  @@index([ticketTypeId])
+  @@index([createdAt])
 }
 
 // ─── Event Schedule ────────────────────────────────────────────────────────────
@@ -146,6 +148,8 @@ model EventScheduleItem {
 
   eventId String
   event   Event  @relation(fields: [eventId], references: [id], onDelete: Cascade)
+
+  @@index([eventId, displayOrder])
 }
 
 // ─── Event Announcements ───────────────────────────────────────────────────────
@@ -160,6 +164,8 @@ model EventAnnouncement {
 
   eventId String
   event   Event  @relation(fields: [eventId], references: [id], onDelete: Cascade)
+
+  @@index([eventId, isPublished, publishedAt])
 }
 
 // ─── Event FAQs ────────────────────────────────────────────────────────────────
@@ -172,6 +178,8 @@ model EventFAQ {
 
   eventId String
   event   Event  @relation(fields: [eventId], references: [id], onDelete: Cascade)
+
+  @@index([eventId, displayOrder])
 }
 
 // ─── Volunteers ────────────────────────────────────────────────────────────────
@@ -204,6 +212,8 @@ model Volunteer {
 
   @@index([status, eventId])
   @@index([volunteerId])
+  @@index([eventId])
+  @@index([appliedAt])
 }
 
 // ─── Team Members ──────────────────────────────────────────────────────────────
@@ -250,6 +260,7 @@ model GalleryItem {
   event   Event?  @relation(fields: [eventId], references: [id], onDelete: SetNull)
 
   @@index([isPublished, displayOrder])
+  @@index([eventId, isPublished])
 }
 
 // ─── Partners / Sponsors ───────────────────────────────────────────────────────
@@ -269,6 +280,7 @@ model Partner {
   event   Event?  @relation(fields: [eventId], references: [id], onDelete: SetNull)
 
   @@index([isActive, displayOrder])
+  @@index([eventId, isActive])
 }
 
 // ─── Press Mentions ────────────────────────────────────────────────────────────
@@ -289,6 +301,7 @@ model PressMention {
   event   Event?  @relation(fields: [eventId], references: [id], onDelete: SetNull)
 
   @@index([isPublished, displayOrder])
+  @@index([eventId, isPublished])
 }
 
 // ─── Contact Inquiries ─────────────────────────────────────────────────────────
@@ -306,6 +319,7 @@ model ContactInquiry {
   updatedAt  DateTime @updatedAt
 
   @@index([status, createdAt])
+  @@index([createdAt])
 }
 
 // ─── Site Settings ─────────────────────────────────────────────────────────────
@@ -332,6 +346,7 @@ model AuditLog {
 
   @@index([action, createdAt])
   @@index([targetType, targetId])
+  @@index([createdAt])
 }
 
 // ─── Testimonials ─────────────────────────────────────────────────────────────
@@ -372,6 +387,7 @@ model SponsorInquiry {
   updatedAt           DateTime @updatedAt
 
   @@index([status, createdAt])
+  @@index([createdAt])
 }
 
 // ─── Newsletter Subscribers ───────────────────────────────────────────────────
@@ -384,6 +400,7 @@ model NewsletterSubscriber {
   createdAt  DateTime @default(now())
 
   @@index([status, createdAt])
+  @@index([createdAt])
 }
 
 

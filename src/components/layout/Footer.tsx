@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { prisma } from "@/lib/db";
+import { getCachedSiteSettings } from "@/lib/settings-cache";
 
 const footerLinks = {
   explore: [
@@ -24,11 +24,7 @@ const footerLinks = {
 export async function Footer() {
   const year = new Date().getFullYear();
 
-  const siteSettings = await prisma.siteSetting.findMany().catch(() => []);
-  const settings: Record<string, string> = {};
-  for (const s of siteSettings) {
-    settings[s.key] = s.value;
-  }
+  const settings = await getCachedSiteSettings();
 
   const location = settings.location || "Silchar, Assam, India";
   const phone = settings.phone || "+91 93951 78940";

@@ -1,5 +1,6 @@
 import { prisma } from "@/lib/db";
-import { getPageStatus } from "@/lib/page-status";
+import { getPageStatus } from "@/lib/page-status-server";
+import { getCachedSiteSettings } from "@/lib/settings-cache";
 import { PageStatusGate } from "@/components/ui/PageStatusGate";
 import { SectionHeading } from "@/components/ui/SectionHeading";
 import { StatusBadge } from "@/components/ui/StatusBadge";
@@ -18,7 +19,7 @@ export const metadata: Metadata = {
 };
 
 export default async function TicketsPage() {
-  const [{ status, customTitle, customSubtitle }, upcomingEvent, siteSettings] = await Promise.all([
+  const [{ status, customTitle, customSubtitle }, upcomingEvent, settings] = await Promise.all([
     getPageStatus("tickets"),
     prisma.event
       .findFirst({
@@ -36,13 +37,8 @@ export default async function TicketsPage() {
         orderBy: { date: "asc" },
       })
       .catch(() => null),
-    prisma.siteSetting.findMany().catch(() => []),
+    getCachedSiteSettings(),
   ]);
-
-  const settings: Record<string, string> = {};
-  for (const s of siteSettings) {
-    settings[s.key] = s.value;
-  }
 
   return (
     <PageStatusGate

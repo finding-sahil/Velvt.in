@@ -1,4 +1,5 @@
 import { prisma } from "@/lib/db";
+import { getCachedSiteSettings } from "@/lib/settings-cache";
 import { SponsorInquiryForm } from "./SponsorInquiryForm";
 import type { Metadata } from "next";
 
@@ -11,7 +12,7 @@ export const metadata: Metadata = {
 };
 
 export default async function SponsorsPage() {
-  const [partners, testimonials, deckSetting] = await Promise.all([
+  const [partners, testimonials, settings] = await Promise.all([
     prisma.partner.findMany({
       where: { isActive: true },
       orderBy: { displayOrder: "asc" },
@@ -20,12 +21,10 @@ export default async function SponsorsPage() {
       where: { category: "sponsor", isApproved: true },
       orderBy: { displayOrder: "asc" },
     }).catch(() => []),
-    prisma.siteSetting.findUnique({
-      where: { key: "sponsorship_deck_url" },
-    }).catch(() => null),
+    getCachedSiteSettings(),
   ]);
 
-  const deckUrl = deckSetting?.value || null;
+  const deckUrl = settings.sponsorship_deck_url || null;
 
   const opportunities = [
     {

@@ -12,6 +12,8 @@ import {
 } from "@/lib/utils";
 import { AddToCalendar } from "@/components/ui/AddToCalendar";
 import { isSectionEnabled } from "@/lib/section-switchboard";
+import { getCachedSiteSettings } from "@/lib/settings-cache";
+import { cache } from "react";
 import type { Metadata } from "next";
 
 export const revalidate = 60;
@@ -20,11 +22,51 @@ interface EventPageProps {
   params: Promise<{ slug: string }>;
 }
 
+export async function generateStaticParams() {
+  try {
+    const events = await prisma.event.findMany({
+      where: { status: { not: "draft" } },
+      select: { slug: true },
+    });
+    return events.map((event) => ({ slug: event.slug }));
+  } catch {
+    return [];
+  }
+}
+
+const getCachedEvent = cache(async (slug: string) => {
+  return await prisma.event.findUnique({
+    where: { slug },
+    include: {
+      venue: true,
+      ticketTypes: {
+        where: { isActive: true },
+        orderBy: { displayOrder: "asc" },
+      },
+      scheduleItems: { orderBy: { displayOrder: "asc" } },
+      announcements: {
+        where: { isPublished: true },
+        orderBy: { publishedAt: "desc" },
+      },
+      faqs: { orderBy: { displayOrder: "asc" } },
+      galleryItems: {
+        where: { isPublished: true },
+        orderBy: { displayOrder: "asc" },
+        take: 36,
+      },
+      partners: {
+        where: { isActive: true },
+        orderBy: { displayOrder: "asc" },
+      },
+    },
+  });
+});
+
 export async function generateMetadata({
   params,
 }: EventPageProps): Promise<Metadata> {
   const { slug } = await params;
-  const event = await prisma.event.findUnique({ where: { slug } });
+  const event = await getCachedEvent(slug);
   if (!event) return { title: "Event Not Found" };
   return {
     title: event.name,
@@ -40,40 +82,14 @@ export async function generateMetadata({
 export default async function EventDetailPage({ params }: EventPageProps) {
   const { slug } = await params;
 
-  const [event, siteSettings] = await Promise.all([
-    prisma.event.findUnique({
-      where: { slug },
-      include: {
-        venue: true,
-        ticketTypes: {
-          where: { isActive: true },
-          orderBy: { displayOrder: "asc" },
-        },
-        scheduleItems: { orderBy: { displayOrder: "asc" } },
-        announcements: {
-          where: { isPublished: true },
-          orderBy: { publishedAt: "desc" },
-        },
-        faqs: { orderBy: { displayOrder: "asc" } },
-        galleryItems: {
-          where: { isPublished: true },
-          orderBy: { displayOrder: "asc" },
-          take: 36,
-        },
-        partners: {
-          where: { isActive: true },
-          orderBy: { displayOrder: "asc" },
-        },
-      },
-    }),
-    prisma.siteSetting.findMany().catch(() => []),
+  const [event, settings] = await Promise.all([
+    getCachedEvent(slug),
+    getCachedSiteSettings(),
   ]);
 
   if (!event || event.status === "draft") {
     notFound();
   }
-
-  const settings = Object.fromEntries(siteSettings.map((s) => [s.key, s.value]));
 
   const isCompleted = event.status === "completed" || event.status === "archived";
   const isUpcoming = event.status === "upcoming";

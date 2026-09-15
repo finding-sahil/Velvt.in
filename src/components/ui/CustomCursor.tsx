@@ -27,7 +27,30 @@ export function CustomCursor() {
     let ringY = mouseY;
     let isHovering = false;
     let isVisible = false;
+    let isLoopRunning = false;
     let animId: number;
+
+    const animateRing = () => {
+      const dx = mouseX - ringX;
+      const dy = mouseY - ringY;
+      ringX += dx * 0.18;
+      ringY += dy * 0.18;
+      ring.style.transform = `translate3d(${ringX}px, ${ringY}px, 0) translate(-50%, -50%)`;
+
+      // Only continue loop if trailing ring hasn't reached cursor position
+      if (Math.abs(dx) > 0.1 || Math.abs(dy) > 0.1) {
+        animId = requestAnimationFrame(animateRing);
+      } else {
+        isLoopRunning = false;
+      }
+    };
+
+    const startAnimation = () => {
+      if (!isLoopRunning) {
+        isLoopRunning = true;
+        animId = requestAnimationFrame(animateRing);
+      }
+    };
 
     const onMouseMove = (e: MouseEvent) => {
       mouseX = e.clientX;
@@ -38,6 +61,7 @@ export function CustomCursor() {
         ring.style.opacity = "1";
       }
       dot.style.transform = `translate3d(${mouseX}px, ${mouseY}px, 0) translate(-50%, -50%)`;
+      startAnimation();
     };
 
     const onMouseLeave = () => {
@@ -50,6 +74,7 @@ export function CustomCursor() {
       isVisible = true;
       dot.style.opacity = "1";
       ring.style.opacity = "1";
+      startAnimation();
     };
 
     const updateHoverState = (e: MouseEvent) => {
@@ -65,20 +90,12 @@ export function CustomCursor() {
       }
     };
 
-    window.addEventListener("mousemove", onMouseMove);
-    window.addEventListener("mouseover", updateHoverState);
+    window.addEventListener("mousemove", onMouseMove, { passive: true });
+    window.addEventListener("mouseover", updateHoverState, { passive: true });
     document.addEventListener("mouseleave", onMouseLeave);
     document.addEventListener("mouseenter", onMouseEnter);
 
-    const animateRing = () => {
-      // Smooth linear interpolation for trailing ring
-      ringX += (mouseX - ringX) * 0.16;
-      ringY += (mouseY - ringY) * 0.16;
-      ring.style.transform = `translate3d(${ringX}px, ${ringY}px, 0) translate(-50%, -50%)`;
-      animId = requestAnimationFrame(animateRing);
-    };
-
-    animId = requestAnimationFrame(animateRing);
+    startAnimation();
 
     return () => {
       window.removeEventListener("mousemove", onMouseMove);

@@ -1,5 +1,3 @@
-import { prisma } from "@/lib/db";
-
 export type PageStatus = "active" | "coming_soon" | "inactive";
 
 export interface PageStatusConfig {
@@ -85,40 +83,3 @@ export const CONTROLLED_PAGES: PageStatusConfig[] = [
       "New event dates and production schedules will be posted here soon.",
   },
 ];
-
-export async function getPageStatus(pageKey: string): Promise<{
-  status: PageStatus;
-  customTitle?: string;
-  customSubtitle?: string;
-}> {
-  const page = CONTROLLED_PAGES.find((p) => p.key === pageKey);
-  const defaultStatus = page?.defaultStatus || "active";
-
-  try {
-    const settings = await prisma.siteSetting.findMany({
-      where: {
-        key: {
-          in: [
-            `page_status_${pageKey}`,
-            `page_title_${pageKey}`,
-            `page_sub_${pageKey}`,
-          ],
-        },
-      },
-    });
-
-    const statusSetting = settings.find((s) => s.key === `page_status_${pageKey}`);
-    const titleSetting = settings.find((s) => s.key === `page_title_${pageKey}`);
-    const subSetting = settings.find((s) => s.key === `page_sub_${pageKey}`);
-
-    const status = (statusSetting?.value as PageStatus) || defaultStatus;
-
-    return {
-      status,
-      customTitle: titleSetting?.value || undefined,
-      customSubtitle: subSetting?.value || undefined,
-    };
-  } catch {
-    return { status: defaultStatus };
-  }
-}

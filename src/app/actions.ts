@@ -20,6 +20,7 @@ import { logAuditEvent } from "@/lib/audit";
 import { getAdminPrefix } from "@/lib/admin-path";
 import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
+import { revalidateSiteSettings } from "@/lib/settings-cache";
 import { headers } from "next/headers";
 import { unlink } from "fs/promises";
 import { existsSync } from "fs";
@@ -1836,6 +1837,8 @@ export async function updateSiteSettings(settings: Record<string, string>) {
       actor: { id: session.userId, email: session.user.email },
     });
 
+    revalidateSiteSettings();
+    revalidatePath("/", "layout");
     revalidatePath("/");
     revalidatePath("/about");
     revalidatePath("/events");
@@ -3434,6 +3437,7 @@ export async function updateSiteTheme(theme: string) {
         actor: { id: session.userId, email: session.user.email },
       });
 
+      revalidateSiteSettings();
       revalidatePath("/", "layout");
       return { success: true, theme: normalizedTheme, persisted: true };
     }
@@ -4857,6 +4861,8 @@ export async function saveLinkTreeConfig(config: LinkTreeConfig) {
       actor: { id: session.userId, email: session.user.email },
     });
 
+    revalidateSiteSettings();
+    revalidatePath("/", "layout");
     revalidatePath("/links");
     revalidatePath("/linktree");
     revalidatePath("/velvt-management/links");

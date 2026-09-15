@@ -1,7 +1,7 @@
 import { prisma } from "@/lib/db";
 import { redirect, notFound } from "next/navigation";
 
-export const dynamic = "force-dynamic";
+export const revalidate = 300;
 
 export default async function FounderVanityPage() {
   const founder = await prisma.teamMember.findFirst({

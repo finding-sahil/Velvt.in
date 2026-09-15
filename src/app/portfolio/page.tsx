@@ -1,7 +1,7 @@
 import { prisma } from "@/lib/db";
 import { redirect } from "next/navigation";
 
-export const dynamic = "force-dynamic";
+export const revalidate = 300;
 
 export default async function PortfolioVanityPage() {
   const sahil = await prisma.teamMember.findFirst({

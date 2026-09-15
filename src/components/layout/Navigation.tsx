@@ -3,7 +3,14 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useState } from "react";
-import { GlobalSearchModal, GlobalSearchTrigger } from "@/components/ui/GlobalSearchModal";
+import dynamic from "next/dynamic";
+import { GlobalSearchTrigger } from "@/components/ui/GlobalSearchModal";
+
+const GlobalSearchModal = dynamic(
+  () => import("@/components/ui/GlobalSearchModal").then((mod) => mod.GlobalSearchModal),
+  { ssr: false }
+);
+
 
 const navLinks = [
   { href: "/events", label: "Events" },

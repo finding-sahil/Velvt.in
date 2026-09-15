@@ -8,8 +8,7 @@ import { CustomCursor } from "@/components/ui/CustomCursor";
 import { HalloweenAtmosphere } from "@/components/ui/HalloweenAtmosphere";
 import { ScrollToTop } from "@/components/ui/ScrollToTop";
 import { AppShell } from "@/components/layout/AppShell";
-import { prisma } from "@/lib/db";
-import { cookies } from "next/headers";
+import { getCachedSiteSettings } from "@/lib/settings-cache";
 import "./globals.css";
 
 const barlowCondensed = Barlow_Condensed({
@@ -33,6 +32,7 @@ export const viewport = {
 };
 
 export const metadata: Metadata = {
+  metadataBase: new URL(process.env.NEXT_PUBLIC_SITE_URL || "https://velvt.in"),
   title: {
     default: "VELVT — It starts as a thought, ends as a memory",
     template: "%s — VELVT",
@@ -67,23 +67,8 @@ export default async function RootLayout({
 }: Readonly<{
   children: React.ReactNode;
 }>) {
-  let siteSettings: Record<string, string> = {};
-  let siteTheme = "legacy";
-  try {
-    const cookieStore = await cookies();
-    const cookieTheme = cookieStore.get("velvt_theme")?.value;
-    const settingsList = await prisma.siteSetting.findMany().catch(() => []);
-    for (const s of settingsList) {
-      siteSettings[s.key] = s.value;
-    }
-    if (cookieTheme) {
-      siteTheme = cookieTheme;
-    } else if (siteSettings.site_theme) {
-      siteTheme = siteSettings.site_theme;
-    }
-  } catch {
-    // fallback to legacy
-  }
+  const siteSettings = await getCachedSiteSettings();
+  const siteTheme = siteSettings.site_theme || "legacy";
 
   // Helper inside layout for feature toggles
   const isEnabled = (key: string, def = true) => {
@@ -105,14 +90,14 @@ export default async function RootLayout({
             __html: `(function(){try{var m=document.cookie.match(/velvt_theme=([^;]+)/);var s=(m&&m[1])||localStorage.getItem('velvt_theme');if(s){document.documentElement.setAttribute('data-theme',s);}}catch(e){}})();`,
           }}
         />
-        {/* Google Analytics (gtag.js) */}
+        {/* Google Analytics (gtag.js) - loaded with lazyOnload to protect TBT and FCP */}
         <Script
-          strategy="afterInteractive"
+          strategy="lazyOnload"
           src="https://www.googletagmanager.com/gtag/js?id=G-BMVXLZPMEQ"
         />
         <Script
           id="google-analytics"
-          strategy="afterInteractive"
+          strategy="lazyOnload"
           dangerouslySetInnerHTML={{
             __html: `
               window.dataLayer = window.dataLayer || [];

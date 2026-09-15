@@ -1,5 +1,5 @@
 import { prisma } from "@/lib/db";
-import { getPageStatus } from "@/lib/page-status";
+import { getPageStatus } from "@/lib/page-status-server";
 import { PageStatusGate } from "@/components/ui/PageStatusGate";
 import { SectionHeading } from "@/components/ui/SectionHeading";
 import { EmptyState } from "@/components/ui/EmptyState";
@@ -14,12 +14,15 @@ export const metadata: Metadata = {
 };
 
 export default async function TeamPage() {
-  const { status, customTitle, customSubtitle } = await getPageStatus("team");
-
-  const members = await prisma.teamMember.findMany({
-    where: { isPublished: true },
-    orderBy: { displayOrder: "asc" },
-  }).catch(() => []);
+  const [{ status, customTitle, customSubtitle }, members] = await Promise.all([
+    getPageStatus("team"),
+    prisma.teamMember
+      .findMany({
+        where: { isPublished: true },
+        orderBy: { displayOrder: "asc" },
+      })
+      .catch(() => []),
+  ]);
 
   // Group by category
   type MemberType = (typeof members)[number];
@@ -111,6 +114,8 @@ export default async function TeamPage() {
                             <img
                               src={member.portrait}
                               alt={member.name}
+                              loading="lazy"
+                              decoding="async"
                               className="w-full h-full object-cover object-center transition-transform duration-700 ease-out group-hover:scale-105 filter contrast-[1.05] brightness-[0.9] group-hover:brightness-100"
                             />
                             <div className="absolute inset-0 bg-gradient-to-t from-black via-black/80 via-45% to-black/20" />

@@ -1,11 +1,16 @@
 import { getLinkTreeData } from "@/app/actions";
 import { LinkTreeClient } from "./LinkTreeClient";
 import type { Metadata } from "next";
+import { cache } from "react";
 
-export const dynamic = "force-dynamic";
+export const revalidate = 60;
+
+const getCachedData = cache(async () => {
+  return await getLinkTreeData();
+});
 
 export async function generateMetadata(): Promise<Metadata> {
-  const config = await getLinkTreeData();
+  const config = await getCachedData();
   return {
     title: `${config.title} • Official Links & Passes`,
     description: config.bio,
@@ -33,6 +38,7 @@ export async function generateMetadata(): Promise<Metadata> {
 }
 
 export default async function LinksPage() {
-  const config = await getLinkTreeData();
+  const config = await getCachedData();
   return <LinkTreeClient config={config} />;
 }
+

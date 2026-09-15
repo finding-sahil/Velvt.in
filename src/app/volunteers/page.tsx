@@ -1,5 +1,6 @@
 import { prisma } from "@/lib/db";
-import { getPageStatus } from "@/lib/page-status";
+import { getPageStatus } from "@/lib/page-status-server";
+import { getCachedSiteSettings } from "@/lib/settings-cache";
 import { PageStatusGate } from "@/components/ui/PageStatusGate";
 import { SectionHeading } from "@/components/ui/SectionHeading";
 import { Button } from "@/components/ui/Button";
@@ -18,9 +19,8 @@ export const metadata: Metadata = {
 };
 
 export default async function VolunteersPage() {
-  const { status, customTitle, customSubtitle } = await getPageStatus("volunteers");
-
-  const [volunteers, testimonials, siteSettings] = await Promise.all([
+  const [{ status, customTitle, customSubtitle }, volunteers, testimonials, settings] = await Promise.all([
+    getPageStatus("volunteers"),
     prisma.volunteer.findMany({
       where: { status: { in: ["approved", "verified"] } },
       select: {
@@ -39,16 +39,11 @@ export default async function VolunteersPage() {
       where: { category: "volunteer", isApproved: true },
       orderBy: { displayOrder: "asc" },
     }).catch(() => []),
-    prisma.siteSetting.findMany().catch(() => []),
+    getCachedSiteSettings(),
   ]);
 
-  const settings: Record<string, string> = {};
-  for (const s of siteSettings) {
-    settings[s.key] = s.value;
-  }
-
-  const rolesSetting = siteSettings.find((s) => s.key === "volunteer_roles");
-  const roleList: string[] = rolesSetting ? JSON.parse(rolesSetting.value) : [
+  const rolesValue = settings.volunteer_roles;
+  const roleList: string[] = rolesValue ? JSON.parse(rolesValue) : [
     "Event Operations",
     "Registration Desk",
     "Crowd Management",

@@ -1,4 +1,5 @@
 import { prisma } from "@/lib/db";
+import { getCachedSiteSettings } from "@/lib/settings-cache";
 import { HeroSection } from "./sections/HeroSection";
 import { FeaturedEventSection } from "./sections/FeaturedEventSection";
 import { FeaturedEventStorySection } from "./sections/FeaturedEventStorySection";
@@ -19,9 +20,28 @@ import { isSectionEnabled } from "@/lib/section-switchboard";
 export const revalidate = 60; // Instant cached serving with background ISR
 
 export default async function HomePage() {
-  // Fetch initial queries in parallel to eliminate waterfall network latency
-  const [siteSettings, recentEvents, teamMembers, partners, testimonials] = await Promise.all([
-    prisma.siteSetting.findMany().catch(() => []),
+  // 1. Instant cached settings provider (0ms memory cache)
+  const settings = await getCachedSiteSettings();
+
+  // 2. Prepare featured event query based on settings
+  const featuredEventQuery = settings.featured_event_id
+    ? prisma.event.findUnique({
+        where: { id: settings.featured_event_id },
+        include: {
+          venue: true,
+          ticketTypes: { where: { isActive: true }, orderBy: { displayOrder: "asc" } },
+        },
+      }).catch(() => null)
+    : prisma.event.findFirst({
+        where: { isFeatured: true, status: { not: "draft" } },
+        include: {
+          venue: true,
+          ticketTypes: { where: { isActive: true }, orderBy: { displayOrder: "asc" } },
+        },
+      }).catch(() => null);
+
+  // 3. Parallelize all database queries concurrently in a single round-trip pool
+  const [recentEvents, teamMembers, partners, testimonials, initialFeaturedEvent] = await Promise.all([
     prisma.event.findMany({
       where: { status: { not: "draft" } },
       include: { venue: true },
@@ -43,26 +63,11 @@ export default async function HomePage() {
       orderBy: { displayOrder: "asc" },
       take: 12,
     }).catch(() => []),
+    featuredEventQuery,
   ]);
 
-  const settings: Record<string, string> = {};
-  for (const s of siteSettings) {
-    settings[s.key] = s.value;
-  }
-
-  // Fetch featured event
-  let featuredEvent = null;
-  if (settings.featured_event_id) {
-    featuredEvent = await prisma.event.findUnique({
-      where: { id: settings.featured_event_id },
-      include: {
-        venue: true,
-        ticketTypes: { where: { isActive: true }, orderBy: { displayOrder: "asc" } },
-      },
-    }).catch(() => null);
-  }
-
-  if (!featuredEvent) {
+  let featuredEvent = initialFeaturedEvent;
+  if (!featuredEvent && settings.featured_event_id) {
     featuredEvent = await prisma.event.findFirst({
       where: { isFeatured: true, status: { not: "draft" } },
       include: {

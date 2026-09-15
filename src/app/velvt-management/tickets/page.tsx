@@ -15,58 +15,58 @@ export default async function AdminTicketsPage() {
     redirect("/velvt-management/gate");
   }
 
-  // Fetch all issued tickets
-  const tickets = await prisma.issuedTicket.findMany({
-    orderBy: { createdAt: "desc" },
-    include: {
-      event: {
-        select: {
-          id: true,
-          name: true,
-          slug: true,
-          date: true,
-          time: true,
-          status: true,
-          venue: {
-            select: {
-              name: true,
-              city: true,
-              address: true,
+  // Fetch all issued tickets and generator events in parallel
+  const [tickets, events] = await Promise.all([
+    prisma.issuedTicket.findMany({
+      orderBy: { createdAt: "desc" },
+      include: {
+        event: {
+          select: {
+            id: true,
+            name: true,
+            slug: true,
+            date: true,
+            time: true,
+            status: true,
+            venue: {
+              select: {
+                name: true,
+                city: true,
+                address: true,
+              },
             },
           },
         },
-      },
-      ticketType: {
-        select: {
-          id: true,
-          name: true,
-          priceInPaise: true,
+        ticketType: {
+          select: {
+            id: true,
+            name: true,
+            priceInPaise: true,
+          },
         },
       },
-    },
-  });
-
-  // Fetch all events for the generator dropdown
-  const events = await prisma.event.findMany({
-    orderBy: [{ isFeatured: "desc" }, { date: "desc" }],
-    select: {
-      id: true,
-      name: true,
-      slug: true,
-      date: true,
-      status: true,
-      isFeatured: true,
-      ticketTypes: {
-        where: { isActive: true },
-        orderBy: { displayOrder: "asc" },
-        select: {
-          id: true,
-          name: true,
-          priceInPaise: true,
+    }),
+    prisma.event.findMany({
+      orderBy: [{ isFeatured: "desc" }, { date: "desc" }],
+      select: {
+        id: true,
+        name: true,
+        slug: true,
+        date: true,
+        status: true,
+        isFeatured: true,
+        ticketTypes: {
+          where: { isActive: true },
+          orderBy: { displayOrder: "asc" },
+          select: {
+            id: true,
+            name: true,
+            priceInPaise: true,
+          },
         },
       },
-    },
-  });
+    }),
+  ]);
 
   return (
     <div className="space-y-8 animate-fade-in">

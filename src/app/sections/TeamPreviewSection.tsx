@@ -74,6 +74,8 @@ export function TeamPreviewSection({ members }: TeamPreviewSectionProps) {
                     <img
                       src={member.portrait}
                       alt={member.name}
+                      loading="lazy"
+                      decoding="async"
                       className="w-full h-full object-cover object-center transition-transform duration-700 ease-out group-hover:scale-105 filter contrast-[1.05] brightness-[0.9] group-hover:brightness-100"
                     />
                     {/* Multi-stage cinema vignette */}

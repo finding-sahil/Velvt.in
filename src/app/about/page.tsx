@@ -1,26 +1,22 @@
 import type { Metadata } from "next";
-import { getPageStatus } from "@/lib/page-status";
+import { getPageStatus } from "@/lib/page-status-server";
 import { PageStatusGate } from "@/components/ui/PageStatusGate";
-import { prisma } from "@/lib/db";
+import { getCachedSiteSettings } from "@/lib/settings-cache";
 import { isSectionEnabled } from "@/lib/section-switchboard";
 
 export const revalidate = 60;
 
 export const metadata: Metadata = {
   title: "About",
-  description: "VELVT is an event organization focused on creating immersive experiences, bringing communities together, and turning creative ideas into memorable events.",
+  description:
+    "Learn about VELVT — our philosophy, what we do, and our vision for nightlife culture in Silchar, Assam, India.",
 };
 
 export default async function AboutPage() {
-  const [{ status, customTitle, customSubtitle }, siteSettings] = await Promise.all([
+  const [{ status, customTitle, customSubtitle }, settings] = await Promise.all([
     getPageStatus("about"),
-    prisma.siteSetting.findMany().catch(() => []),
+    getCachedSiteSettings(),
   ]);
-
-  const settings: Record<string, string> = {};
-  for (const s of siteSettings) {
-    settings[s.key] = s.value;
-  }
 
   return (
     <PageStatusGate

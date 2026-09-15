@@ -1,7 +1,6 @@
 "use client";
 
 import React, { useState } from "react";
-import QRCode from "qrcode";
 
 interface DownloadQrButtonProps {
   /** Text or URL encoded into the QR code */
@@ -41,6 +40,8 @@ export default function DownloadQrButton({
     if (status === "generating") return;
     setStatus("generating");
 
+    let QRCode: any;
+
     try {
       // Dynamically resolve target URL so QR code always encodes the live working site URL
       let targetUrl = data;
@@ -57,7 +58,10 @@ export default function DownloadQrButton({
         targetUrl = targetUrl.startsWith("/") ? `${base}${targetUrl}` : `${base}/${targetUrl}`;
       }
 
-      // 1. Generate high-res QR code data URL (High error correction level)
+      // 1. Dynamically import QRCode library only when download is requested (saves ~50KB client JS)
+      QRCode = (await import("qrcode")).default;
+
+      // 2. Generate high-res QR code data URL (High error correction level)
       const qrDataUrl = await QRCode.toDataURL(targetUrl, {
         errorCorrectionLevel: "H",
         margin: 2,

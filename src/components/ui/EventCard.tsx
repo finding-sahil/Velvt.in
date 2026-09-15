@@ -33,9 +33,12 @@ export function EventCard({
           {/* Image Side */}
           <div className="relative bg-black/40 overflow-hidden">
             {coverImage ? (
-              <div
-                className="absolute inset-0 bg-cover bg-center transition-transform duration-700 group-hover:scale-105"
-                style={{ backgroundImage: `url(${coverImage})` }}
+              <img
+                src={coverImage}
+                alt={name}
+                loading="lazy"
+                decoding="async"
+                className="absolute inset-0 w-full h-full object-cover transition-transform duration-700 group-hover:scale-105"
               />
             ) : (
               <div className="absolute inset-0 flex items-center justify-center bg-black/60">
@@ -93,9 +96,12 @@ export function EventCard({
       {/* Image */}
       <div className="relative aspect-[16/10] overflow-hidden bg-black/40">
         {coverImage ? (
-          <div
-            className="absolute inset-0 bg-cover bg-center transition-transform duration-700 group-hover:scale-105"
-            style={{ backgroundImage: `url(${coverImage})` }}
+          <img
+            src={coverImage}
+            alt={name}
+            loading="lazy"
+            decoding="async"
+            className="absolute inset-0 w-full h-full object-cover transition-transform duration-700 group-hover:scale-105"
           />
         ) : (
           <div className="absolute inset-0 flex items-center justify-center bg-black/60">

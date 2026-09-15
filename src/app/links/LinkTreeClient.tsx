@@ -182,27 +182,21 @@ export function LinkTreeClient({ config }: LinkTreeClientProps) {
                 </div>
               )}
             </div>
-            {config.verified && (
-              <div
-                className="absolute -bottom-1 -right-1 flex items-center justify-center filter drop-shadow-[0_2px_8px_rgba(0,149,246,0.6)]"
-                title="Official Verified Platform"
-              >
-                <InstagramVerifiedBadge className="w-7 h-7" size={28} />
-              </div>
-            )}
           </div>
 
-          {/* Title: VELVT.in with Instagram Verified Tick */}
+          {/* Title: VELVT.in with Official Verified Badge (Single, crisp, properly aligned) */}
           <div className="space-y-1">
-            <div className="flex items-center justify-center gap-1.5">
+            <div className="flex items-center justify-center gap-2">
               <h1 className="font-display font-black text-3xl sm:text-4xl text-white tracking-wider uppercase">
                 VELVT<span className="text-red">.in</span>
               </h1>
               {config.verified && (
-                <InstagramVerifiedBadge
-                  className="w-5 h-5 sm:w-6 sm:h-6 drop-shadow-[0_2px_8px_rgba(0,149,246,0.6)] shrink-0"
-                  size={22}
-                />
+                <span className="inline-flex items-center" title="Official Verified Account">
+                  <InstagramVerifiedBadge
+                    className="w-5 h-5 sm:w-[22px] sm:h-[22px]"
+                    size={22}
+                  />
+                </span>
               )}
             </div>
             <p className="text-xs sm:text-sm font-mono text-white/70 max-w-sm leading-relaxed px-2 tracking-widest uppercase">

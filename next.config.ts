@@ -10,6 +10,8 @@ const securityHeaders = [
 ];
 
 const nextConfig: NextConfig = {
+  compress: true,
+  reactStrictMode: true,
   poweredByHeader: false,
   productionBrowserSourceMaps: false,
   images: {

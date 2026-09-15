@@ -297,19 +297,28 @@ body {
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
   overflow-x: hidden;
-  transition: background-color 0.4s ease;
-  
-  /* Dynamic Atmospheric Ambient Halos & Dot Matrix */
+  position: relative;
+}
+
+/* Dynamic Atmospheric Ambient Halos & Dot Matrix (GPU Composited Layer - 60fps Scroll) */
+body::before {
+  content: "";
+  position: fixed;
+  inset: 0;
+  z-index: -1;
+  pointer-events: none;
   background-image:
     radial-gradient(circle at 70% 15%, var(--theme-glow-soft, rgba(200, 16, 46, 0.09)) 0%, transparent 55%),
     radial-gradient(circle at 15% 80%, var(--theme-glow-soft, rgba(200, 16, 46, 0.07)) 0%, transparent 45%),
     radial-gradient(circle at 50% 50%, var(--theme-glow-soft, rgba(130, 20, 35, 0.12)) 0%, transparent 70%),
     radial-gradient(var(--theme-dot, rgba(255, 255, 255, 0.08)) 1px, transparent 1px);
   background-size: 100% 100%, 100% 100%, 100% 100%, 28px 28px;
-  background-attachment: fixed, fixed, fixed, fixed;
+  transform: translateZ(0);
+  will-change: transform;
 }
 
-/* ─── UNTOLDSURI Texture Layers ────────────────────────────────────────────── */
+
+/* ─── UNTOLDSURI Texture Layers (GPU Composited) ────────────────────────────── */
 .film-grain {
   position: fixed;
   inset: 0;
@@ -317,6 +326,8 @@ body {
   pointer-events: none;
   background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noiseFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.65' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noiseFilter)'/%3E%3C/svg%3E");
   opacity: 0.025;
+  transform: translateZ(0);
+  will-change: transform;
 }
 
 .scanlines {
@@ -327,6 +338,7 @@ body {
   background: linear-gradient(rgba(18, 16, 16, 0) 50%, rgba(0, 0, 0, 0.08) 50%),
     linear-gradient(90deg, rgba(200, 16, 46, 0.02), rgba(0, 0, 0, 0.01), rgba(200, 16, 46, 0.02));
   background-size: 100% 3px, 3px 100%;
+  transform: translateZ(0);
 }
 
 /* ─── UNTOLDSURI Hardware-Accelerated Ambient Cursor ──────────────────────── */
@@ -586,45 +598,6 @@ body.is-admin .scanlines {
 .animation-delay-300 { animation-delay: 300ms; }
 .animation-delay-400 { animation-delay: 400ms; }
 
-/* ─── Interactive Custom Cursor Styling ─────────────────────────────────────── */
-#cursor-dot {
-  position: fixed;
-  top: 0;
-  left: 0;
-  width: 6px;
-  height: 6px;
-  background-color: var(--color-red, #c8102e);
-  border-radius: 50%;
-  pointer-events: none;
-  z-index: 9999;
-  opacity: 0;
-  will-change: transform, opacity;
-  box-shadow: 0 0 10px #c8102e;
-}
-
-#cursor-ring {
-  position: fixed;
-  top: 0;
-  left: 0;
-  width: 36px;
-  height: 36px;
-  border: 1px solid rgba(200, 16, 46, 0.4);
-  background: rgba(200, 16, 46, 0.05);
-  border-radius: 50%;
-  pointer-events: none;
-  z-index: 9998;
-  opacity: 0;
-  will-change: transform, opacity;
-  transition: width 0.2s, height 0.2s, border-color 0.2s, background-color 0.2s;
-}
-
-body.cursor-hover #cursor-ring {
-  width: 52px;
-  height: 52px;
-  border-color: rgba(200, 16, 46, 0.8);
-  background: rgba(200, 16, 46, 0.12);
-  box-shadow: 0 0 20px rgba(200, 16, 46, 0.3);
-}
 
 /* ─── Shell Containment & Anti-Overflow ───────────────────────────────────────── */
 html, body {

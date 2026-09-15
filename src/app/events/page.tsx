@@ -1,5 +1,5 @@
 import { prisma } from "@/lib/db";
-import { getPageStatus } from "@/lib/page-status";
+import { getPageStatus } from "@/lib/page-status-server";
 import { PageStatusGate } from "@/components/ui/PageStatusGate";
 import { SectionHeading } from "@/components/ui/SectionHeading";
 import { EventCard } from "@/components/ui/EventCard";
@@ -15,15 +15,16 @@ export const metadata: Metadata = {
 };
 
 export default async function EventsPage() {
-  const { status, customTitle, customSubtitle } = await getPageStatus("events");
-
-  const events = await prisma.event
-    .findMany({
-      where: { status: { not: "draft" } },
-      include: { venue: true },
-      orderBy: { date: "desc" },
-    })
-    .catch(() => []);
+  const [{ status, customTitle, customSubtitle }, events] = await Promise.all([
+    getPageStatus("events"),
+    prisma.event
+      .findMany({
+        where: { status: { not: "draft" } },
+        include: { venue: true },
+        orderBy: { date: "desc" },
+      })
+      .catch(() => []),
+  ]);
 
   const upcoming = events.filter(
     (e) =>

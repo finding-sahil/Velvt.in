@@ -1,10 +1,10 @@
-import { prisma } from "@/lib/db";
-import { getPageStatus } from "@/lib/page-status";
+import { getPageStatus } from "@/lib/page-status-server";
+import { getCachedSiteSettings } from "@/lib/settings-cache";
 import { PageStatusGate } from "@/components/ui/PageStatusGate";
 import { ContactForm } from "./ContactForm";
 import type { Metadata } from "next";
 
-export const dynamic = "force-dynamic";
+export const revalidate = 60;
 
 export const metadata: Metadata = {
   title: "Contact & Collaboration — VELVT",
@@ -13,15 +13,11 @@ export const metadata: Metadata = {
 };
 
 export default async function ContactPage() {
-  const [{ status, customTitle, customSubtitle }, siteSettings] = await Promise.all([
+  const [{ status, customTitle, customSubtitle }, settings] = await Promise.all([
     getPageStatus("contact"),
-    prisma.siteSetting.findMany().catch(() => []),
+    getCachedSiteSettings(),
   ]);
 
-  const settings: Record<string, string> = {};
-  for (const s of siteSettings) {
-    settings[s.key] = s.value;
-  }
 
   return (
     <PageStatusGate

@@ -1,5 +1,6 @@
 import { prisma } from "@/lib/db";
-import { getPageStatus } from "@/lib/page-status";
+import { getPageStatus } from "@/lib/page-status-server";
+import { getCachedSiteSettings } from "@/lib/settings-cache";
 import { PageStatusGate } from "@/components/ui/PageStatusGate";
 import { SectionHeading } from "@/components/ui/SectionHeading";
 import { Button } from "@/components/ui/Button";
@@ -7,7 +8,7 @@ import { EmptyState } from "@/components/ui/EmptyState";
 import { formatDateShort } from "@/lib/utils";
 import type { Metadata } from "next";
 
-export const dynamic = "force-dynamic";
+export const revalidate = 60;
 
 export const metadata: Metadata = {
   title: "Press & Sponsors",
@@ -16,7 +17,7 @@ export const metadata: Metadata = {
 };
 
 export default async function PressPage() {
-  const [{ status, customTitle, customSubtitle }, dbMentions, siteSettings] = await Promise.all([
+  const [{ status, customTitle, customSubtitle }, dbMentions, settings] = await Promise.all([
     getPageStatus("press"),
     prisma.pressMention
       .findMany({
@@ -24,13 +25,9 @@ export default async function PressPage() {
         orderBy: { displayOrder: "asc" },
       })
       .catch(() => []),
-    prisma.siteSetting.findMany().catch(() => []),
+    getCachedSiteSettings(),
   ]);
 
-  const settings: Record<string, string> = {};
-  for (const s of siteSettings) {
-    settings[s.key] = s.value;
-  }
   const pressEmail = settings.press_email || settings.contact_email || "velvt.in@gmail.com";
 
   return (

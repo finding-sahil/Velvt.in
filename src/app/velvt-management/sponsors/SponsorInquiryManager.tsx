@@ -3,7 +3,6 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
-import QRCode from "qrcode";
 import {
   updateSponsorInquiryStatus,
   deleteSponsorInquiry,
@@ -151,6 +150,7 @@ export function SponsorInquiryManager({
       setPassData(res.pass);
       try {
         const fullUrl = `${window.location.origin}${res.pass.verifyUrl}`;
+        const QRCode = (await import("qrcode")).default;
         const dataUrl = await QRCode.toDataURL(fullUrl, {
           width: 300,
           margin: 1,

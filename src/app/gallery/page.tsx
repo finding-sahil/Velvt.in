@@ -1,5 +1,5 @@
 import { prisma } from "@/lib/db";
-import { getPageStatus } from "@/lib/page-status";
+import { getPageStatus } from "@/lib/page-status-server";
 import { PageStatusGate } from "@/components/ui/PageStatusGate";
 import { SectionHeading } from "@/components/ui/SectionHeading";
 import { EmptyState } from "@/components/ui/EmptyState";
@@ -15,15 +15,16 @@ export const metadata: Metadata = {
 };
 
 export default async function GalleryPage() {
-  const { status, customTitle, customSubtitle } = await getPageStatus("gallery");
-
-  const dbItems = await prisma.galleryItem
-    .findMany({
-      where: { isPublished: true },
-      orderBy: { displayOrder: "asc" },
-      include: { event: { select: { name: true } } },
-    })
-    .catch(() => []);
+  const [{ status, customTitle, customSubtitle }, dbItems] = await Promise.all([
+    getPageStatus("gallery"),
+    prisma.galleryItem
+      .findMany({
+        where: { isPublished: true },
+        orderBy: { displayOrder: "asc" },
+        include: { event: { select: { name: true } } },
+      })
+      .catch(() => []),
+  ]);
 
   return (
     <PageStatusGate

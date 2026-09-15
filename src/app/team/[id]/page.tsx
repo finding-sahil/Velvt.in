@@ -1,6 +1,7 @@
 import { prisma } from "@/lib/db";
 import Link from "next/link";
 import { notFound } from "next/navigation";
+import { cache } from "react";
 import type { Metadata } from "next";
 
 export const revalidate = 60;
@@ -9,11 +10,27 @@ interface PageProps {
   params: Promise<{ id: string }>;
 }
 
-export async function generateMetadata({ params }: PageProps): Promise<Metadata> {
-  const { id } = await params;
-  const member = await prisma.teamMember.findUnique({
+export async function generateStaticParams() {
+  try {
+    const members = await prisma.teamMember.findMany({
+      where: { isPublished: true },
+      select: { id: true },
+    });
+    return members.map((m) => ({ id: m.id }));
+  } catch {
+    return [];
+  }
+}
+
+const getCachedTeamMember = cache(async (id: string) => {
+  return await prisma.teamMember.findUnique({
     where: { id },
   });
+});
+
+export async function generateMetadata({ params }: PageProps): Promise<Metadata> {
+  const { id } = await params;
+  const member = await getCachedTeamMember(id);
 
   if (!member) {
     return { title: "Team Member Not Found — VELVT" };
@@ -30,9 +47,7 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
 export default async function TeamMemberPortfolioPage({ params }: PageProps) {
   const { id } = await params;
 
-  const member = await prisma.teamMember.findUnique({
-    where: { id },
-  });
+  const member = await getCachedTeamMember(id);
 
   if (!member || !member.isPublished) {
     notFound();
