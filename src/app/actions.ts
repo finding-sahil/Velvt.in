@@ -4643,6 +4643,9 @@ export interface LinkTreeConfig {
   title: string;
   bio: string;
   avatarUrl?: string;
+  desktopBackgroundUrl?: string;
+  mobileBackgroundUrl?: string;
+  backgroundDim?: number;
   verified: boolean;
   location: string;
   socials: {
@@ -4661,6 +4664,9 @@ const DEFAULT_LINKTREE_CONFIG: LinkTreeConfig = {
   title: "VELVT.in",
   bio: "Experience Architecture • Silchar, Assam, India",
   avatarUrl: "",
+  desktopBackgroundUrl: "",
+  mobileBackgroundUrl: "",
+  backgroundDim: 70,
   verified: true,
   location: "Silchar, Assam, India",
   socials: {
@@ -4792,6 +4798,9 @@ export async function getLinkTreeData(): Promise<LinkTreeConfig> {
           title: parsed.title || settingsMap.brand_name || DEFAULT_LINKTREE_CONFIG.title,
           bio: parsed.bio || settingsMap.tagline || DEFAULT_LINKTREE_CONFIG.bio,
           avatarUrl: parsed.avatarUrl || "",
+          desktopBackgroundUrl: parsed.desktopBackgroundUrl || "",
+          mobileBackgroundUrl: parsed.mobileBackgroundUrl || "",
+          backgroundDim: parsed.backgroundDim !== undefined ? parsed.backgroundDim : 70,
           verified: parsed.verified !== undefined ? parsed.verified : true,
           location: parsed.location || settingsMap.location || DEFAULT_LINKTREE_CONFIG.location,
           socials: {

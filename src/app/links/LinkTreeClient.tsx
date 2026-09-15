@@ -56,8 +56,44 @@ export function LinkTreeClient({ config }: LinkTreeClientProps) {
 
   return (
     <div className="min-h-screen bg-[#060205] text-white relative flex flex-col items-center justify-between px-4 py-8 sm:py-12 selection:bg-red selection:text-white font-sans overflow-x-hidden">
-      {/* ─── Luxury Velvet Ambient Atmosphere ─── */}
+      {/* ─── Luxury Velvet Ambient Atmosphere & Custom Wallpapers ─── */}
       <div className="fixed inset-0 pointer-events-none overflow-hidden -z-10">
+        {/* Wallpaper Presentation: Separate Desktop vs Mobile with smart single-upload fallback */}
+        {config.desktopBackgroundUrl && config.mobileBackgroundUrl ? (
+          <>
+            <img
+              src={config.desktopBackgroundUrl}
+              alt="Link Tree Desktop Background"
+              className="hidden md:block absolute inset-0 w-full h-full object-cover object-center"
+            />
+            <img
+              src={config.mobileBackgroundUrl}
+              alt="Link Tree Mobile Background"
+              className="block md:hidden absolute inset-0 w-full h-full object-cover object-center"
+            />
+          </>
+        ) : config.desktopBackgroundUrl ? (
+          <img
+            src={config.desktopBackgroundUrl}
+            alt="Link Tree Background"
+            className="absolute inset-0 w-full h-full object-cover object-center"
+          />
+        ) : config.mobileBackgroundUrl ? (
+          <img
+            src={config.mobileBackgroundUrl}
+            alt="Link Tree Background"
+            className="absolute inset-0 w-full h-full object-cover object-center"
+          />
+        ) : null}
+
+        {/* Dark Contrast Dim Overlay (ensures text/links stay 100% readable) */}
+        {(config.desktopBackgroundUrl || config.mobileBackgroundUrl) && (
+          <div
+            className="absolute inset-0 bg-[#060205]"
+            style={{ opacity: (config.backgroundDim ?? 70) / 100 }}
+          />
+        )}
+
         {/* Top Glowing Velvet Spotlight */}
         <div
           className="absolute -top-40 left-1/2 -translate-x-1/2 w-[850px] h-[600px] bg-gradient-to-b from-red-600/25 via-red-950/15 to-transparent rounded-full blur-[140px]"

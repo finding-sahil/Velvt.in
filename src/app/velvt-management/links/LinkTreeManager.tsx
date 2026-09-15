@@ -49,6 +49,9 @@ export function LinkTreeManager({ initialConfig }: LinkTreeManagerProps) {
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
   const [editingLink, setEditingLink] = useState<LinkTreeLink | null>(null);
   const [isUploadingLogo, setIsUploadingLogo] = useState(false);
+  const [isUploadingDesktopBg, setIsUploadingDesktopBg] = useState(false);
+  const [isUploadingMobileBg, setIsUploadingMobileBg] = useState(false);
+  const [previewDevice, setPreviewDevice] = useState<"mobile" | "desktop">("mobile");
 
   // Form State for Add/Edit
   const [linkForm, setLinkForm] = useState({
@@ -67,6 +70,9 @@ export function LinkTreeManager({ initialConfig }: LinkTreeManagerProps) {
     title: config.title,
     bio: config.bio,
     avatarUrl: config.avatarUrl || "",
+    desktopBackgroundUrl: config.desktopBackgroundUrl || "",
+    mobileBackgroundUrl: config.mobileBackgroundUrl || "",
+    backgroundDim: config.backgroundDim !== undefined ? config.backgroundDim : 70,
     verified: config.verified,
     location: config.location,
     instagram: config.socials.instagram || "",
@@ -108,6 +114,66 @@ export function LinkTreeManager({ initialConfig }: LinkTreeManagerProps) {
       showToast(err.message || "Failed to upload logo", "error");
     } finally {
       setIsUploadingLogo(false);
+      e.target.value = "";
+    }
+  }
+
+  async function handleDesktopBgUpload(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    setIsUploadingDesktopBg(true);
+    try {
+      const formData = new FormData();
+      formData.append("file", file);
+      formData.append("purpose", "linktree-desktop-bg");
+
+      const res = await fetch("/api/upload", {
+        method: "POST",
+        body: formData,
+      });
+
+      const data = await res.json();
+      if (!res.ok || !data.success) {
+        throw new Error(data.error || "Failed to upload desktop wallpaper");
+      }
+
+      setProfileForm((prev) => ({ ...prev, desktopBackgroundUrl: data.url }));
+      showToast("Desktop wallpaper uploaded successfully!");
+    } catch (err: any) {
+      showToast(err.message || "Failed to upload desktop wallpaper", "error");
+    } finally {
+      setIsUploadingDesktopBg(false);
+      e.target.value = "";
+    }
+  }
+
+  async function handleMobileBgUpload(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    setIsUploadingMobileBg(true);
+    try {
+      const formData = new FormData();
+      formData.append("file", file);
+      formData.append("purpose", "linktree-mobile-bg");
+
+      const res = await fetch("/api/upload", {
+        method: "POST",
+        body: formData,
+      });
+
+      const data = await res.json();
+      if (!res.ok || !data.success) {
+        throw new Error(data.error || "Failed to upload mobile wallpaper");
+      }
+
+      setProfileForm((prev) => ({ ...prev, mobileBackgroundUrl: data.url }));
+      showToast("Mobile wallpaper uploaded successfully!");
+    } catch (err: any) {
+      showToast(err.message || "Failed to upload mobile wallpaper", "error");
+    } finally {
+      setIsUploadingMobileBg(false);
       e.target.value = "";
     }
   }
@@ -264,6 +330,9 @@ export function LinkTreeManager({ initialConfig }: LinkTreeManagerProps) {
         title: profileForm.title.trim() || "VELVT.in",
         bio: profileForm.bio.trim(),
         avatarUrl: profileForm.avatarUrl.trim(),
+        desktopBackgroundUrl: profileForm.desktopBackgroundUrl.trim(),
+        mobileBackgroundUrl: profileForm.mobileBackgroundUrl.trim(),
+        backgroundDim: Number(profileForm.backgroundDim) || 70,
         verified: profileForm.verified,
         location: profileForm.location.trim(),
         socials: {
@@ -659,6 +728,171 @@ export function LinkTreeManager({ initialConfig }: LinkTreeManagerProps) {
                     </label>
                   </div>
                 </div>
+
+                {/* Custom Wallpapers (Desktop & Mobile Separate) */}
+                <div className="p-5 rounded-2xl bg-white/[0.03] border border-white/10 space-y-5">
+                  <div className="border-b border-white/10 pb-3">
+                    <h3 className="font-display font-bold text-base text-white uppercase tracking-wider flex items-center gap-2">
+                      <span>🎨</span>
+                      <span>Link Tree Background Wallpapers</span>
+                    </h3>
+                    <p className="text-xs font-mono text-muted mt-0.5">
+                      Set separate high-resolution backgrounds for Desktop and Mobile screens. A dim overlay ensures passes & links stay 100% visible.
+                    </p>
+                  </div>
+
+                  <div className="grid md:grid-cols-2 gap-5">
+                    {/* 1. Desktop Wallpaper */}
+                    <div className="p-4 rounded-xl bg-black/40 border border-white/10 space-y-3">
+                      <div className="flex items-center justify-between">
+                        <span className="text-xs font-mono font-bold uppercase tracking-wider text-white flex items-center gap-1.5">
+                          <span>🖥️</span>
+                          <span>Desktop Background (16:9)</span>
+                        </span>
+                        {profileForm.desktopBackgroundUrl && (
+                          <span className="text-[10px] font-mono text-emerald-400 font-bold">● Active</span>
+                        )}
+                      </div>
+
+                      {/* Desktop Preview Box */}
+                      <div className="aspect-video w-full rounded-xl bg-black border border-white/10 relative overflow-hidden flex items-center justify-center shadow-inner">
+                        {profileForm.desktopBackgroundUrl ? (
+                          <img
+                            src={profileForm.desktopBackgroundUrl}
+                            alt="Desktop Wallpaper Preview"
+                            className="w-full h-full object-cover"
+                          />
+                        ) : (
+                          <div className="text-center p-3 space-y-1">
+                            <span className="text-xl">🌌</span>
+                            <p className="text-[11px] font-mono text-muted">Default Gothic Velvet Gradient</p>
+                          </div>
+                        )}
+                      </div>
+
+                      {/* Desktop Upload Controls */}
+                      <div className="space-y-2">
+                        <div className="flex items-center gap-2 flex-wrap">
+                          <label className="px-3 py-1.5 rounded-lg bg-white/[0.08] hover:bg-white/[0.15] border border-white/15 text-white text-xs font-mono font-bold uppercase tracking-wider transition-all cursor-pointer shadow-sm flex items-center gap-1.5">
+                            <span>{isUploadingDesktopBg ? "Uploading..." : "📁 Upload Desktop"}</span>
+                            <input
+                              type="file"
+                              accept="image/*"
+                              onChange={handleDesktopBgUpload}
+                              disabled={isUploadingDesktopBg}
+                              className="hidden"
+                            />
+                          </label>
+
+                          {profileForm.desktopBackgroundUrl && (
+                            <button
+                              type="button"
+                              onClick={() => setProfileForm((prev) => ({ ...prev, desktopBackgroundUrl: "" }))}
+                              className="px-2.5 py-1.5 rounded-lg bg-red/10 border border-red/20 text-red hover:bg-red/20 text-xs font-mono transition-all cursor-pointer"
+                            >
+                              Reset
+                            </button>
+                          )}
+                        </div>
+
+                        <input
+                          type="text"
+                          value={profileForm.desktopBackgroundUrl}
+                          onChange={(e) => setProfileForm({ ...profileForm, desktopBackgroundUrl: e.target.value })}
+                          placeholder="Or enter desktop image URL (https://...)"
+                          className="w-full px-3 py-1.5 bg-black/60 border border-white/10 rounded-lg text-xs font-mono text-white focus:outline-none focus:border-red"
+                        />
+                      </div>
+                    </div>
+
+                    {/* 2. Mobile Wallpaper */}
+                    <div className="p-4 rounded-xl bg-black/40 border border-white/10 space-y-3">
+                      <div className="flex items-center justify-between">
+                        <span className="text-xs font-mono font-bold uppercase tracking-wider text-white flex items-center gap-1.5">
+                          <span>📱</span>
+                          <span>Mobile Background (9:16)</span>
+                        </span>
+                        {profileForm.mobileBackgroundUrl && (
+                          <span className="text-[10px] font-mono text-emerald-400 font-bold">● Active</span>
+                        )}
+                      </div>
+
+                      {/* Mobile Preview Box */}
+                      <div className="aspect-video w-full rounded-xl bg-black border border-white/10 relative overflow-hidden flex items-center justify-center shadow-inner">
+                        {profileForm.mobileBackgroundUrl ? (
+                          <img
+                            src={profileForm.mobileBackgroundUrl}
+                            alt="Mobile Wallpaper Preview"
+                            className="w-full h-full object-cover"
+                          />
+                        ) : (
+                          <div className="text-center p-3 space-y-1">
+                            <span className="text-xl">📱</span>
+                            <p className="text-[11px] font-mono text-muted">Default Gothic Velvet Gradient</p>
+                          </div>
+                        )}
+                      </div>
+
+                      {/* Mobile Upload Controls */}
+                      <div className="space-y-2">
+                        <div className="flex items-center gap-2 flex-wrap">
+                          <label className="px-3 py-1.5 rounded-lg bg-white/[0.08] hover:bg-white/[0.15] border border-white/15 text-white text-xs font-mono font-bold uppercase tracking-wider transition-all cursor-pointer shadow-sm flex items-center gap-1.5">
+                            <span>{isUploadingMobileBg ? "Uploading..." : "📁 Upload Mobile"}</span>
+                            <input
+                              type="file"
+                              accept="image/*"
+                              onChange={handleMobileBgUpload}
+                              disabled={isUploadingMobileBg}
+                              className="hidden"
+                            />
+                          </label>
+
+                          {profileForm.mobileBackgroundUrl && (
+                            <button
+                              type="button"
+                              onClick={() => setProfileForm((prev) => ({ ...prev, mobileBackgroundUrl: "" }))}
+                              className="px-2.5 py-1.5 rounded-lg bg-red/10 border border-red/20 text-red hover:bg-red/20 text-xs font-mono transition-all cursor-pointer"
+                            >
+                              Reset
+                            </button>
+                          )}
+                        </div>
+
+                        <input
+                          type="text"
+                          value={profileForm.mobileBackgroundUrl}
+                          onChange={(e) => setProfileForm({ ...profileForm, mobileBackgroundUrl: e.target.value })}
+                          placeholder="Or enter mobile image URL (https://...)"
+                          className="w-full px-3 py-1.5 bg-black/60 border border-white/10 rounded-lg text-xs font-mono text-white focus:outline-none focus:border-red"
+                        />
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* 3. Wallpaper Contrast / Dim Slider */}
+                  <div className="p-4 rounded-xl bg-black/40 border border-white/10 space-y-2">
+                    <div className="flex items-center justify-between text-xs font-mono">
+                      <span className="text-white font-bold uppercase tracking-wider">
+                        Wallpaper Dimming Level: {profileForm.backgroundDim ?? 70}%
+                      </span>
+                      <span className="text-muted text-[11px]">Recommended: 60% – 85%</span>
+                    </div>
+
+                    <input
+                      type="range"
+                      min={20}
+                      max={95}
+                      step={5}
+                      value={profileForm.backgroundDim ?? 70}
+                      onChange={(e) => setProfileForm({ ...profileForm, backgroundDim: parseInt(e.target.value, 10) })}
+                      className="w-full accent-red cursor-pointer"
+                    />
+
+                    <p className="text-[11px] font-mono text-muted">
+                      Controls the dark overlay on top of your wallpapers. Higher values increase darkness so passes, badges, and link text remain crystal clear.
+                    </p>
+                  </div>
+                </div>
               </div>
 
               {/* Socials Block */}
@@ -776,23 +1010,75 @@ export function LinkTreeManager({ initialConfig }: LinkTreeManagerProps) {
                   Live Preview
                 </span>
               </div>
-              <a
-                href="/links"
-                target="_blank"
-                rel="noopener noreferrer"
-                className="text-[10px] font-mono text-primary hover:underline"
-              >
-                velvt.in/links ↗
-              </a>
+              <div className="flex items-center gap-1.5">
+                <div className="flex items-center bg-black/70 p-0.5 rounded-lg border border-white/10">
+                  <button
+                    type="button"
+                    onClick={() => setPreviewDevice("mobile")}
+                    className={`px-2 py-0.5 rounded text-[10px] font-mono transition-all cursor-pointer ${
+                      previewDevice === "mobile"
+                        ? "bg-red text-white font-bold shadow-sm"
+                        : "text-muted hover:text-white"
+                    }`}
+                    title="Preview Mobile Wallpaper"
+                  >
+                    📱 Mobile
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setPreviewDevice("desktop")}
+                    className={`px-2 py-0.5 rounded text-[10px] font-mono transition-all cursor-pointer ${
+                      previewDevice === "desktop"
+                        ? "bg-red text-white font-bold shadow-sm"
+                        : "text-muted hover:text-white"
+                    }`}
+                    title="Preview Desktop Wallpaper"
+                  >
+                    🖥️ Desktop
+                  </button>
+                </div>
+                <a
+                  href="/links"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="text-[10px] font-mono text-primary hover:underline"
+                >
+                  velvt.in/links ↗
+                </a>
+              </div>
             </div>
 
             {/* Mock iPhone Chassis */}
-            <div className="w-full max-w-[340px] mx-auto rounded-[40px] border-4 border-zinc-800 bg-black p-4 shadow-[0_0_50px_rgba(0,0,0,0.8)] relative overflow-hidden flex flex-col items-center min-h-[580px] max-h-[640px]">
+            <div className="w-full max-w-[340px] mx-auto rounded-[40px] border-4 border-zinc-800 bg-[#060205] p-4 shadow-[0_0_50px_rgba(0,0,0,0.8)] relative overflow-hidden flex flex-col items-center min-h-[580px] max-h-[640px]">
+              {/* Simulated Wallpaper based on previewDevice */}
+              {(() => {
+                const activeWallpaper =
+                  previewDevice === "mobile"
+                    ? profileForm.mobileBackgroundUrl || config.mobileBackgroundUrl || profileForm.desktopBackgroundUrl || config.desktopBackgroundUrl
+                    : profileForm.desktopBackgroundUrl || config.desktopBackgroundUrl || profileForm.mobileBackgroundUrl || config.mobileBackgroundUrl;
+
+                if (!activeWallpaper) return null;
+
+                return (
+                  <>
+                    <img
+                      src={activeWallpaper}
+                      alt="Simulator Wallpaper"
+                      className="absolute inset-0 w-full h-full object-cover object-center pointer-events-none transition-all duration-300"
+                    />
+                    <div
+                      className="absolute inset-0 bg-[#060205] pointer-events-none"
+                      style={{ opacity: (profileForm.backgroundDim ?? 70) / 100 }}
+                    />
+                  </>
+                );
+              })()}
+
               {/* Dynamic Island Notch */}
-              <div className="w-24 h-4 rounded-full bg-zinc-900 border border-white/10 mb-4 shrink-0" />
+              <div className="w-24 h-4 rounded-full bg-zinc-900 border border-white/10 mb-4 shrink-0 z-10" />
 
               {/* Scrollable preview content */}
-              <div className="w-full overflow-y-auto space-y-4 pr-1 text-center scrollbar-thin scrollbar-thumb-zinc-800">
+              <div className="w-full overflow-y-auto space-y-4 pr-1 text-center scrollbar-thin scrollbar-thumb-zinc-800 z-10">
                 {/* Avatar */}
                 <div className="w-16 h-16 rounded-full p-0.5 bg-gradient-to-tr from-primary to-red mx-auto flex items-center justify-center">
                   {config.avatarUrl ? (
