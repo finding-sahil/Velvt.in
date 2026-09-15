@@ -11,6 +11,7 @@ import { ServicesSection } from "./sections/ServicesSection";
 import { TeamPreviewSection } from "./sections/TeamPreviewSection";
 import { VolunteerPreviewSection } from "./sections/VolunteerPreviewSection";
 import { PartnersPreviewSection } from "./sections/PartnersPreviewSection";
+import { FloatingTestimonialsSection } from "./sections/FloatingTestimonialsSection";
 import { FinalCTASection } from "./sections/FinalCTASection";
 import { NewsletterSection } from "@/components/ui/NewsletterSection";
 import { isSectionEnabled } from "@/lib/section-switchboard";
@@ -19,13 +20,13 @@ export const revalidate = 60; // Instant cached serving with background ISR
 
 export default async function HomePage() {
   // Fetch initial queries in parallel to eliminate waterfall network latency
-  const [siteSettings, recentEvents, teamMembers, partners] = await Promise.all([
+  const [siteSettings, recentEvents, teamMembers, partners, testimonials] = await Promise.all([
     prisma.siteSetting.findMany().catch(() => []),
     prisma.event.findMany({
       where: { status: { not: "draft" } },
       include: { venue: true },
       orderBy: { date: "desc" },
-      take: 4,
+      take: 6,
     }).catch(() => []),
     prisma.teamMember.findMany({
       where: { isPublished: true },
@@ -36,6 +37,11 @@ export default async function HomePage() {
       where: { isActive: true },
       orderBy: { displayOrder: "asc" },
       take: 8,
+    }).catch(() => []),
+    prisma.testimonial.findMany({
+      where: { isApproved: true },
+      orderBy: { displayOrder: "asc" },
+      take: 12,
     }).catch(() => []),
   ]);
 
@@ -166,12 +172,21 @@ export default async function HomePage() {
         </>
       )}
 
-      {isSectionEnabled(settings, "section_event_archive") && recentEvents.length > 0 && (
-        <>
-          <EventArchiveSection events={recentEvents} />
-          <div className="section-separator" />
-        </>
-      )}
+      {/* Historical Past Events Archive (Excludes active upcoming/ongoing events) */}
+      {(() => {
+        const pastEvents = recentEvents.filter(
+          (e) =>
+            e.id !== featuredEvent?.id &&
+            (e.status === "completed" || e.status === "archived")
+        );
+        if (!isSectionEnabled(settings, "section_event_archive") || pastEvents.length === 0) return null;
+        return (
+          <>
+            <EventArchiveSection events={pastEvents} />
+            <div className="section-separator" />
+          </>
+        );
+      })()}
 
       {isSectionEnabled(settings, "section_services") && (
         <>
@@ -193,6 +208,14 @@ export default async function HomePage() {
       {isSectionEnabled(settings, "section_volunteer") && (
         <>
           <VolunteerPreviewSection />
+          <div className="section-separator" />
+        </>
+      )}
+
+      {/* Floating Testimonials Ambient Marquee */}
+      {isSectionEnabled(settings, "section_testimonials") && (
+        <>
+          <FloatingTestimonialsSection testimonials={testimonials} />
           <div className="section-separator" />
         </>
       )}

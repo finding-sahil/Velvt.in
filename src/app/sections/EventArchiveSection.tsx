@@ -8,6 +8,7 @@ interface EventArchiveSectionProps {
 }
 
 export function EventArchiveSection({ events }: EventArchiveSectionProps) {
+  if (!events || events.length === 0) return null;
   return (
     <section className="py-12 md:py-16 relative">
       <div className="container-velvt space-y-8">

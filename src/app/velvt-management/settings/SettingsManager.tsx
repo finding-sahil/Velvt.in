@@ -318,64 +318,14 @@ export function SettingsManager({
 
   const THEME_OPTIONS = [
     {
-      id: "blood_moon",
-      name: "Blood Moon",
-      tagline: "Vampire Curse Edition — Blood dripping, giant red moon & gothic candles",
-      description: "Atmospheric horror aesthetic: visceral animated blood dripping from VELVT.IN, giant glowing Blood Red Moon behind the hero, gothic candelabras, spiderwebs, and rolling fog.",
-      accentColor: "#dc2626",
-      dotColor: "rgba(220, 38, 38, 0.4)",
-      bgColor: "#050406",
-      badge: "Vampire Blood Curse (Default)",
-    },
-    {
-      id: "halloween_pumpkin",
-      name: "Wicked Pumpkin",
-      tagline: "Jack-O'-Lantern Edition — Glowing orange pumpkins, embers & candleflames",
-      description: "Classic vibrant Halloween orange aesthetic: carved grinning Jack-O'-Lanterns with glowing sinister eyes, warm flickering candlelight, floating ember particles, and spooky mist.",
-      accentColor: "#ff6b00",
-      dotColor: "rgba(255, 107, 0, 0.4)",
-      bgColor: "#070402",
-      badge: "Halloween Orange (Spooky)",
-    },
-    {
-      id: "phantom_ghost",
-      name: "Phantom Ghost",
-      tagline: "Spectral Crypt Edition — Eerie ectoplasm green, floating spirits & cold fog",
-      description: "Haunted crypt aesthetic: spectral neon cyan and ectoplasm green glows, floating ghost apparitions drifting across the screen, chilling spiderwebs, and cemetery mist.",
-      accentColor: "#00ff9d",
-      dotColor: "rgba(0, 255, 157, 0.35)",
-      bgColor: "#020705",
-      badge: "Creepy Ghost Theme",
-    },
-    {
-      id: "witch_coven",
-      name: "Witch Coven",
-      tagline: "Poison Sorcery Edition — Occult violet runes & purple candlelight",
-      description: "Midnight occult aesthetic: deep mystical violet aura, poisonous potion amethyst glow, witch candlelight, arcane web filigree, and toxic haze.",
-      accentColor: "#a855f7",
-      dotColor: "rgba(168, 85, 247, 0.4)",
-      bgColor: "#07030c",
-      badge: "Witch Sorcery",
-    },
-    {
-      id: "halloween_mix",
-      name: "All 4 Mix (Grand Fusion)",
-      tagline: "Ultimate Halloween Spectacle — Blood drips + Jack-O'-Lanterns + Ghosts + Witch Sorcery",
-      description: "The ultimate synthesis combining all 4 themes simultaneously: animated blood dripping from VELVT.IN, glowing orange Jack-O'-Lanterns, spectral floating ghosts, and mystical witch candlelight.",
-      accentColor: "#f59e0b",
-      dotColor: "rgba(255, 107, 0, 0.4)",
-      bgColor: "#060307",
-      badge: "All 4 Themes Combined",
-    },
-    {
       id: "legacy",
       name: "Legacy VELVT",
-      tagline: "Original Crimson Nocturnal — Velvet crimson glow & deep dark minimal",
-      description: "The timeless minimalist VELVT identity: deep pitch-black background, crimson scarlet accents, clean typography, and subtle atmospheric grain.",
+      tagline: "Signature Crimson Nocturnal — Velvet crimson glow & deep dark minimal luxury",
+      description: "The core, definitive VELVT aesthetic: deep obsidian black canvas, signature velvet crimson accents, razor-sharp typography, and subtle atmospheric depth.",
       accentColor: "#dc2626",
-      dotColor: "rgba(220, 38, 38, 0.3)",
+      dotColor: "rgba(220, 38, 38, 0.4)",
       bgColor: "#09090b",
-      badge: "Original Velvet",
+      badge: "Signature Theme (Default)",
     },
   ];
 
@@ -390,7 +340,7 @@ export function SettingsManager({
     const opt = THEME_OPTIONS.find((t) => t.id === themeId);
     setToast({
       type: "success",
-      message: `Theme instantly switched to "${opt?.name || themeId}" live across VELVT!`,
+      message: `Theme set to "${opt?.name || themeId}" across VELVT!`,
     });
 
     // 2. Background async sync to database for persistence (no blocking, no page reload)
@@ -420,13 +370,14 @@ export function SettingsManager({
         </div>
 
         <button
+          type="button"
           onClick={handleSave}
           disabled={loading}
-          className="px-6 py-2.5 rounded-full bg-red text-white font-bold text-xs font-mono uppercase tracking-wider hover:bg-red/80 transition-all cursor-pointer shadow-[0_0_20px_rgba(200,16,46,0.5)] flex items-center gap-2 self-start sm:self-auto shrink-0"
+          className="px-6 py-3 rounded-xl bg-red hover:bg-red-glow text-white text-xs font-mono font-bold uppercase tracking-wider shadow-[0_0_20px_var(--red-glow)] transition-all flex items-center justify-center gap-2 disabled:opacity-50 cursor-pointer self-start sm:self-auto"
         >
           {loading ? (
             <>
-              <span className="animate-spin">◌</span>
+              <span className="w-3.5 h-3.5 border-2 border-white border-t-transparent rounded-full animate-spin" />
               <span>Saving CMS...</span>
             </>
           ) : (
@@ -448,24 +399,24 @@ export function SettingsManager({
         </div>
       )}
 
-      {/* Segmented Navigation Tabs */}
-      <div className="flex flex-wrap gap-2 border-b border-white/10 pb-3">
+      {/* Segmented Navigation Tabs: Single-line streamlined horizontal scroll */}
+      <div className="flex items-center gap-2 overflow-x-auto pb-2 border-b border-white/10 no-scrollbar">
         {[
-          { id: "themes", label: "🎨 Theme Switcher", badge: currentTheme.toUpperCase() },
+          { id: "themes", label: "🎨 Theme", badge: "Legacy" },
           { id: "page_switches", label: "🎛️ Page Switches", badge: "8 Pages" },
-          { id: "section_switches", label: "⚡ Minute Section Switchboard", badge: `${enabledSectionCount}/${SECTION_CONTROLS.length} Active` },
-          { id: "highlights", label: "✨ Experience Highlights", badge: `${highlights.length} cards` },
-          { id: "hero", label: "⚡ Hero & Identity" },
-          { id: "story", label: "🏛️ Story & Services" },
-          { id: "socials", label: "💬 Socials & Contact" },
-          { id: "event_cta", label: "🎃 Event Hub & CTA" },
-          { id: "security", label: "🔒 Security & Password" },
+          { id: "section_switches", label: "⚡ Section Switchboard", badge: `${enabledSectionCount}/${SECTION_CONTROLS.length}` },
+          { id: "highlights", label: "✨ Highlights", badge: `${highlights.length}` },
+          { id: "hero", label: "⚡ Hero Copy" },
+          { id: "story", label: "🏛️ Story" },
+          { id: "socials", label: "💬 Socials" },
+          { id: "event_cta", label: "🎃 Event CTA" },
+          { id: "security", label: "🔒 Security" },
         ].map((tab) => (
           <button
             key={tab.id}
             type="button"
             onClick={() => setActiveTab(tab.id as any)}
-            className={`px-4 py-2 rounded-xl text-xs font-mono tracking-wider uppercase transition-all cursor-pointer flex items-center gap-2 ${
+            className={`px-3.5 py-2 rounded-xl text-xs font-mono tracking-wider uppercase whitespace-nowrap transition-all cursor-pointer flex items-center gap-1.5 flex-shrink-0 ${
               activeTab === tab.id
                 ? "bg-red text-white font-bold shadow-[0_0_15px_rgba(200,16,46,0.35)]"
                 : "bg-white/[0.04] text-g5 hover:text-white hover:bg-white/[0.08]"

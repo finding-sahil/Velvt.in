@@ -2,7 +2,14 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { updateSponsorInquiryStatus, deleteSponsorInquiry, updateSiteSettings } from "@/app/actions";
+import Link from "next/link";
+import QRCode from "qrcode";
+import {
+  updateSponsorInquiryStatus,
+  deleteSponsorInquiry,
+  updateSiteSettings,
+  generateSponsorPass,
+} from "@/app/actions";
 import { ToastNotification, ToastMessage } from "@/components/ui/ToastNotification";
 import { formatDate } from "@/lib/utils";
 
@@ -40,6 +47,12 @@ export function SponsorInquiryManager({
   const [updatingId, setUpdatingId] = useState<string | null>(null);
   const [notesModalInquiry, setNotesModalInquiry] = useState<SponsorInquiry | null>(null);
   const [noteText, setNoteText] = useState("");
+
+  // Sponsor Pass Modal State
+  const [passModalInquiry, setPassModalInquiry] = useState<SponsorInquiry | null>(null);
+  const [passData, setPassData] = useState<any | null>(null);
+  const [passQrDataUrl, setPassQrDataUrl] = useState<string>("");
+  const [generatingPass, setGeneratingPass] = useState(false);
 
   // Filter & Search
   const filtered = inquiries.filter((inq) => {
@@ -122,6 +135,33 @@ export function SponsorInquiryManager({
       setToast({ message: "Admin note saved", type: "success" });
     } else {
       setToast({ message: res.error || "Failed to save note", type: "error" });
+    }
+  }
+
+  // Generate and View VIP Sponsor Pass
+  async function handleOpenPass(inq: SponsorInquiry) {
+    setPassModalInquiry(inq);
+    setGeneratingPass(true);
+    setPassData(null);
+    setPassQrDataUrl("");
+
+    const res = await generateSponsorPass(inq.id);
+    setGeneratingPass(false);
+    if (res.success && res.pass) {
+      setPassData(res.pass);
+      try {
+        const fullUrl = `${window.location.origin}${res.pass.verifyUrl}`;
+        const dataUrl = await QRCode.toDataURL(fullUrl, {
+          width: 300,
+          margin: 1,
+          color: { dark: "#050505", light: "#ffffff" },
+        });
+        setPassQrDataUrl(dataUrl);
+      } catch (err) {
+        console.error("QR gen error:", err);
+      }
+    } else {
+      setToast({ message: res.error || "Failed to generate VIP sponsor pass", type: "error" });
     }
   }
 
@@ -288,6 +328,15 @@ export function SponsorInquiryManager({
                 </div>
 
                 <div className="flex items-center gap-2">
+                  <button
+                    onClick={() => handleOpenPass(inq)}
+                    className="px-3 py-1.5 rounded-lg border border-amber-500/30 bg-amber-500/10 hover:bg-amber-500/20 text-xs font-mono text-amber-300 flex items-center gap-1.5 cursor-pointer whitespace-nowrap transition-colors"
+                    title="Generate and view VIP Sponsor Entry Pass"
+                  >
+                    <span>🎟️</span>
+                    <span>VIP Pass</span>
+                  </button>
+
                   <select
                     value={inq.status}
                     disabled={updatingId === inq.id}
@@ -385,6 +434,98 @@ export function SponsorInquiryManager({
                 Save Note
               </button>
             </div>
+          </div>
+        </div>
+      )}
+
+      {/* VIP Sponsor Pass Modal */}
+      {passModalInquiry && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-md animate-fade-in">
+          <div className="w-full max-w-md p-6 sm:p-8 rounded-3xl border border-amber-500/30 bg-[#0a0a0e] space-y-6 shadow-[0_0_60px_rgba(245,158,11,0.2)] relative">
+            <div className="flex items-center justify-between pb-3 border-b border-white/10">
+              <div className="flex items-center gap-2">
+                <span className="w-2 h-2 rounded-full bg-amber-400 animate-pulse" />
+                <h3 className="font-display font-black text-lg uppercase tracking-wider text-amber-300">
+                  VIP Sponsor Pass
+                </h3>
+              </div>
+              <button
+                onClick={() => setPassModalInquiry(null)}
+                className="w-8 h-8 rounded-full bg-white/5 hover:bg-white/10 text-g5 hover:text-white flex items-center justify-center text-sm cursor-pointer"
+              >
+                ✕
+              </button>
+            </div>
+
+            {generatingPass ? (
+              <div className="py-12 text-center space-y-3 font-mono text-xs text-g5">
+                <div className="w-8 h-8 border-2 border-amber-400 border-t-transparent rounded-full animate-spin mx-auto" />
+                <p>Generating cryptographically signed pass...</p>
+              </div>
+            ) : passData ? (
+              <div className="space-y-5">
+                <div className="text-center space-y-1">
+                  <h4 className="font-display font-bold text-xl text-white uppercase tracking-tight">
+                    {passData.companyName}
+                  </h4>
+                  <p className="text-xs font-mono text-amber-300">
+                    {passData.contactPerson} • {passData.tierName}
+                  </p>
+                  <div className="inline-block px-3 py-0.5 mt-1 rounded-full bg-amber-500/10 border border-amber-500/30 text-[11px] font-mono font-bold text-amber-400">
+                    PASS ID: {passData.ticketNumber}
+                  </div>
+                </div>
+
+                {passQrDataUrl && (
+                  <div className="flex flex-col items-center space-y-2">
+                    <div className="p-3 bg-white rounded-2xl border-2 border-amber-500/30 shadow-lg">
+                      <img src={passQrDataUrl} alt="Sponsor QR" className="w-48 h-48" />
+                    </div>
+                    <p className="text-[10px] font-mono text-g5 uppercase tracking-wider">
+                      Gate Scanner Validated Token
+                    </p>
+                  </div>
+                )}
+
+                <div className="p-3 rounded-xl bg-white/[0.03] border border-white/10 text-[11px] font-mono text-g5 space-y-1">
+                  <div className="flex justify-between">
+                    <span>Venue Admission:</span>
+                    <span className={passData.isCheckedIn ? "text-emerald-400 font-bold" : "text-amber-400"}>
+                      {passData.isCheckedIn ? "ADMITTED AT GATE" : "READY AT GATE"}
+                    </span>
+                  </div>
+                  {passData.checkedInAt && (
+                    <div className="flex justify-between">
+                      <span>Admitted At:</span>
+                      <span className="text-white">{new Date(passData.checkedInAt).toLocaleTimeString()}</span>
+                    </div>
+                  )}
+                </div>
+
+                <div className="flex flex-col sm:flex-row gap-2 pt-2">
+                  <Link
+                    href={passData.verifyUrl}
+                    target="_blank"
+                    className="flex-1 py-2.5 rounded-xl bg-amber-500 hover:bg-amber-400 text-black font-display font-bold text-xs uppercase tracking-wider text-center transition-all cursor-pointer shadow-[0_0_15px_rgba(245,158,11,0.3)]"
+                  >
+                    Open Live Pass &rarr;
+                  </Link>
+                  {passQrDataUrl && (
+                    <a
+                      href={passQrDataUrl}
+                      download={`${passData.ticketNumber}-VIP-Pass.png`}
+                      className="py-2.5 px-4 rounded-xl border border-white/15 bg-white/5 hover:bg-white/10 text-white font-mono text-xs uppercase tracking-wider text-center transition-colors"
+                    >
+                      Download QR
+                    </a>
+                  )}
+                </div>
+              </div>
+            ) : (
+              <div className="py-8 text-center text-xs font-mono text-red">
+                Unable to load pass details. Please try again.
+              </div>
+            )}
           </div>
         </div>
       )}

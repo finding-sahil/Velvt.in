@@ -205,6 +205,9 @@ export default function VolunteerRegisterPage() {
                     {role}
                   </option>
                 ))}
+                {!roles.includes("Assigning Soon") && (
+                  <option value="Assigning Soon">Assigning Soon (Flexible / Open to Any Role)</option>
+                )}
                 <option value="Other">Other (Custom Role)...</option>
               </select>
               {selectedRole === "Other" && (

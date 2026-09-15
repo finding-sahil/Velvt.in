@@ -107,6 +107,14 @@ export const SECTION_CONTROLS: SectionControlItem[] = [
     previewNote: "Sponsor showcase",
   },
   {
+    key: "section_testimonials",
+    name: "Floating Testimonials Showcase",
+    category: "homepage",
+    description: "Floating ambient marquee of testimonials from attendees, sponsors, and production crew.",
+    previewNote: "Floating feedback carousel",
+    defaultValue: true,
+  },
+  {
     key: "section_newsletter",
     name: "Newsletter Dispatch Form",
     category: "homepage",

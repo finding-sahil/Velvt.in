@@ -13,6 +13,10 @@ import {
   bulkImportVolunteers,
   bulkGenerateVolunteers,
   updateVolunteerStatusDirect,
+  bulkDeleteVolunteers,
+  bulkUpdateVolunteerRole,
+  bulkUpdateVolunteerStatus,
+  bulkUpdateVolunteers,
 } from "@/app/actions";
 import { StatusBadge } from "@/components/ui/StatusBadge";
 import { formatDateShort } from "@/lib/utils";
@@ -58,6 +62,7 @@ const ROLE_PRESETS = [
   "Box Office, Entry & Ticketing",
   "Logistics & Artist Liaison",
   "General Crew & Production Runner",
+  "Assigning Soon",
 ];
 
 // Helper to trigger client-side CSV downloads
@@ -239,6 +244,30 @@ export function VolunteerManager({ volunteers, events = [] }: VolunteerManagerPr
   ]);
   const [isVolPasteOpen, setIsVolPasteOpen] = useState(false);
   const [volPasteRaw, setVolPasteRaw] = useState("");
+
+  // Multi-Selection State
+  const [selectedVolunteerIds, setSelectedVolunteerIds] = useState<Set<string>>(new Set());
+  const [bulkActionLoading, setBulkActionLoading] = useState(false);
+  const [showBulkRoleModal, setShowBulkRoleModal] = useState(false);
+  const [bulkSelectedRole, setBulkSelectedRole] = useState(ROLE_PRESETS[0]);
+  const [bulkCustomRoleText, setBulkCustomRoleText] = useState("");
+  const [bulkIsOtherRole, setBulkIsOtherRole] = useState(false);
+
+  // Mass Edit Grid Modal State
+  const [showMassEditModal, setShowMassEditModal] = useState(false);
+  const [massEditSearch, setMassEditSearch] = useState("");
+  const [massEditRows, setMassEditRows] = useState<Array<{
+    id: string;
+    volunteerId: string | null;
+    fullName: string;
+    email: string;
+    phone: string;
+    role: string;
+    city: string;
+    status: string;
+    eventId: string;
+  }>>([]);
+  const [isSavingMassEdit, setIsSavingMassEdit] = useState(false);
 
   const handleAddVolRow = () => {
     setVolSheetRows((prev) => [
@@ -876,6 +905,208 @@ export function VolunteerManager({ volunteers, events = [] }: VolunteerManagerPr
     }
   }
 
+  // Multi-Selection Logic
+  const isAllFilteredSelected =
+    filteredVolunteers.length > 0 &&
+    filteredVolunteers.every((v) => selectedVolunteerIds.has(v.id));
+
+  const toggleSelectAll = () => {
+    if (isAllFilteredSelected) {
+      setSelectedVolunteerIds((prev) => {
+        const next = new Set(prev);
+        filteredVolunteers.forEach((v) => next.delete(v.id));
+        return next;
+      });
+    } else {
+      setSelectedVolunteerIds((prev) => {
+        const next = new Set(prev);
+        filteredVolunteers.forEach((v) => next.add(v.id));
+        return next;
+      });
+    }
+  };
+
+  const toggleSelectOne = (id: string) => {
+    setSelectedVolunteerIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  };
+
+  // Bulk Delete
+  const handleBulkDelete = async () => {
+    const ids = Array.from(selectedVolunteerIds);
+    if (ids.length === 0) return;
+    if (!window.confirm(`Are you sure you want to permanently delete ${ids.length} selected volunteer(s)? This action cannot be undone.`)) {
+      return;
+    }
+
+    setBulkActionLoading(true);
+    try {
+      const res = await bulkDeleteVolunteers(ids);
+      if (res.success) {
+        setVolunteerList((prev) => prev.filter((v) => !selectedVolunteerIds.has(v.id)));
+        setSelectedVolunteerIds(new Set());
+        setToast({ message: `Successfully deleted ${ids.length} volunteer(s)!`, type: "success" });
+        router.refresh();
+      } else {
+        setToast({ message: res.error || "Failed to delete volunteers", type: "error" });
+      }
+    } catch (err: any) {
+      setToast({ message: err?.message || "Failed to delete volunteers", type: "error" });
+    } finally {
+      setBulkActionLoading(false);
+    }
+  };
+
+  // Bulk Update Role
+  const handleBulkAssignRoleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    const ids = Array.from(selectedVolunteerIds);
+    if (ids.length === 0) return;
+
+    const targetRole = bulkIsOtherRole ? bulkCustomRoleText.trim() : bulkSelectedRole;
+    if (!targetRole) {
+      setToast({ message: "Please specify the role to assign.", type: "error" });
+      return;
+    }
+
+    setBulkActionLoading(true);
+    try {
+      const res = await bulkUpdateVolunteerRole(ids, targetRole);
+      if (res.success) {
+        setVolunteerList((prev) =>
+          prev.map((v) =>
+            selectedVolunteerIds.has(v.id)
+              ? { ...v, assignedRole: targetRole, preferredRole: targetRole }
+              : v
+          )
+        );
+        setShowBulkRoleModal(false);
+        setSelectedVolunteerIds(new Set());
+        setBulkIsOtherRole(false);
+        setBulkCustomRoleText("");
+        setToast({ message: `Assigned "${targetRole}" to ${ids.length} volunteer(s)!`, type: "success" });
+        router.refresh();
+      } else {
+        setToast({ message: res.error || "Failed to update roles", type: "error" });
+      }
+    } catch (err: any) {
+      setToast({ message: err?.message || "Failed to update roles", type: "error" });
+    } finally {
+      setBulkActionLoading(false);
+    }
+  };
+
+  // Bulk Update Status
+  const handleBulkStatusChange = async (status: string) => {
+    const ids = Array.from(selectedVolunteerIds);
+    if (ids.length === 0) return;
+
+    setBulkActionLoading(true);
+    try {
+      const res = await bulkUpdateVolunteerStatus(ids, status);
+      if (res.success) {
+        setVolunteerList((prev) =>
+          prev.map((v) =>
+            selectedVolunteerIds.has(v.id)
+              ? { ...v, status }
+              : v
+          )
+        );
+        setSelectedVolunteerIds(new Set());
+        setToast({ message: `Updated status to "${status.toUpperCase()}" for ${ids.length} volunteer(s)!`, type: "success" });
+        router.refresh();
+      } else {
+        setToast({ message: res.error || "Failed to update statuses", type: "error" });
+      }
+    } catch (err: any) {
+      setToast({ message: err?.message || "Failed to update statuses", type: "error" });
+    } finally {
+      setBulkActionLoading(false);
+    }
+  };
+
+  // Open Mass Edit Grid Modal
+  const openMassEditModal = () => {
+    const rows = (filteredVolunteers.length > 0 ? filteredVolunteers : volunteerList).map((v) => ({
+      id: v.id,
+      volunteerId: v.volunteerId,
+      fullName: v.fullName,
+      email: v.email,
+      phone: v.phone,
+      role: v.assignedRole || v.preferredRole || ROLE_PRESETS[0],
+      city: v.city || "Silchar",
+      status: v.status,
+      eventId: v.event.id || events[0]?.id || "",
+    }));
+    setMassEditRows(rows);
+    setMassEditSearch("");
+    setShowMassEditModal(true);
+  };
+
+  const handleMassEditRowChange = (id: string, field: string, value: string) => {
+    setMassEditRows((prev) =>
+      prev.map((row) => (row.id === id ? { ...row, [field]: value } : row))
+    );
+  };
+
+  const handleSaveMassEdit = async () => {
+    if (massEditRows.length === 0) return;
+    setIsSavingMassEdit(true);
+    try {
+      const res = await bulkUpdateVolunteers(
+        massEditRows.map((r) => ({
+          id: r.id,
+          fullName: r.fullName,
+          email: r.email,
+          phone: r.phone,
+          assignedRole: r.role,
+          preferredRole: r.role,
+          city: r.city,
+          status: r.status,
+          eventId: r.eventId,
+        }))
+      );
+
+      if (res.success) {
+        setVolunteerList((prev) =>
+          prev.map((v) => {
+            const updated = massEditRows.find((r) => r.id === v.id);
+            if (updated) {
+              const matchedEvent = events.find((e) => e.id === updated.eventId);
+              return {
+                ...v,
+                fullName: updated.fullName,
+                email: updated.email,
+                phone: updated.phone,
+                assignedRole: updated.role,
+                preferredRole: updated.role,
+                city: updated.city,
+                status: updated.status,
+                event: matchedEvent
+                  ? { id: matchedEvent.id, name: matchedEvent.name, date: matchedEvent.date }
+                  : v.event,
+              };
+            }
+            return v;
+          })
+        );
+        setShowMassEditModal(false);
+        setToast({ message: `Successfully updated ${massEditRows.length} volunteer records!`, type: "success" });
+        router.refresh();
+      } else {
+        setToast({ message: res.error || "Failed to save mass edits", type: "error" });
+      }
+    } catch (err: any) {
+      setToast({ message: err?.message || "Failed to save mass edits", type: "error" });
+    } finally {
+      setIsSavingMassEdit(false);
+    }
+  };
+
   return (
     <div className="space-y-6 animate-fade-in">
       {/* ─── Top Header ─── */}
@@ -917,6 +1148,17 @@ export function VolunteerManager({ volunteers, events = [] }: VolunteerManagerPr
           >
             <span>📥</span>
             <span>Export CSV</span>
+          </button>
+
+          {/* Mass Edit Grid Modal Button */}
+          <button
+            type="button"
+            onClick={openMassEditModal}
+            className="px-3.5 py-2 text-xs font-mono uppercase tracking-wider rounded-xl bg-blue-950/80 text-blue-300 border border-blue-700/60 hover:bg-blue-900 transition-all cursor-pointer flex items-center gap-1.5 shadow-[0_0_15px_rgba(59,130,246,0.2)] font-bold"
+            title="Open Google Sheets-style interactive full grid editor for all volunteers"
+          >
+            <span>📊</span>
+            <span>Mass Edit Grid</span>
           </button>
 
           {/* Bulk Import / Update CSV */}
@@ -1026,13 +1268,22 @@ export function VolunteerManager({ volunteers, events = [] }: VolunteerManagerPr
             <table className="w-full text-left text-xs border-collapse">
               <thead>
                 <tr className="bg-white/[0.04] border-b border-white/10 text-g5 font-mono uppercase tracking-wider text-[10px]">
-                  <th className="py-3.5 px-4">Credential ID</th>
-                  <th className="py-3.5 px-4">Volunteer Details</th>
-                  <th className="py-3.5 px-4">Contact (Private)</th>
-                  <th className="py-3.5 px-4">Event &amp; Role</th>
-                  <th className="py-3.5 px-4">Status</th>
-                  <th className="py-3.5 px-4">Registered</th>
-                  <th className="py-3.5 px-4 text-right">Actions</th>
+                  <th className="py-3 px-3 w-10 text-center">
+                    <input
+                      type="checkbox"
+                      checked={isAllFilteredSelected}
+                      onChange={toggleSelectAll}
+                      className="w-4 h-4 rounded border-white/20 bg-black/60 text-primary accent-primary cursor-pointer align-middle"
+                      title="Select All Filtered Volunteers"
+                    />
+                  </th>
+                  <th className="py-3.5 px-3 min-w-[140px] whitespace-nowrap">Credential ID</th>
+                  <th className="py-3.5 px-3 min-w-[200px]">Volunteer Details</th>
+                  <th className="py-3.5 px-3 min-w-[170px] whitespace-nowrap">Contact (Private)</th>
+                  <th className="py-3.5 px-3 min-w-[170px]">Event &amp; Role</th>
+                  <th className="py-3.5 px-3 min-w-[120px] whitespace-nowrap">Status</th>
+                  <th className="py-3.5 px-3 min-w-[100px] whitespace-nowrap">Registered</th>
+                  <th className="py-3.5 px-3 text-right min-w-[230px] whitespace-nowrap">Actions</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-white/[0.04]">
@@ -1040,22 +1291,41 @@ export function VolunteerManager({ volunteers, events = [] }: VolunteerManagerPr
                   const isLoading = loadingId === vol.id;
                   const isUploading = uploadingId === vol.id;
                   const effectiveRole = vol.assignedRole || vol.preferredRole;
+                  const isSelected = selectedVolunteerIds.has(vol.id);
 
                   return (
-                    <tr key={vol.id} className="hover:bg-white/[0.02] transition-colors">
-                      <td className="py-4 px-4 font-mono">
+                    <tr
+                      key={vol.id}
+                      className={`transition-colors ${
+                        isSelected ? "bg-red-950/20 hover:bg-red-950/30" : "hover:bg-white/[0.02]"
+                      }`}
+                    >
+                      {/* Checkbox column */}
+                      <td className="py-3 px-3 text-center">
+                        <input
+                          type="checkbox"
+                          checked={isSelected}
+                          onChange={() => toggleSelectOne(vol.id)}
+                          className="w-4 h-4 rounded border-white/20 bg-black/60 text-primary accent-primary cursor-pointer align-middle"
+                        />
+                      </td>
+
+                      {/* Credential ID: Non-wrapping elegant badge */}
+                      <td className="py-3 px-3 font-mono whitespace-nowrap">
                         {vol.volunteerId ? (
-                          <span className="text-gold font-medium bg-gold/10 px-2 py-0.5 rounded border border-gold/20">
+                          <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md text-[11px] font-bold tracking-wider text-amber-300 bg-amber-500/10 border border-amber-500/25">
+                            <span className="w-1.5 h-1.5 rounded-full bg-amber-400"></span>
                             {vol.volunteerId}
                           </span>
                         ) : (
-                          <span className="text-muted-foreground/50 text-[11px] italic">
-                            Unassigned
+                          <span className="text-zinc-500 text-[11px] italic bg-white/[0.03] px-2 py-0.5 rounded border border-white/[0.05]">
+                            Pending ID
                           </span>
                         )}
                       </td>
 
-                      <td className="py-4 px-4">
+                      {/* Volunteer Details */}
+                      <td className="py-3 px-3">
                         <div className="flex items-center gap-3">
                           {vol.photo ? (
                             <img
@@ -1064,46 +1334,51 @@ export function VolunteerManager({ volunteers, events = [] }: VolunteerManagerPr
                               className="w-9 h-9 rounded-full object-cover border border-white/20 shadow-sm shrink-0"
                             />
                           ) : (
-                            <div className="w-9 h-9 rounded-full bg-white/[0.05] border border-white/10 flex items-center justify-center font-bold text-xs text-g5 shrink-0">
-                              {vol.fullName.charAt(0)}
+                            <div className="w-9 h-9 rounded-full bg-gradient-to-br from-white/10 to-white/5 border border-white/15 flex items-center justify-center font-bold text-xs text-white shrink-0 shadow-inner">
+                              {vol.fullName.charAt(0).toUpperCase()}
                             </div>
                           )}
-                          <div>
-                            <p className="font-medium text-white text-sm">{vol.fullName}</p>
-                            <p className="text-g5 text-[11px] font-mono">
-                              {vol.city}
+                          <div className="min-w-0">
+                            <p className="font-semibold text-white text-xs tracking-wide truncate">{vol.fullName}</p>
+                            <p className="text-zinc-400 text-[11px] font-mono flex items-center gap-1 mt-0.5">
+                              <span className="w-1 h-1 rounded-full bg-zinc-500"></span>
+                              {vol.city || "Silchar"}
                             </p>
                             {vol.socialLink && (
-                              <span className="text-red/80 block text-[10px] font-mono mt-0.5">
-                                🔗 Social profile attached
+                              <span className="text-primary/90 text-[10px] font-mono mt-0.5 inline-flex items-center gap-1">
+                                🔗 Socials linked
                               </span>
                             )}
                           </div>
                         </div>
-                        {vol.experience && (
-                          <p className="text-g5/80 text-[10px] mt-1.5 line-clamp-1 italic">
-                            &ldquo;{vol.experience}&rdquo;
-                          </p>
-                        )}
                       </td>
 
-                      <td className="py-4 px-4 font-mono text-[11px] space-y-0.5">
-                        <p className="text-g6">{vol.email}</p>
-                        <p className="text-g5">{vol.phone}</p>
+                      {/* Contact */}
+                      <td className="py-3 px-3 font-mono text-[11px] whitespace-nowrap">
+                        <p className="text-zinc-300 font-medium hover:text-white transition-colors">{vol.email}</p>
+                        <p className="text-zinc-400 mt-0.5">{vol.phone}</p>
                       </td>
 
-                      <td className="py-4 px-4 space-y-1">
-                        <p className="text-white font-medium">{vol.event.name}</p>
-                        <span className="inline-block text-[10px] font-mono uppercase tracking-widest text-red bg-red-dim px-2 py-0.5 rounded-full border border-red-glow">
+                      {/* Event & Role */}
+                      <td className="py-3 px-3">
+                        <p className="text-white font-medium text-xs truncate max-w-[160px]">{vol.event.name}</p>
+                        <span
+                          className={`inline-block mt-1 text-[10px] font-mono uppercase tracking-widest px-2 py-0.5 rounded-full border whitespace-nowrap ${
+                            effectiveRole.toLowerCase().includes("assigning soon")
+                              ? "text-amber-300 bg-amber-950/60 border-amber-500/40"
+                              : "text-red bg-red-dim border-red-glow"
+                          }`}
+                        >
                           {effectiveRole}
                         </span>
                       </td>
 
-                      <td className="py-4 px-4">
+                      {/* Status */}
+                      <td className="py-3 px-3 whitespace-nowrap">
                         <select
                           value={vol.status}
                           onChange={(e) => handleDirectStatusChange(vol.id, e.target.value)}
-                          className={`text-[10px] font-mono font-bold uppercase rounded-lg px-2 py-1 border transition-colors cursor-pointer focus:outline-none ${
+                          className={`text-[10px] font-mono font-bold uppercase rounded-lg px-2.5 py-1.5 border transition-colors cursor-pointer focus:outline-none ${
                             vol.status === "verified"
                               ? "bg-emerald-950/80 text-emerald-400 border-emerald-500/40"
                               : vol.status === "approved"
@@ -1123,19 +1398,49 @@ export function VolunteerManager({ volunteers, events = [] }: VolunteerManagerPr
                         </select>
                       </td>
 
-                      <td className="py-4 px-4 font-mono text-g5 text-[11px]">
+                      {/* Registered */}
+                      <td className="py-3 px-3 font-mono text-zinc-400 text-[11px] whitespace-nowrap">
                         {formatDateShort(vol.appliedAt)}
                       </td>
 
-                      <td className="py-4 px-4 text-right">
-                        <div className="flex flex-wrap items-center justify-end gap-2">
-                          {/* Upload photo button */}
+                      {/* Actions: Clean single horizontal row */}
+                      <td className="py-3 px-3 text-right whitespace-nowrap">
+                        <div className="flex items-center justify-end gap-1.5">
+                          {vol.status === "pending" && (
+                            <button
+                              onClick={() => handleApprove(vol.id, effectiveRole)}
+                              disabled={isLoading}
+                              className="h-7 px-2.5 text-[10px] font-mono uppercase tracking-wider rounded-md bg-emerald-500/15 text-emerald-400 border border-emerald-500/35 hover:bg-emerald-500/25 transition-all cursor-pointer font-bold inline-flex items-center gap-1"
+                              title="Approve and Issue Credential ID"
+                            >
+                              <span>✓</span>
+                              <span>Approve</span>
+                            </button>
+                          )}
+
+                          {vol.status === "approved" && (
+                            <button
+                              onClick={() => handleVerify(vol.id)}
+                              disabled={isLoading}
+                              className="h-7 px-2.5 text-[10px] font-mono uppercase tracking-wider rounded-md bg-red-dim text-white border border-red-glow hover:bg-red/30 transition-all cursor-pointer font-bold inline-flex items-center gap-1"
+                              title="Mark Verified Pass"
+                            >
+                              <span>★</span>
+                              <span>Verify</span>
+                            </button>
+                          )}
+
+                          {/* Photo Button */}
                           <label
-                            className="px-2.5 py-1 text-[11px] font-mono uppercase tracking-wider rounded bg-white/[0.05] text-g6 border border-white/10 hover:border-red/40 hover:text-white cursor-pointer transition-colors inline-flex items-center gap-1"
-                            title={vol.photo ? "Change Badge Photo" : "Upload Badge Photo"}
+                            className={`h-7 px-2 text-[10px] font-mono uppercase tracking-wider rounded-md border cursor-pointer transition-colors inline-flex items-center gap-1 ${
+                              vol.photo
+                                ? "bg-emerald-950/40 text-emerald-400 border-emerald-700/40 hover:border-emerald-500"
+                                : "bg-white/[0.04] text-zinc-400 border-white/10 hover:border-white/30 hover:text-white"
+                            }`}
+                            title={vol.photo ? "Change Badge Photo (Photo Present)" : "Upload Badge Photo"}
                           >
                             <span>📷</span>
-                            <span>{isUploading ? "..." : vol.photo ? "Photo ✓" : "+ Photo"}</span>
+                            <span>{isUploading ? "..." : vol.photo ? "Photo ✓" : "Photo"}</span>
                             <input
                               type="file"
                               accept="image/*"
@@ -1145,56 +1450,29 @@ export function VolunteerManager({ volunteers, events = [] }: VolunteerManagerPr
                             />
                           </label>
 
-                          {/* Edit socials button (clean modal, no browser prompt) */}
+                          {/* Socials Modal Button */}
                           <button
                             onClick={() => openSocialsModal(vol)}
                             disabled={isLoading}
-                            className="px-2.5 py-1 text-[11px] font-mono uppercase tracking-wider rounded bg-white/[0.05] text-g5 border border-white/10 hover:border-blue-400 hover:text-white cursor-pointer transition-colors inline-flex items-center gap-1"
+                            className="h-7 px-2 text-[10px] font-mono uppercase tracking-wider rounded-md bg-white/[0.04] text-zinc-400 border border-white/10 hover:border-white/30 hover:text-white cursor-pointer transition-colors inline-flex items-center gap-1"
                             title="Edit Social Links & WhatsApp"
                           >
                             <span>🔗</span>
                             <span>Socials</span>
                           </button>
 
-                          {vol.status === "pending" && (
-                            <button
-                              onClick={() => handleApprove(vol.id, effectiveRole)}
-                              disabled={isLoading}
-                              className="px-2.5 py-1 text-[11px] font-mono uppercase tracking-wider rounded bg-emerald-950/60 text-emerald-400 border border-emerald-800/40 hover:bg-emerald-900/60 transition-colors disabled:opacity-50 cursor-pointer"
-                            >
-                              {isLoading ? "..." : "Approve & ID"}
-                            </button>
-                          )}
-
-                          {vol.status === "approved" && (
-                            <button
-                              onClick={() => handleVerify(vol.id)}
-                              disabled={isLoading}
-                              className="px-2.5 py-1 text-[11px] font-mono uppercase tracking-wider rounded bg-red-dim text-white border border-red-glow hover:bg-red/30 transition-colors disabled:opacity-50 cursor-pointer"
-                            >
-                              {isLoading ? "..." : "Mark Verified"}
-                            </button>
-                          )}
-
-                          {vol.status !== "revoked" && vol.status !== "pending" && (
-                            <button
-                              onClick={() => handleRevoke(vol.id)}
-                              disabled={isLoading}
-                              className="px-2.5 py-1 text-[11px] font-mono uppercase tracking-wider rounded bg-white/[0.05] text-g5 border border-white/10 hover:text-red hover:border-red/40 transition-colors disabled:opacity-50 cursor-pointer"
-                            >
-                              {isLoading ? "..." : "Revoke"}
-                            </button>
-                          )}
-
+                          {/* Public Badge link */}
                           {(vol.volunteerId || vol.status === "approved" || vol.status === "verified") && (
                             <>
                               <a
                                 href={`/verify/${encodeURIComponent(vol.volunteerId || vol.id)}`}
                                 target="_blank"
                                 rel="noopener noreferrer"
-                                className="px-2.5 py-1 text-[11px] font-mono uppercase tracking-wider rounded bg-white/[0.04] text-g5 border border-white/[0.08] hover:text-white transition-colors"
+                                className="h-7 px-2 text-[10px] font-mono uppercase tracking-wider rounded-md bg-white/[0.04] text-zinc-400 border border-white/10 hover:text-white hover:border-white/30 transition-colors inline-flex items-center gap-0.5"
+                                title="Open Public Digital Badge"
                               >
-                                Badge ↗
+                                <span>Badge</span>
+                                <span className="text-[9px]">↗</span>
                               </a>
 
                               <DownloadQrButton
@@ -1209,13 +1487,13 @@ export function VolunteerManager({ volunteers, events = [] }: VolunteerManagerPr
                             </>
                           )}
 
-                          {/* Instant Delete Button (no browser confirm popup) */}
+                          {/* Delete Button */}
                           <button
                             onClick={() => handleDelete(vol.id, vol.fullName)}
-                            className="px-2.5 py-1 text-[11px] font-mono uppercase tracking-wider rounded bg-red-500/10 text-red-400 border border-red-500/30 hover:bg-red-500/25 transition-colors cursor-pointer"
-                            title="Permanently Delete Application"
+                            className="h-7 w-7 rounded-md bg-red-500/10 text-red-400 border border-red-500/25 hover:bg-red-500/25 hover:border-red-500/50 transition-colors cursor-pointer inline-flex items-center justify-center text-xs"
+                            title="Delete Volunteer"
                           >
-                            Delete
+                            🗑️
                           </button>
                         </div>
                       </td>
@@ -1224,6 +1502,372 @@ export function VolunteerManager({ volunteers, events = [] }: VolunteerManagerPr
                 })}
               </tbody>
             </table>
+          </div>
+        </div>
+      )}
+
+      {/* ─── FLOATING BULK ACTIONS BAR ─── */}
+      {selectedVolunteerIds.size > 0 && (
+        <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-40 bg-[#121216]/95 backdrop-blur-xl border border-white/20 rounded-2xl px-5 py-3 shadow-[0_10px_40px_rgba(0,0,0,0.8)] flex flex-wrap items-center gap-3 animate-in fade-in slide-in-from-bottom-3 duration-200">
+          <div className="flex items-center gap-2 pr-3 border-r border-white/15">
+            <span className="w-2 h-2 rounded-full bg-primary animate-pulse"></span>
+            <span className="font-mono text-xs text-white font-bold">
+              {selectedVolunteerIds.size} Selected
+            </span>
+          </div>
+
+          {/* Bulk Assign Role */}
+          <button
+            type="button"
+            onClick={() => setShowBulkRoleModal(true)}
+            disabled={bulkActionLoading}
+            className="px-3 py-1.5 text-xs font-mono uppercase tracking-wider rounded-xl bg-white/[0.08] text-white border border-white/20 hover:bg-white/15 hover:border-white/40 transition-all flex items-center gap-1.5 cursor-pointer"
+          >
+            <span>🏷️</span>
+            <span>Assign Role</span>
+          </button>
+
+          {/* Bulk Verify Pass */}
+          <button
+            type="button"
+            onClick={() => handleBulkStatusChange("verified")}
+            disabled={bulkActionLoading}
+            className="px-3 py-1.5 text-xs font-mono uppercase tracking-wider rounded-xl bg-emerald-500/20 text-emerald-300 border border-emerald-500/40 hover:bg-emerald-500/30 transition-all flex items-center gap-1.5 cursor-pointer font-bold"
+          >
+            <span>★</span>
+            <span>Verify All</span>
+          </button>
+
+          {/* Bulk Approve */}
+          <button
+            type="button"
+            onClick={() => handleBulkStatusChange("approved")}
+            disabled={bulkActionLoading}
+            className="px-3 py-1.5 text-xs font-mono uppercase tracking-wider rounded-xl bg-blue-500/20 text-blue-300 border border-blue-500/40 hover:bg-blue-500/30 transition-all flex items-center gap-1.5 cursor-pointer"
+          >
+            <span>✓</span>
+            <span>Approve All</span>
+          </button>
+
+          {/* Bulk Delete */}
+          <button
+            type="button"
+            onClick={handleBulkDelete}
+            disabled={bulkActionLoading}
+            className="px-3 py-1.5 text-xs font-mono uppercase tracking-wider rounded-xl bg-red-500/20 text-red-300 border border-red-500/40 hover:bg-red-500/30 transition-all flex items-center gap-1.5 cursor-pointer font-bold"
+          >
+            <span>🗑️</span>
+            <span>Delete Selected</span>
+          </button>
+
+          {/* Deselect All */}
+          <button
+            type="button"
+            onClick={() => setSelectedVolunteerIds(new Set())}
+            className="p-1.5 text-xs font-mono text-zinc-400 hover:text-white rounded-lg hover:bg-white/10 transition-colors cursor-pointer"
+            title="Clear selection"
+          >
+            ✕
+          </button>
+        </div>
+      )}
+
+      {/* ─── BULK ASSIGN ROLE MODAL ─── */}
+      {showBulkRoleModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-md">
+          <div className="bg-[#0e0e11] border border-white/15 rounded-2xl w-full max-w-md p-6 space-y-4 shadow-2xl animate-scale-up">
+            <div className="flex items-center justify-between border-b border-white/10 pb-3">
+              <div>
+                <span className="text-[10px] font-mono uppercase tracking-widest text-primary font-bold">
+                  Bulk Operation
+                </span>
+                <h3 className="font-display font-bold text-lg text-white uppercase">
+                  Assign Role to {selectedVolunteerIds.size} Volunteer(s)
+                </h3>
+              </div>
+              <button
+                type="button"
+                onClick={() => setShowBulkRoleModal(false)}
+                className="text-white/40 hover:text-white font-mono text-lg"
+              >
+                ✕
+              </button>
+            </div>
+
+            <form onSubmit={handleBulkAssignRoleSubmit} className="space-y-4 text-xs font-mono">
+              <div>
+                <label className="block text-white mb-1.5 uppercase text-[10px]">
+                  Select Role Preset *
+                </label>
+                <select
+                  value={bulkIsOtherRole ? "Other" : bulkSelectedRole}
+                  onChange={(e) => {
+                    const val = e.target.value;
+                    if (val === "Other") {
+                      bulkIsOtherRole || setBulkIsOtherRole(true);
+                    } else {
+                      setBulkIsOtherRole(false);
+                      setBulkSelectedRole(val);
+                    }
+                  }}
+                  className="w-full bg-black/60 border border-white/10 rounded-lg p-2.5 text-white focus:outline-none focus:border-primary cursor-pointer"
+                >
+                  {ROLE_PRESETS.map((r) => (
+                    <option key={r} value={r}>
+                      {r}
+                    </option>
+                  ))}
+                  <option value="Other">Other (Custom Role)...</option>
+                </select>
+
+                {bulkIsOtherRole && (
+                  <div className="mt-2.5">
+                    <label className="block text-primary text-[10px] uppercase mb-1">
+                      Type Custom Role *
+                    </label>
+                    <input
+                      type="text"
+                      required
+                      value={bulkCustomRoleText}
+                      onChange={(e) => setBulkCustomRoleText(e.target.value)}
+                      placeholder="e.g. Stage Management Lead"
+                      className="w-full bg-black/80 border border-primary/60 rounded-lg p-2.5 text-white focus:outline-none focus:border-primary"
+                      autoFocus
+                    />
+                  </div>
+                )}
+              </div>
+
+              <div className="flex items-center justify-end gap-2 pt-2 border-t border-white/10">
+                <button
+                  type="button"
+                  onClick={() => setShowBulkRoleModal(false)}
+                  className="px-4 py-2 rounded-xl bg-white/[0.05] text-zinc-400 hover:text-white border border-white/10 text-xs cursor-pointer"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  disabled={bulkActionLoading}
+                  className="px-4 py-2 rounded-xl bg-primary text-white font-bold text-xs uppercase hover:bg-red-700 transition-colors cursor-pointer"
+                >
+                  {bulkActionLoading ? "Updating..." : "Apply Role to Selected"}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* ─── MASS EDIT GRID MODAL (Google Sheet-like Full Editor) ─── */}
+      {showMassEditModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-6 bg-black/90 backdrop-blur-xl overflow-hidden">
+          <div className="bg-[#0c0c0f] border border-white/15 rounded-2xl w-full max-w-[96vw] h-[92vh] flex flex-col shadow-2xl animate-scale-up overflow-hidden">
+            {/* Modal Header */}
+            <div className="p-4 sm:p-5 border-b border-white/10 flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-white/[0.02]">
+              <div>
+                <div className="flex items-center gap-2">
+                  <span className="text-blue-400 font-bold text-base">📊</span>
+                  <h2 className="font-display font-bold text-xl text-white uppercase tracking-wider">
+                    Mass Edit Grid (Spreadsheet Editor)
+                  </h2>
+                </div>
+                <p className="text-xs text-zinc-400 mt-0.5 font-mono">
+                  Edit volunteers directly inline. Changes are applied in batch when you click Save.
+                </p>
+              </div>
+
+              <div className="flex items-center gap-2">
+                <input
+                  type="text"
+                  value={massEditSearch}
+                  onChange={(e) => setMassEditSearch(e.target.value)}
+                  placeholder="Filter rows by name, email, role..."
+                  className="px-3 py-1.5 bg-black/60 border border-white/15 rounded-xl text-xs font-mono text-white placeholder:text-zinc-500 focus:outline-none focus:border-blue-500 w-48 sm:w-64"
+                />
+                <button
+                  type="button"
+                  onClick={handleSaveMassEdit}
+                  disabled={isSavingMassEdit}
+                  className="px-4 py-2 rounded-xl bg-blue-600 hover:bg-blue-500 text-white font-mono font-bold text-xs uppercase tracking-wider shadow-[0_0_15px_rgba(37,99,235,0.4)] transition-all cursor-pointer flex items-center gap-1.5"
+                >
+                  <span>💾</span>
+                  <span>{isSavingMassEdit ? "Saving Changes..." : `Save All (${massEditRows.length})`}</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setShowMassEditModal(false)}
+                  className="p-2 text-zinc-400 hover:text-white rounded-xl hover:bg-white/10 font-mono text-lg transition-colors cursor-pointer"
+                >
+                  ✕
+                </button>
+              </div>
+            </div>
+
+            {/* Modal Grid Table Container */}
+            <div className="flex-1 overflow-auto p-4">
+              <table className="w-full text-left text-xs font-mono border-collapse">
+                <thead className="sticky top-0 z-20 bg-[#121216] border-b border-white/10 text-zinc-400 uppercase text-[10px] tracking-wider shadow">
+                  <tr>
+                    <th className="p-2 w-10 text-center">#</th>
+                    <th className="p-2 min-w-[130px]">Credential ID</th>
+                    <th className="p-2 min-w-[180px]">Full Name *</th>
+                    <th className="p-2 min-w-[180px]">Email Address</th>
+                    <th className="p-2 min-w-[130px]">Phone Number</th>
+                    <th className="p-2 min-w-[180px]">Role / Department</th>
+                    <th className="p-2 min-w-[110px]">City</th>
+                    <th className="p-2 min-w-[120px]">Status</th>
+                    <th className="p-2 min-w-[150px]">Event</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-white/[0.05]">
+                  {massEditRows
+                    .filter((row) => {
+                      if (!massEditSearch.trim()) return true;
+                      const q = massEditSearch.toLowerCase();
+                      return (
+                        row.fullName.toLowerCase().includes(q) ||
+                        row.email.toLowerCase().includes(q) ||
+                        row.role.toLowerCase().includes(q) ||
+                        (row.volunteerId && row.volunteerId.toLowerCase().includes(q))
+                      );
+                    })
+                    .map((row, idx) => (
+                      <tr key={row.id} className="hover:bg-white/[0.02]">
+                        <td className="p-2 text-center text-zinc-500 select-none text-[11px]">{idx + 1}</td>
+                        <td className="p-1.5 whitespace-nowrap">
+                          {row.volunteerId ? (
+                            <span className="text-amber-300 font-bold bg-amber-500/10 px-2 py-0.5 rounded border border-amber-500/20 text-[11px]">
+                              {row.volunteerId}
+                            </span>
+                          ) : (
+                            <span className="text-zinc-600 text-[11px] italic">Pending</span>
+                          )}
+                        </td>
+                        <td className="p-1.5">
+                          <input
+                            type="text"
+                            value={row.fullName}
+                            onChange={(e) => handleMassEditRowChange(row.id, "fullName", e.target.value)}
+                            className="w-full bg-black/50 border border-white/10 rounded px-2.5 py-1 text-xs text-white focus:outline-none focus:border-blue-500"
+                          />
+                        </td>
+                        <td className="p-1.5">
+                          <input
+                            type="email"
+                            value={row.email}
+                            onChange={(e) => handleMassEditRowChange(row.id, "email", e.target.value)}
+                            className="w-full bg-black/50 border border-white/10 rounded px-2.5 py-1 text-xs text-white focus:outline-none focus:border-blue-500"
+                          />
+                        </td>
+                        <td className="p-1.5">
+                          <input
+                            type="tel"
+                            value={row.phone}
+                            onChange={(e) => handleMassEditRowChange(row.id, "phone", e.target.value)}
+                            className="w-full bg-black/50 border border-white/10 rounded px-2.5 py-1 text-xs text-white focus:outline-none focus:border-blue-500"
+                          />
+                        </td>
+                        <td className="p-1.5">
+                          <div className="space-y-1">
+                            <select
+                              value={ROLE_PRESETS.includes(row.role) ? row.role : "__custom__"}
+                              onChange={(e) => {
+                                const val = e.target.value;
+                                if (val === "__custom__") {
+                                  if (ROLE_PRESETS.includes(row.role)) {
+                                    handleMassEditRowChange(row.id, "role", "");
+                                  }
+                                } else {
+                                  handleMassEditRowChange(row.id, "role", val);
+                                }
+                              }}
+                              className="w-full bg-black/50 border border-white/10 rounded px-2 py-1 text-xs text-white focus:outline-none focus:border-blue-500"
+                            >
+                              {ROLE_PRESETS.map((r) => (
+                                <option key={r} value={r}>
+                                  {r}
+                                </option>
+                              ))}
+                              <option value="__custom__">
+                                {row.role && !ROLE_PRESETS.includes(row.role)
+                                  ? `Custom: ${row.role}`
+                                  : "Other (Type Custom)..."}
+                              </option>
+                            </select>
+                            {(!ROLE_PRESETS.includes(row.role) || row.role === "") && (
+                              <input
+                                type="text"
+                                value={row.role}
+                                onChange={(e) => handleMassEditRowChange(row.id, "role", e.target.value)}
+                                placeholder="Type role..."
+                                className="w-full bg-black/80 border border-blue-500/60 rounded px-2 py-1 text-xs text-white focus:outline-none focus:border-blue-500"
+                                autoFocus={row.role === ""}
+                              />
+                            )}
+                          </div>
+                        </td>
+                        <td className="p-1.5">
+                          <input
+                            type="text"
+                            value={row.city}
+                            onChange={(e) => handleMassEditRowChange(row.id, "city", e.target.value)}
+                            className="w-full bg-black/50 border border-white/10 rounded px-2.5 py-1 text-xs text-white focus:outline-none focus:border-blue-500"
+                          />
+                        </td>
+                        <td className="p-1.5">
+                          <select
+                            value={row.status}
+                            onChange={(e) => handleMassEditRowChange(row.id, "status", e.target.value)}
+                            className="w-full bg-black/50 border border-white/10 rounded px-2 py-1 text-xs text-white focus:outline-none focus:border-blue-500"
+                          >
+                            <option value="pending">Pending</option>
+                            <option value="approved">Approved</option>
+                            <option value="verified">Verified</option>
+                            <option value="revoked">Revoked</option>
+                            <option value="rejected">Rejected</option>
+                          </select>
+                        </td>
+                        <td className="p-1.5">
+                          <select
+                            value={row.eventId}
+                            onChange={(e) => handleMassEditRowChange(row.id, "eventId", e.target.value)}
+                            className="w-full bg-black/50 border border-white/10 rounded px-2 py-1 text-xs text-white focus:outline-none focus:border-blue-500"
+                          >
+                            {events.map((ev) => (
+                              <option key={ev.id} value={ev.id}>
+                                {ev.name}
+                              </option>
+                            ))}
+                          </select>
+                        </td>
+                      </tr>
+                    ))}
+                </tbody>
+              </table>
+            </div>
+
+            {/* Modal Footer */}
+            <div className="p-3 sm:p-4 border-t border-white/10 flex items-center justify-between text-xs font-mono text-zinc-400 bg-white/[0.02]">
+              <span>Showing {massEditRows.length} total crew records</span>
+              <div className="flex items-center gap-2">
+                <button
+                  type="button"
+                  onClick={() => setShowMassEditModal(false)}
+                  className="px-3 py-1.5 rounded-lg border border-white/10 bg-white/[0.04] text-white hover:bg-white/10 transition-colors"
+                >
+                  Close
+                </button>
+                <button
+                  type="button"
+                  onClick={handleSaveMassEdit}
+                  disabled={isSavingMassEdit}
+                  className="px-4 py-1.5 rounded-lg bg-blue-600 hover:bg-blue-500 text-white font-bold transition-all"
+                >
+                  {isSavingMassEdit ? "Saving..." : "Save All Changes"}
+                </button>
+              </div>
+            </div>
           </div>
         </div>
       )}

@@ -217,6 +217,16 @@ const navSections: NavSection[] = [
         ),
       },
       {
+        href: adminPath("/links"),
+        label: "Link Tree",
+        icon: ({ className }) => (
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}>
+            <path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71" />
+            <path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71" />
+          </svg>
+        ),
+      },
+      {
         href: adminPath("/audit"),
         label: "Audit Logs",
         adminOnly: true,
@@ -249,6 +259,22 @@ export function AdminNav({ user }: AdminNavProps) {
   const pathname = usePathname();
   const prefix = adminPath();
   const [mobileOpen, setMobileOpen] = useState(false);
+  const [adminTheme, setAdminTheme] = useState<"dark" | "light">("dark");
+
+  useEffect(() => {
+    const saved = (typeof window !== "undefined" && localStorage.getItem("velvt_admin_theme")) as "dark" | "light" | null;
+    if (saved) {
+      setAdminTheme(saved);
+      document.documentElement.setAttribute("data-admin-theme", saved);
+    }
+  }, []);
+
+  const toggleAdminTheme = () => {
+    const next = adminTheme === "dark" ? "light" : "dark";
+    setAdminTheme(next);
+    localStorage.setItem("velvt_admin_theme", next);
+    document.documentElement.setAttribute("data-admin-theme", next);
+  };
 
   // Close mobile drawer on route change
   useEffect(() => {
@@ -422,10 +448,18 @@ export function AdminNav({ user }: AdminNavProps) {
         )}
 
         <div className="flex items-center gap-2 pt-1">
+          <button
+            type="button"
+            onClick={toggleAdminTheme}
+            className="px-2.5 py-1.5 rounded-xl bg-white/[0.04] hover:bg-white/[0.08] border border-white/10 text-[11px] font-mono text-g5 hover:text-white transition-all flex items-center justify-center gap-1 cursor-pointer whitespace-nowrap"
+            title="Toggle Admin Light / Dark Mode"
+          >
+            <span>{adminTheme === "dark" ? "☀️ Light" : "🌙 Dark"}</span>
+          </button>
           <Link
             href="/"
             target="_blank"
-            className="flex-1 px-3 py-1.5 rounded-xl bg-white/[0.04] hover:bg-white/[0.08] border border-white/10 text-[11px] font-mono text-g5 hover:text-white transition-all flex items-center justify-center gap-1.5"
+            className="flex-1 px-3 py-1.5 rounded-xl bg-white/[0.04] hover:bg-white/[0.08] border border-white/10 text-[11px] font-mono text-g5 hover:text-white transition-all flex items-center justify-center gap-1.5 whitespace-nowrap"
           >
             <span>Live Site</span>
             <span className="text-red">↗</span>
@@ -433,7 +467,7 @@ export function AdminNav({ user }: AdminNavProps) {
           <form action={adminLogout} className="flex-1">
             <button
               type="submit"
-              className="w-full px-3 py-1.5 rounded-xl bg-white/[0.04] hover:bg-red/15 border border-white/10 hover:border-red/40 text-[11px] font-mono text-g5 hover:text-red transition-all cursor-pointer flex items-center justify-center"
+              className="w-full px-3 py-1.5 rounded-xl bg-white/[0.04] hover:bg-red/15 border border-white/10 hover:border-red/40 text-[11px] font-mono text-g5 hover:text-red transition-all cursor-pointer flex items-center justify-center whitespace-nowrap"
             >
               Logout
             </button>
@@ -456,25 +490,36 @@ export function AdminNav({ user }: AdminNavProps) {
           </span>
         </Link>
 
-        <button
-          type="button"
-          onClick={() => setMobileOpen(!mobileOpen)}
-          aria-label="Toggle navigation menu"
-          className="p-2 rounded-xl bg-white/[0.05] border border-white/10 text-white hover:bg-white/10 transition-all cursor-pointer"
-        >
-          {mobileOpen ? (
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="w-5 h-5">
-              <line x1="18" y1="6" x2="6" y2="18" />
-              <line x1="6" y1="6" x2="18" y2="18" />
-            </svg>
-          ) : (
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="w-5 h-5">
-              <line x1="4" x2="20" y1="6" y2="6" />
-              <line x1="4" x2="20" y1="12" y2="12" />
-              <line x1="4" x2="20" y1="18" y2="18" />
-            </svg>
-          )}
-        </button>
+        <div className="flex items-center gap-2">
+          <button
+            type="button"
+            onClick={toggleAdminTheme}
+            className="px-2.5 py-1.5 rounded-xl bg-white/[0.05] border border-white/10 text-[11px] font-mono text-g4 hover:text-white transition-all cursor-pointer"
+            title="Toggle Admin Theme"
+          >
+            <span>{adminTheme === "dark" ? "☀️" : "🌙"}</span>
+          </button>
+
+          <button
+            type="button"
+            onClick={() => setMobileOpen(!mobileOpen)}
+            aria-label="Toggle navigation menu"
+            className="p-2 rounded-xl bg-white/[0.05] border border-white/10 text-white hover:bg-white/10 transition-all cursor-pointer"
+          >
+            {mobileOpen ? (
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="w-5 h-5">
+                <line x1="18" y1="6" x2="6" y2="18" />
+                <line x1="6" y1="6" x2="18" y2="18" />
+              </svg>
+            ) : (
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="w-5 h-5">
+                <line x1="4" x2="20" y1="6" y2="6" />
+                <line x1="4" x2="20" y1="12" y2="12" />
+                <line x1="4" x2="20" y1="18" y2="18" />
+              </svg>
+            )}
+          </button>
+        </div>
       </div>
 
       {/* ─── Mobile Full-Screen Overlay Drawer ─── */}

@@ -9,6 +9,9 @@ import {
   getRecentGateCheckIns,
   getTicketVerificationData,
   getVolunteerVerificationData,
+  checkInVolunteer,
+  checkInSponsor,
+  getVenueEntryRoster,
 } from "@/app/actions";
 import { adminPath } from "@/lib/admin-path";
 
@@ -149,6 +152,11 @@ function extractTicketIdentifier(rawText: string): string {
   if (urlMatch && urlMatch[1]) {
     return urlMatch[1];
   }
+  // Check if it's a URL like .../verify/sponsor/<identifier>
+  const spsUrlMatch = clean.match(/\/verify\/sponsor\/([a-zA-Z0-9_-]+)/i);
+  if (spsUrlMatch && spsUrlMatch[1]) {
+    return spsUrlMatch[1];
+  }
   // Check if it's a URL like .../verify/<volunteerId>
   const volUrlMatch = clean.match(/\/verify\/([a-zA-Z0-9_-]+)/i);
   if (volUrlMatch && volUrlMatch[1]) {
@@ -164,6 +172,11 @@ function extractTicketIdentifier(rawText: string): string {
   if (ticketNumMatch) {
     return ticketNumMatch[0].toUpperCase();
   }
+  // Check if it's a sponsor pass number (e.g. SPS-2026-XXXXX or SPS-XXXXX)
+  const spsMatch = clean.match(/SPS(?:-[0-9]{4})?-[A-Z0-9]+/i);
+  if (spsMatch) {
+    return spsMatch[0].toUpperCase();
+  }
   // Check if it's a volunteer ID (e.g. VEL-2026-XXXXX)
   const volIdMatch = clean.match(/VEL-[0-9]{4}-[0-9]+/i);
   if (volIdMatch) {
@@ -177,7 +190,7 @@ export function GateScanner({
   events,
   initialStats,
 }: GateScannerProps) {
-  const [activeTab, setActiveTab] = useState<"scan" | "search" | "recent">("scan");
+  const [activeTab, setActiveTab] = useState<"scan" | "search" | "recent" | "roster">("scan");
   const [isPending, startTransition] = useTransition();
 
   // Active event selection
@@ -211,8 +224,15 @@ export function GateScanner({
   const [searchResults, setSearchResults] = useState<TicketResult[]>([]);
   const [isSearching, setIsSearching] = useState(false);
 
-  // Recent Admissions List
+  // Recent Admissions Feed
   const [recentScans, setRecentScans] = useState<RecentCheckIn[]>([]);
+  const [recentFilter, setRecentFilter] = useState<"all" | "attendees" | "crew" | "sponsors">("all");
+
+  // Venue Entry Rosters State
+  const [rosterSubTab, setRosterSubTab] = useState<"crew" | "sponsors" | "attendees" | "all">("crew");
+  const [rosterData, setRosterData] = useState<any | null>(null);
+  const [rosterSearch, setRosterSearch] = useState("");
+  const [isLoadingRoster, setIsLoadingRoster] = useState(false);
 
   const html5QrCodeRef = useRef<Html5Qrcode | null>(null);
   const isProcessingRef = useRef(false);
@@ -253,6 +273,24 @@ export function GateScanner({
     }
   }, [activeTab, selectedEventId]);
 
+  const loadRoster = useCallback(async () => {
+    setIsLoadingRoster(true);
+    try {
+      const data = await getVenueEntryRoster(selectedEventId);
+      setRosterData(data);
+    } catch (err) {
+      console.error("Load roster error:", err);
+    } finally {
+      setIsLoadingRoster(false);
+    }
+  }, [selectedEventId]);
+
+  useEffect(() => {
+    if (activeTab === "roster") {
+      loadRoster();
+    }
+  }, [activeTab, loadRoster]);
+
   // ─── Direct Check-In Execution ──────────────────────────────────────────────
 
   const executeCheckIn = useCallback(
@@ -263,40 +301,50 @@ export function GateScanner({
       const cleanCode = extractTicketIdentifier(identifier);
 
       try {
-        // First check if it's a volunteer / crew badge (e.g. VEL-2026-XXXXX)
+        // ── 1. Check if it's a volunteer / crew badge pass (e.g. VEL-2026-XXXXX) ──
         if (cleanCode.startsWith("VEL-")) {
-          const vol = await getVolunteerVerificationData(cleanCode);
-          if (vol) {
-            if (vol.status === "revoked" || vol.status === "rejected") {
-              setScanResult({
-                status: "revoked",
-                message: `CREW ACCESS REVOKED • ${vol.fullName} (${vol.assignedRole || vol.preferredRole})`,
-                ticket: {
-                  attendeeName: vol.fullName,
-                  tierName: `CREW / ${vol.assignedRole || vol.preferredRole}`,
-                  ticketNumber: vol.volunteerId || "CREW",
-                  status: vol.status,
-                } as any,
-              });
-              if (soundEnabled) playAudioChime(false);
-              triggerHaptic(false);
-              return;
-            }
-
+          const res = await checkInVolunteer(cleanCode, currentUser.name);
+          if (res.success && res.volunteer) {
+            const vol = res.volunteer as any;
+            const effectiveRole = vol.effectiveRole || vol.assignedRole || vol.preferredRole || "Crew";
             setScanResult({
               status: "admitted",
-              message: `CREW ACCESS GRANTED • ${vol.fullName} (${vol.assignedRole || vol.preferredRole})`,
+              message: `CREW ACCESS GRANTED • ${vol.fullName} (${effectiveRole})`,
               ticket: {
+                id: vol.id,
                 attendeeName: vol.fullName,
-                tierName: `OFFICIAL CREW (${vol.assignedRole || vol.preferredRole})`,
+                tierName: `CREW / ${effectiveRole}`,
                 ticketNumber: vol.volunteerId || "CREW-PASS",
                 status: "verified",
                 isCheckedIn: true,
-                event: { name: vol.event.name },
+                checkedInAt: vol.checkedInAt || new Date().toISOString(),
+                checkedInBy: currentUser.name,
+                event: { name: vol.event?.name || "VELVT Production" },
               } as any,
             });
+
             if (soundEnabled) playAudioChime(true);
             triggerHaptic(true);
+
+            setStats((prev) => ({
+              ...prev,
+              admitted: prev.admitted + 1,
+            }));
+
+            // Add to recent admissions
+            setRecentScans((prev) => [
+              {
+                id: vol.id,
+                ticketNumber: vol.volunteerId || "CREW-PASS",
+                securityToken: `SEC-${vol.volunteerId}`,
+                attendeeName: vol.fullName,
+                tierName: `CREW / ${effectiveRole}`,
+                checkedInAt: new Date().toISOString(),
+                checkedInBy: currentUser.name,
+                event: { id: vol.eventId || "", name: vol.event?.name || "" },
+              },
+              ...prev.slice(0, 19),
+            ]);
 
             if (autoAdmit) {
               setTimeout(() => {
@@ -305,8 +353,93 @@ export function GateScanner({
               }, 1800);
             }
             return;
+          } else {
+            setScanResult({
+              status: (res.status as any) || "error",
+              message: res.message || res.error || "Volunteer check-in failed.",
+              ticket: (res as any).volunteer
+                ? ({
+                    attendeeName: (res as any).volunteer.fullName,
+                    tierName: `CREW / ${(res as any).volunteer.assignedRole || (res as any).volunteer.preferredRole}`,
+                    ticketNumber: (res as any).volunteer.volunteerId || "CREW",
+                    status: (res as any).volunteer.status,
+                  } as any)
+                : undefined,
+            });
+            if (soundEnabled) playAudioChime(false);
+            triggerHaptic(false);
+            return;
           }
         }
+
+        // ── 2. Check if it's a VIP Sponsor Pass (e.g. SPS-2026-XXXXX) ────────────
+        if (cleanCode.startsWith("SPS-") || cleanCode.includes("/verify/sponsor/")) {
+          const res = await checkInSponsor(cleanCode, currentUser.name);
+          if (res.success && res.sponsor) {
+            setScanResult({
+              status: "admitted",
+              message: `VIP SPONSOR ACCESS GRANTED • ${res.sponsor.companyName} (${res.sponsor.contactPerson})`,
+              ticket: {
+                id: res.sponsor.id,
+                attendeeName: `${res.sponsor.companyName} (${res.sponsor.contactPerson})`,
+                tierName: res.sponsor.tierName,
+                ticketNumber: res.sponsor.ticketNumber || cleanCode,
+                status: "verified",
+                isCheckedIn: true,
+                checkedInAt: res.sponsor.checkedInAt,
+                checkedInBy: currentUser.name,
+                event: { name: "VIP Production Access" },
+              } as any,
+            });
+
+            if (soundEnabled) playAudioChime(true);
+            triggerHaptic(true);
+
+            setStats((prev) => ({
+              ...prev,
+              admitted: prev.admitted + 1,
+            }));
+
+            // Add to recent admissions
+            setRecentScans((prev) => [
+              {
+                id: res.sponsor.id,
+                ticketNumber: res.sponsor.ticketNumber || cleanCode,
+                securityToken: `SEC-${cleanCode}`,
+                attendeeName: `${res.sponsor.companyName} (${res.sponsor.contactPerson})`,
+                tierName: res.sponsor.tierName,
+                checkedInAt: new Date().toISOString(),
+                checkedInBy: currentUser.name,
+                event: { id: "", name: "VIP Production Access" },
+              },
+              ...prev.slice(0, 19),
+            ]);
+
+            if (autoAdmit) {
+              setTimeout(() => {
+                setScanResult(null);
+                isProcessingRef.current = false;
+              }, 1800);
+            }
+            return;
+          } else {
+            setScanResult({
+              status: (res.status as any) || "error",
+              message: res.message || res.error || "Sponsor check-in failed.",
+              ticket: (res as any).sponsor
+                ? ({
+                    attendeeName: (res as any).sponsor.companyName,
+                    tierName: (res as any).sponsor.tierName,
+                    ticketNumber: cleanCode,
+                  } as any)
+                : undefined,
+            });
+            if (soundEnabled) playAudioChime(false);
+            triggerHaptic(false);
+            return;
+          }
+        }
+
         // If not auto-admit and not confirmed, fetch details first
         if (!autoAdmit && !skipConfirm) {
           const ticketData = await getTicketVerificationData(cleanCode);
@@ -654,7 +787,7 @@ export function GateScanner({
           <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
           </svg>
-          <span>Manual Search & Entry</span>
+          <span>Manual Search</span>
         </button>
 
         <button
@@ -669,6 +802,23 @@ export function GateScanner({
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
           </svg>
           <span>Recent Scans ({recentScans.length})</span>
+        </button>
+
+        <button
+          onClick={() => {
+            setActiveTab("roster");
+            loadRoster();
+          }}
+          className={`flex-1 py-2.5 rounded-lg font-mono text-xs uppercase tracking-wider font-bold transition-all flex items-center justify-center gap-2 cursor-pointer ${
+            activeTab === "roster"
+              ? "bg-amber-500 text-black shadow-[0_0_20px_rgba(245,158,11,0.4)]"
+              : "text-g5 hover:text-white"
+          }`}
+        >
+          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+          </svg>
+          <span>Entry Rosters</span>
         </button>
       </div>
 
@@ -1057,54 +1207,267 @@ export function GateScanner({
 
       {/* ── TAB 3: Recent Admissions ─────────────────────────────────── */}
       {activeTab === "recent" && (
-        <div className="space-y-3 animate-fade-in">
-          <div className="flex items-center justify-between text-xs font-mono text-g5 px-1">
-            <span>Last 15 admissions at this gate terminal</span>
+        <div className="space-y-4 animate-fade-in">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-xs font-mono text-g5 px-1">
+            {/* Category Filter Pills */}
+            <div className="flex items-center gap-2 overflow-x-auto pb-1">
+              {[
+                { id: "all", label: `All Scans (${recentScans.length})` },
+                { id: "attendees", label: "Ticket Attendees" },
+                { id: "crew", label: "Crew & Volunteers" },
+                { id: "sponsors", label: "VIP Sponsors" },
+              ].map((f) => (
+                <button
+                  key={f.id}
+                  onClick={() => setRecentFilter(f.id as any)}
+                  className={`px-3 py-1.5 rounded-full whitespace-nowrap cursor-pointer transition-colors ${
+                    recentFilter === f.id
+                      ? "bg-white text-black font-bold"
+                      : "bg-white/[0.04] text-g5 hover:text-white border border-white/10"
+                  }`}
+                >
+                  {f.label}
+                </button>
+              ))}
+            </div>
+
             <button
               onClick={() => getRecentGateCheckIns(selectedEventId).then(setRecentScans)}
-              className="text-emerald-400 hover:underline cursor-pointer"
+              className="text-emerald-400 hover:underline cursor-pointer whitespace-nowrap"
             >
               ↻ Refresh Feed
             </button>
           </div>
 
-          {recentScans.length === 0 ? (
-            <div className="py-16 text-center text-g5 font-mono text-xs rounded-xl border border-white/[0.06] bg-white/[0.01]">
-              No admissions logged yet today. Scan a ticket to start admission feed.
+          {(() => {
+            const filteredRecentScans = recentScans.filter((scan) => {
+              if (recentFilter === "crew") return scan.tierName.startsWith("CREW");
+              if (recentFilter === "sponsors") return scan.tierName.startsWith("VIP SPONSOR");
+              if (recentFilter === "attendees")
+                return !scan.tierName.startsWith("CREW") && !scan.tierName.startsWith("VIP SPONSOR");
+              return true;
+            });
+
+            if (filteredRecentScans.length === 0) {
+              return (
+                <div className="py-16 text-center text-g5 font-mono text-xs rounded-xl border border-white/[0.06] bg-white/[0.01]">
+                  No admissions found matching current filter.
+                </div>
+              );
+            }
+
+            return (
+              <div className="space-y-2">
+                {filteredRecentScans.map((scan, idx) => {
+                  const isCrew = scan.tierName.startsWith("CREW");
+                  const isSponsor = scan.tierName.startsWith("VIP SPONSOR");
+                  const badgeClass = isCrew
+                    ? "bg-emerald-500/15 text-emerald-400 border-emerald-500/30"
+                    : isSponsor
+                    ? "bg-amber-500/15 text-amber-300 border-amber-500/30"
+                    : "bg-white/[0.06] text-g3";
+
+                  return (
+                    <div
+                      key={scan.id + idx}
+                      className="p-3.5 rounded-xl bg-white/[0.02] border border-white/[0.08] flex items-center justify-between font-mono text-xs"
+                    >
+                      <div className="space-y-0.5">
+                        <div className="flex items-center gap-2">
+                          <span
+                            className={`w-2 h-2 rounded-full ${
+                              isCrew ? "bg-emerald-400" : isSponsor ? "bg-amber-400" : "bg-sky-400"
+                            }`}
+                          />
+                          <span className="text-white font-bold">{scan.attendeeName}</span>
+                          <span className={`text-[10px] px-1.5 py-0.5 rounded border ${badgeClass}`}>
+                            {scan.tierName}
+                          </span>
+                        </div>
+                        <div className="text-[11px] text-g5">
+                          {scan.ticketNumber} &bull; Admitted by {scan.checkedInBy || "Gate Staff"}
+                        </div>
+                      </div>
+
+                      <div className="text-right">
+                        <div className="text-emerald-400 font-bold">
+                          {scan.checkedInAt
+                            ? new Date(scan.checkedInAt).toLocaleTimeString("en-IN", {
+                                hour: "2-digit",
+                                minute: "2-digit",
+                                hour12: true,
+                              })
+                            : "Just now"}
+                        </div>
+                        <span className="text-[10px] text-g5">Verified</span>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            );
+          })()}
+        </div>
+      )}
+
+      {/* ── TAB 4: Venue Entry Rosters (Separate Entry Lists) ──────────── */}
+      {activeTab === "roster" && (
+        <div className="space-y-4 animate-fade-in">
+          {/* Summary Cards */}
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 font-mono">
+            <div className="p-3.5 rounded-xl bg-white/[0.02] border border-white/[0.08]">
+              <span className="text-[10px] text-g5 uppercase tracking-wider block">Total In Venue</span>
+              <span className="font-heading text-xl text-white font-bold">{rosterData?.totalAdmitted || 0}</span>
+            </div>
+            <div className="p-3.5 rounded-xl bg-emerald-500/10 border border-emerald-500/30">
+              <span className="text-[10px] text-emerald-400 uppercase tracking-wider block font-bold">Crew & Volunteers</span>
+              <span className="font-heading text-xl text-emerald-300 font-bold">{rosterData?.crewCount || 0}</span>
+            </div>
+            <div className="p-3.5 rounded-xl bg-amber-500/10 border border-amber-500/30">
+              <span className="text-[10px] text-amber-400 uppercase tracking-wider block font-bold">VIP Sponsors</span>
+              <span className="font-heading text-xl text-amber-300 font-bold">{rosterData?.sponsorCount || 0}</span>
+            </div>
+            <div className="p-3.5 rounded-xl bg-white/[0.02] border border-white/[0.08]">
+              <span className="text-[10px] text-g5 uppercase tracking-wider block">Ticket Attendees</span>
+              <span className="font-heading text-xl text-white font-bold">{rosterData?.attendeeCount || 0}</span>
+            </div>
+          </div>
+
+          {/* Sub-tab selection and Search */}
+          <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3 p-3 rounded-xl bg-white/[0.03] border border-white/[0.08]">
+            <div className="flex items-center gap-2 overflow-x-auto text-xs font-mono">
+              {[
+                { id: "crew", label: `Crew & Staff (${rosterData?.crewCount || 0})` },
+                { id: "sponsors", label: `VIP Sponsors (${rosterData?.sponsorCount || 0})` },
+                { id: "attendees", label: `Ticket Attendees (${rosterData?.attendeeCount || 0})` },
+                { id: "all", label: `All In Venue (${rosterData?.totalAdmitted || 0})` },
+              ].map((st) => (
+                <button
+                  key={st.id}
+                  onClick={() => setRosterSubTab(st.id as any)}
+                  className={`px-3 py-1.5 rounded-lg whitespace-nowrap cursor-pointer transition-colors ${
+                    rosterSubTab === st.id
+                      ? "bg-amber-500 text-black font-bold shadow-[0_0_15px_rgba(245,158,11,0.3)]"
+                      : "bg-white/[0.04] text-g5 hover:text-white"
+                  }`}
+                >
+                  {st.label}
+                </button>
+              ))}
+            </div>
+
+            <div className="flex items-center gap-2">
+              <input
+                type="text"
+                value={rosterSearch}
+                onChange={(e) => setRosterSearch(e.target.value)}
+                placeholder="Search venue roster..."
+                className="px-3 py-1.5 rounded-lg bg-black border border-white/15 text-xs font-mono text-white focus:border-amber-400 focus:outline-none w-full sm:w-48"
+              />
+              <button
+                onClick={loadRoster}
+                className="px-3 py-1.5 rounded-lg bg-white/5 hover:bg-white/10 text-xs font-mono text-g5 hover:text-white border border-white/10 whitespace-nowrap cursor-pointer"
+              >
+                ↻ Refresh
+              </button>
+            </div>
+          </div>
+
+          {/* Roster List */}
+          {isLoadingRoster ? (
+            <div className="py-16 text-center text-xs font-mono text-g5">
+              <div className="w-6 h-6 border-2 border-amber-400 border-t-transparent rounded-full animate-spin mx-auto mb-2" />
+              Loading verified venue admission records...
             </div>
           ) : (
-            recentScans.map((scan, idx) => (
-              <div
-                key={scan.id + idx}
-                className="p-3.5 rounded-xl bg-white/[0.02] border border-white/[0.08] flex items-center justify-between font-mono text-xs"
-              >
-                <div className="space-y-0.5">
-                  <div className="flex items-center gap-2">
-                    <span className="w-2 h-2 rounded-full bg-emerald-400" />
-                    <span className="text-white font-bold">{scan.attendeeName}</span>
-                    <span className="text-[10px] px-1.5 py-0.5 rounded bg-white/[0.06] text-g3">
-                      {scan.tierName}
-                    </span>
-                  </div>
-                  <div className="text-[11px] text-g5">
-                    {scan.ticketNumber} &bull; Admitted by {scan.checkedInBy || "Gate Staff"}
-                  </div>
-                </div>
+            (() => {
+              const activeList =
+                rosterSubTab === "crew"
+                  ? rosterData?.crewEntries || []
+                  : rosterSubTab === "sponsors"
+                  ? rosterData?.sponsorEntries || []
+                  : rosterSubTab === "attendees"
+                  ? rosterData?.attendeeEntries || []
+                  : rosterData?.allEntries || [];
 
-                <div className="text-right">
-                  <div className="text-emerald-400 font-bold">
-                    {scan.checkedInAt
-                      ? new Date(scan.checkedInAt).toLocaleTimeString("en-IN", {
-                          hour: "2-digit",
-                          minute: "2-digit",
-                          hour12: true,
-                        })
-                      : "Just now"}
+              const filtered = activeList.filter((item: any) => {
+                if (!rosterSearch.trim()) return true;
+                const q = rosterSearch.toLowerCase();
+                return (
+                  item.attendeeName.toLowerCase().includes(q) ||
+                  item.ticketNumber.toLowerCase().includes(q) ||
+                  item.tierName.toLowerCase().includes(q) ||
+                  (item.checkedInBy && item.checkedInBy.toLowerCase().includes(q))
+                );
+              });
+
+              if (filtered.length === 0) {
+                return (
+                  <div className="py-16 text-center text-g5 font-mono text-xs rounded-xl border border-white/[0.06] bg-white/[0.01]">
+                    No verified entrants found in this category matching search query.
                   </div>
-                  <span className="text-[10px] text-g5">Verified</span>
+                );
+              }
+
+              return (
+                <div className="space-y-2">
+                  {filtered.map((item: any) => {
+                    const isCrew = item.tierName.startsWith("CREW");
+                    const isSponsor = item.tierName.startsWith("VIP SPONSOR");
+                    const badgeClass = isCrew
+                      ? "bg-emerald-500/15 text-emerald-400 border-emerald-500/30"
+                      : isSponsor
+                      ? "bg-amber-500/15 text-amber-300 border-amber-500/30"
+                      : "bg-white/10 text-white border-white/20";
+
+                    return (
+                      <div
+                        key={item.id}
+                        className="p-4 rounded-xl bg-white/[0.02] border border-white/[0.08] hover:border-white/20 transition-all flex flex-col sm:flex-row sm:items-center justify-between gap-3 font-mono text-xs"
+                      >
+                        <div className="space-y-1">
+                          <div className="flex items-center gap-2">
+                            <span
+                              className={`w-2 h-2 rounded-full ${
+                                isCrew ? "bg-emerald-400" : isSponsor ? "bg-amber-400" : "bg-sky-400"
+                              }`}
+                            />
+                            <span className="text-white font-bold text-sm uppercase">{item.attendeeName}</span>
+                            <span
+                              className={`px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider border ${badgeClass}`}
+                            >
+                              {item.tierName}
+                            </span>
+                          </div>
+                          <div className="text-g5 text-[11px] flex flex-wrap gap-x-3">
+                            <span>
+                              Credential ID: <strong className="text-white">{item.ticketNumber}</strong>
+                            </span>
+                            {item.attendeeEmail && <span>✉ {item.attendeeEmail}</span>}
+                            {item.attendeePhone && <span>📞 {item.attendeePhone}</span>}
+                          </div>
+                        </div>
+
+                        <div className="text-left sm:text-right border-t sm:border-t-0 pt-2 sm:pt-0 border-white/5 space-y-0.5">
+                          <div className="text-emerald-400 font-bold">
+                            {item.checkedInAt
+                              ? new Date(item.checkedInAt).toLocaleTimeString("en-IN", {
+                                  hour: "2-digit",
+                                  minute: "2-digit",
+                                  hour12: true,
+                                })
+                              : "Earlier"}
+                          </div>
+                          <div className="text-[10px] text-g5">
+                            Admitted by {item.checkedInBy || "Gatekeeper"}
+                          </div>
+                        </div>
+                      </div>
+                    );
+                  })}
                 </div>
-              </div>
-            ))
+              );
+            })()
           )}
         </div>
       )}

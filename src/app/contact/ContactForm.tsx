@@ -13,10 +13,26 @@ const categories = [
   { value: "venue", label: "Venue / Business Inquiry" },
 ];
 
-export function ContactForm() {
+interface ContactFormProps {
+  contactEmail?: string;
+  phone?: string;
+  socialInstagram?: string;
+  socialWhatsapp?: string;
+  location?: string;
+}
+
+export function ContactForm({
+  contactEmail = "velvt.in@gmail.com",
+  phone = "+91 93951 78940",
+  socialInstagram = "https://www.instagram.com/velvt.in",
+  socialWhatsapp = "https://chat.whatsapp.com/E5F1PCTqmgU2ljE2rtuzl8",
+  location = "Silchar, Assam, India",
+}: ContactFormProps = {}) {
   const [loading, setLoading] = useState(false);
   const [success, setSuccess] = useState(false);
   const [errors, setErrors] = useState<Record<string, string[]>>({});
+
+  const cleanPhone = phone.replace(/\s+/g, "");
 
   async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
@@ -113,7 +129,7 @@ export function ContactForm() {
 
                 <div>
                   <label className="block text-xs font-mono font-medium uppercase tracking-[0.15em] text-muted mb-2">
-                    Phone
+                    Phone Number
                   </label>
                   <input
                     type="tel"
@@ -124,24 +140,22 @@ export function ContactForm() {
 
                 <div>
                   <label className="block text-xs font-mono font-medium uppercase tracking-[0.15em] text-muted mb-2">
-                    Inquiry Classification <span className="text-primary">*</span>
+                    Category <span className="text-primary">*</span>
                   </label>
                   <select
                     name="category"
                     required
-                    className="w-full px-5 py-3.5 bg-black/80 border border-white/10 rounded-xl text-white text-sm focus:outline-none focus:border-primary focus:shadow-[0_0_14px_rgba(200,16,46,0.35)] transition-all"
+                    defaultValue="general"
+                    className="w-full px-5 py-3.5 bg-zinc-900 border border-white/10 rounded-xl text-white text-sm focus:outline-none focus:border-primary focus:shadow-[0_0_14px_rgba(200,16,46,0.35)] transition-all"
                   >
-                    <option value="">Select a category</option>
-                    {categories.map((cat) => (
-                      <option key={cat.value} value={cat.value}>
-                        {cat.label}
+                    {categories.map((c) => (
+                      <option key={c.value} value={c.value}>
+                        {c.label}
                       </option>
                     ))}
                   </select>
                   {errors.category && (
-                    <p className="text-xs text-primary mt-1">
-                      {errors.category[0]}
-                    </p>
+                    <p className="text-xs text-primary mt-1">{errors.category[0]}</p>
                   )}
                 </div>
 
@@ -151,32 +165,34 @@ export function ContactForm() {
                   </label>
                   <textarea
                     name="message"
-                    rows={5}
                     required
-                    className="w-full px-5 py-3.5 bg-white/[0.04] border border-white/10 rounded-2xl text-white text-sm focus:outline-none focus:border-primary focus:shadow-[0_0_14px_rgba(200,16,46,0.35)] transition-all resize-none"
+                    rows={5}
+                    className="w-full px-5 py-3.5 bg-white/[0.04] border border-white/10 rounded-xl text-white text-sm focus:outline-none focus:border-primary focus:shadow-[0_0_14px_rgba(200,16,46,0.35)] transition-all resize-none"
                   />
                   {errors.message && (
-                    <p className="text-xs text-primary mt-1">
-                      {errors.message[0]}
-                    </p>
+                    <p className="text-xs text-primary mt-1">{errors.message[0]}</p>
                   )}
                 </div>
 
                 {errors._form && (
-                  <p className="text-sm text-white p-3 border border-red-glow rounded-xl bg-red-dim">
-                    {errors._form[0]}
-                  </p>
+                  <p className="text-xs text-primary">{errors._form[0]}</p>
                 )}
 
-                <Button type="submit" loading={loading} size="lg" variant="primary" className="w-full">
-                  Send Message
+                <Button
+                  type="submit"
+                  variant="primary"
+                  size="lg"
+                  className="w-full justify-center"
+                  disabled={loading}
+                >
+                  {loading ? "Sending..." : "Submit Inquiry"}
                 </Button>
               </form>
             </div>
           </div>
 
-          {/* Contact Info */}
-          <div className="lg:pt-16 space-y-8">
+          {/* Contact Details & Info */}
+          <div className="space-y-8 lg:pt-20">
             <div className="rounded-[20px] bg-white/[0.05] border border-white/10 backdrop-blur-[14px] p-8 sm:p-10 space-y-8 shadow-[0_0_30px_rgba(0,0,0,0.3)]">
               <div>
                 <span className="text-[10px] font-mono uppercase tracking-[0.2em] text-primary">
@@ -191,7 +207,7 @@ export function ContactForm() {
                 <div className="pt-2">
                   <span className="text-[10px] font-mono tracking-widest text-white/80 uppercase bg-white/[0.04] px-2.5 py-1 rounded-full border border-white/10 inline-flex items-center gap-1.5">
                     <span className="w-1.5 h-1.5 rounded-full bg-primary animate-pulse" />
-                    Silchar, Assam, India
+                    {location}
                   </span>
                 </div>
               </div>
@@ -201,10 +217,10 @@ export function ContactForm() {
                   Phone &amp; Direct WhatsApp
                 </p>
                 <a
-                  href="tel:+919395178940"
+                  href={`tel:${cleanPhone}`}
                   className="font-mono text-lg text-primary hover:text-white transition-colors block"
                 >
-                  +91 93951 78940
+                  {phone}
                 </a>
               </div>
 
@@ -213,10 +229,10 @@ export function ContactForm() {
                   Email
                 </p>
                 <a
-                  href="mailto:contact@velvt.in"
+                  href={`mailto:${contactEmail}`}
                   className="font-mono text-lg text-primary hover:text-white transition-colors block"
                 >
-                  contact@velvt.in
+                  {contactEmail}
                 </a>
               </div>
 
@@ -226,7 +242,7 @@ export function ContactForm() {
                 </p>
                 <div className="space-y-2 pt-1">
                   <a
-                    href="https://www.instagram.com/velvt.in"
+                    href={socialInstagram}
                     target="_blank"
                     rel="noopener noreferrer"
                     className="flex items-center justify-between p-3 rounded-xl bg-white/[0.04] border border-white/10 text-xs font-mono text-white hover:border-red hover:bg-red-dim transition-all group"
@@ -237,7 +253,7 @@ export function ContactForm() {
                     <span className="text-muted group-hover:text-white">↗</span>
                   </a>
                   <a
-                    href="https://chat.whatsapp.com/E5F1PCTqmgU2ljE2rtuzl8"
+                    href={socialWhatsapp}
                     target="_blank"
                     rel="noopener noreferrer"
                     className="flex items-center justify-between p-3 rounded-xl bg-white/[0.04] border border-white/10 text-xs font-mono text-white hover:border-emerald-500 hover:bg-emerald-950/40 transition-all group"

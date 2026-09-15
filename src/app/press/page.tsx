@@ -7,7 +7,7 @@ import { EmptyState } from "@/components/ui/EmptyState";
 import { formatDateShort } from "@/lib/utils";
 import type { Metadata } from "next";
 
-export const revalidate = 60;
+export const dynamic = "force-dynamic";
 
 export const metadata: Metadata = {
   title: "Press & Sponsors",
@@ -16,14 +16,22 @@ export const metadata: Metadata = {
 };
 
 export default async function PressPage() {
-  const { status, customTitle, customSubtitle } = await getPageStatus("press");
+  const [{ status, customTitle, customSubtitle }, dbMentions, siteSettings] = await Promise.all([
+    getPageStatus("press"),
+    prisma.pressMention
+      .findMany({
+        where: { isPublished: true },
+        orderBy: { displayOrder: "asc" },
+      })
+      .catch(() => []),
+    prisma.siteSetting.findMany().catch(() => []),
+  ]);
 
-  const dbMentions = await prisma.pressMention
-    .findMany({
-      where: { isPublished: true },
-      orderBy: { displayOrder: "asc" },
-    })
-    .catch(() => []);
+  const settings: Record<string, string> = {};
+  for (const s of siteSettings) {
+    settings[s.key] = s.value;
+  }
+  const pressEmail = settings.press_email || settings.contact_email || "velvt.in@gmail.com";
 
   return (
     <PageStatusGate
@@ -143,10 +151,10 @@ export default async function PressPage() {
               Press Relations
             </p>
             <a
-              href="mailto:press@velvt.in"
+              href={`mailto:${pressEmail}`}
               className="font-mono text-lg text-primary hover:text-white transition-colors block"
             >
-              press@velvt.in
+              {pressEmail}
             </a>
           </div>
         </div>

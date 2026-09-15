@@ -5,6 +5,8 @@ import { SectionHeading } from "@/components/ui/SectionHeading";
 import { Button } from "@/components/ui/Button";
 import { EmptyState } from "@/components/ui/EmptyState";
 import { isSectionEnabled } from "@/lib/section-switchboard";
+import Link from "next/link";
+import { VolunteerApplicationTracker } from "./VolunteerApplicationTracker";
 import type { Metadata } from "next";
 
 export const revalidate = 60;
@@ -226,9 +228,14 @@ export default async function VolunteersPage() {
                 </div>
 
                 <div className="space-y-3 pt-4 border-t border-white/10">
-                  <Button href="/volunteers/register" variant="primary" size="lg" className="w-full justify-center">
-                    Apply for Crew Accreditation &rarr;
-                  </Button>
+                  <div className="flex flex-col sm:flex-row items-center gap-3">
+                    <Button href="/volunteers/register" variant="primary" size="lg" className="w-full sm:flex-1 justify-center">
+                      Apply for Crew Accreditation &rarr;
+                    </Button>
+                    <Button href="/verify" variant="outline" size="lg" className="w-full sm:flex-1 justify-center uppercase tracking-wider font-bold">
+                      Verify Credential
+                    </Button>
+                  </div>
                   <div className="flex items-center justify-center gap-2 text-[11px] font-mono text-g5">
                     <span className="w-1.5 h-1.5 rounded-full bg-emerald-400" />
                     <span>Verified volunteers receive tamper-proof cryptographic badges and official experience certificates.</span>
@@ -373,10 +380,15 @@ export default async function VolunteersPage() {
           </section>
         )}
 
+        {/* Section 5: Real-Time Application & Credential Tracker */}
+        <section className="container-velvt">
+          <VolunteerApplicationTracker />
+        </section>
+
         {/* Section 6: Verified Volunteer Registry Preview */}
         {isSectionEnabled(settings, "volunteers_section_registry") && volunteers.length > 0 && (
           <section className="container-velvt space-y-8 pt-8 border-t border-white/10">
-            <div className="flex items-center justify-between">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
               <div>
                 <h3 className="font-display font-bold text-2xl uppercase tracking-wider text-white">
                   Verified Volunteer Registry ({volunteers.length})
@@ -385,35 +397,42 @@ export default async function VolunteersPage() {
                   Active accredited staff with verified cryptographic IDs
                 </p>
               </div>
+              <Button href="/verify" variant="outline" size="md" className="uppercase tracking-wider font-bold">
+                Verify Credential &rarr;
+              </Button>
             </div>
 
             <div className="grid sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
               {volunteers.map((v) => (
-                <div
+                <Link
                   key={v.id}
-                  className="p-5 rounded-2xl border border-white/10 bg-black/40 hover:border-red/40 transition-all flex items-center gap-4"
+                  href={`/verify/${v.volunteerId || v.id}`}
+                  className="p-5 rounded-2xl border border-white/10 bg-black/40 hover:border-red/60 hover:bg-black/60 transition-all flex items-center justify-between gap-4 group cursor-pointer"
                 >
-                  <div className="w-12 h-12 rounded-full overflow-hidden border border-white/10 bg-black flex-shrink-0 flex items-center justify-center">
-                    {v.photo ? (
-                      <img src={v.photo} alt={v.fullName} className="w-full h-full object-cover" />
-                    ) : (
-                      <span className="font-display font-bold text-white text-base">
-                        {v.fullName.charAt(0)}
-                      </span>
-                    )}
+                  <div className="flex items-center gap-4 min-w-0">
+                    <div className="w-12 h-12 rounded-full overflow-hidden border border-white/10 bg-black flex-shrink-0 flex items-center justify-center group-hover:border-red/40 transition-colors">
+                      {v.photo ? (
+                        <img src={v.photo} alt={v.fullName} className="w-full h-full object-cover" />
+                      ) : (
+                        <span className="font-display font-bold text-white text-base">
+                          {v.fullName.charAt(0)}
+                        </span>
+                      )}
+                    </div>
+                    <div className="min-w-0">
+                      <h4 className="font-display font-bold text-white uppercase text-sm truncate group-hover:text-red transition-colors">
+                        {v.fullName}
+                      </h4>
+                      <p className="text-[10px] font-mono text-red truncate">
+                        {v.volunteerId || "VERIFIED CREW"}
+                      </p>
+                      <p className="text-[10px] font-mono text-g5 truncate">
+                        {v.assignedRole}
+                      </p>
+                    </div>
                   </div>
-                  <div className="min-w-0">
-                    <h4 className="font-display font-bold text-white uppercase text-sm truncate">
-                      {v.fullName}
-                    </h4>
-                    <p className="text-[10px] font-mono text-red truncate">
-                      {v.volunteerId || "VERIFIED CREW"}
-                    </p>
-                    <p className="text-[10px] font-mono text-g5 truncate">
-                      {v.assignedRole}
-                    </p>
-                  </div>
-                </div>
+                  <span className="text-xs font-mono text-g5 group-hover:text-red transition-colors">&rarr;</span>
+                </Link>
               ))}
             </div>
           </section>
