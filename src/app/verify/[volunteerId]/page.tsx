@@ -2,7 +2,6 @@ import { prisma } from "@/lib/db";
 import { notFound } from "next/navigation";
 import { headers } from "next/headers";
 import type { Metadata } from "next";
-import QRCode from "qrcode";
 import DownloadQrButton from "@/components/ui/DownloadQrButton";
 
 interface VerifyPageProps {
@@ -155,6 +154,7 @@ export default async function VerifyVolunteerPage({
 
   let qrSvg = "";
   try {
+    const QRCode = await import("qrcode");
     qrSvg = await QRCode.toString(verifyUrl, {
       type: "svg",
       margin: 1,

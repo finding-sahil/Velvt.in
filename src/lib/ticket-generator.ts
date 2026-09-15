@@ -1,4 +1,3 @@
-import QRCode from "qrcode";
 import crypto from "crypto";
 
 const CHAR_SET = "23456789ABCDEFGHJKLMNPQRSTUVWXYZ";
@@ -28,6 +27,7 @@ export function generateSecurityToken(): string {
  */
 export async function generateTicketQRCode(verifyUrl: string): Promise<string> {
   try {
+    const QRCode = await import("qrcode");
     return await QRCode.toDataURL(verifyUrl, {
       width: 480,
       margin: 1.5,

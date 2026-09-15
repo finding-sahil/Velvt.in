@@ -5,6 +5,7 @@ import path from "path";
 import { getSession } from "@/lib/auth";
 import { adminPath } from "@/lib/admin-path";
 import { prisma } from "@/lib/db";
+import { getCachedSiteSettings } from "@/lib/settings-cache";
 import { MediaLibraryManager, MediaItem } from "./MediaLibraryManager";
 
 export const metadata = {
@@ -26,7 +27,7 @@ export default async function MediaLibraryPage() {
     prisma.partner.findMany({ select: { id: true, name: true, logo: true } }).catch(() => []),
     prisma.galleryItem.findMany({ select: { id: true, caption: true, url: true } }).catch(() => []),
     prisma.testimonial.findMany({ select: { id: true, authorName: true, avatarUrl: true } }).catch(() => []),
-    prisma.siteSetting.findMany({ select: { key: true, value: true } }).catch(() => []),
+    getCachedSiteSettings(),
   ]);
 
   // 2. Build normalized usage dictionary
@@ -80,15 +81,15 @@ export default async function MediaLibraryPage() {
   }
 
   // Populate usage from site settings (e.g. hero, linktree avatar, etc.)
-  for (const s of siteSettings) {
-    if (s.value && (s.value.includes("/") || s.value.includes("."))) {
-      if (s.key === "linktree_config") {
+  for (const [key, val] of Object.entries(siteSettings)) {
+    if (val && (val.includes("/") || val.includes("."))) {
+      if (key === "linktree_config") {
         try {
-          const parsed = JSON.parse(s.value);
+          const parsed = JSON.parse(val);
           if (parsed.avatarUrl) registerUsage(parsed.avatarUrl, "Link Tree Avatar");
         } catch {}
-      } else if (s.value.startsWith("/") || s.value.startsWith("http")) {
-        registerUsage(s.value, `CMS Setting: ${s.key}`);
+      } else if (val.startsWith("/") || val.startsWith("http")) {
+        registerUsage(val, `CMS Setting: ${key}`);
       }
     }
   }

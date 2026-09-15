@@ -1,6 +1,5 @@
 import { Metadata } from "next";
 import { headers } from "next/headers";
-import QRCode from "qrcode";
 import Link from "next/link";
 import { getSponsorVerificationData } from "@/app/actions";
 import { getSession } from "@/lib/auth";
@@ -76,6 +75,7 @@ export default async function VerifySponsorPassPage({ params }: PageProps) {
   const passUrl = `${baseUrl}/verify/sponsor/${encodeURIComponent(sponsorData.ticketNumber || identifier)}`;
   let qrSvg = "";
   try {
+    const QRCode = await import("qrcode");
     qrSvg = await QRCode.toString(passUrl, {
       type: "svg",
       margin: 1,

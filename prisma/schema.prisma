@@ -60,6 +60,8 @@ model Event {
 
   @@index([status, date])
   @@index([isFeatured])
+  @@index([date])
+  @@index([isFeatured, date])
 }
 
 // ─── Venues ────────────────────────────────────────────────────────────────────
@@ -135,6 +137,8 @@ model IssuedTicket {
   @@index([attendeeEmail])
   @@index([ticketTypeId])
   @@index([createdAt])
+  @@index([checkedInBy])
+  @@index([eventId, isCheckedIn, createdAt])
 }
 
 // ─── Event Schedule ────────────────────────────────────────────────────────────
@@ -214,6 +218,7 @@ model Volunteer {
   @@index([volunteerId])
   @@index([eventId])
   @@index([appliedAt])
+  @@index([status, approvedAt])
 }
 
 // ─── Team Members ──────────────────────────────────────────────────────────────
@@ -242,6 +247,7 @@ model TeamMember {
   updatedAt          DateTime @updatedAt
 
   @@index([isPublished, displayOrder])
+  @@index([displayOrder])
 }
 
 // ─── Gallery Items ─────────────────────────────────────────────────────────────
@@ -261,6 +267,7 @@ model GalleryItem {
 
   @@index([isPublished, displayOrder])
   @@index([eventId, isPublished])
+  @@index([createdAt])
 }
 
 // ─── Partners / Sponsors ───────────────────────────────────────────────────────
@@ -281,6 +288,7 @@ model Partner {
 
   @@index([isActive, displayOrder])
   @@index([eventId, isActive])
+  @@index([displayOrder])
 }
 
 // ─── Press Mentions ────────────────────────────────────────────────────────────
@@ -302,6 +310,7 @@ model PressMention {
 
   @@index([isPublished, displayOrder])
   @@index([eventId, isPublished])
+  @@index([displayOrder])
 }
 
 // ─── Contact Inquiries ─────────────────────────────────────────────────────────
@@ -367,6 +376,7 @@ model Testimonial {
   updatedAt    DateTime @updatedAt
 
   @@index([category, isApproved, displayOrder])
+  @@index([category, displayOrder])
 }
 
 // ─── Sponsor Inquiries ────────────────────────────────────────────────────────

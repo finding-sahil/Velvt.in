@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useRef, useTransition, useCallback } from "react";
 import Link from "next/link";
-import { Html5Qrcode } from "html5-qrcode";
+import type { Html5Qrcode } from "html5-qrcode";
 import {
   checkInIssuedTicket,
   searchTicketsForGate,
@@ -587,6 +587,8 @@ export function GateScanner({
       const qrRegionId = "velvt-gate-reader";
       const elem = document.getElementById(qrRegionId);
       if (!elem) return;
+
+      const { Html5Qrcode } = await import("html5-qrcode");
 
       if (html5QrCodeRef.current) {
         if (html5QrCodeRef.current.isScanning) {

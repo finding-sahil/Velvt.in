@@ -2,6 +2,7 @@ import { redirect } from "next/navigation";
 import Link from "next/link";
 import { getSession } from "@/lib/auth";
 import { prisma } from "@/lib/db";
+import { getCachedSiteSettings } from "@/lib/settings-cache";
 import { StatusBadge } from "@/components/ui/StatusBadge";
 import { formatDateShort } from "@/lib/utils";
 import { adminPath, adminLoginPath } from "@/lib/admin-path";
@@ -28,7 +29,7 @@ export default async function AdminDashboardPage() {
     checkedInTicketsCount,
     recentVolunteers,
     recentInquiries,
-    currentThemeSetting,
+    siteSettings,
   ] = await Promise.all([
     prisma.event.count(),
     prisma.volunteer.count({ where: { status: "pending" } }),
@@ -45,10 +46,10 @@ export default async function AdminDashboardPage() {
       take: 5,
       orderBy: { createdAt: "desc" },
     }),
-    prisma.siteSetting.findUnique({ where: { key: "site_theme" } }).catch(() => null),
+    getCachedSiteSettings(),
   ]);
 
-  const activeTheme = currentThemeSetting?.value || "legacy";
+  const activeTheme = siteSettings.site_theme || "legacy";
 
   return (
     <div className="space-y-6 sm:space-y-8 animate-fade-in pb-8">

@@ -2,6 +2,7 @@
 // Session-based auth using PBKDF2 password hashing + signed cookies
 
 import { cookies } from "next/headers";
+import { cache } from "react";
 import { prisma } from "./db";
 
 const SESSION_COOKIE = "velvt_admin_session";
@@ -182,7 +183,7 @@ export interface SessionData {
   user: SessionUser;
 }
 
-export async function getSession(): Promise<SessionData | null> {
+export const getSession = cache(async (): Promise<SessionData | null> => {
   try {
     const cookieStore = await cookies();
     const sessionCookie = cookieStore.get(SESSION_COOKIE);
@@ -231,7 +232,7 @@ export async function getSession(): Promise<SessionData | null> {
   } catch {
     return null;
   }
-}
+});
 
 export async function destroySession(): Promise<void> {
   const cookieStore = await cookies();

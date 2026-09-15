@@ -1,14 +1,13 @@
 import { NextResponse } from "next/server";
-import { prisma } from "@/lib/db";
+import { getCachedSiteSettings } from "@/lib/settings-cache";
 
 export const revalidate = 300;
 
 export async function GET() {
   try {
-    const setting = await prisma.siteSetting.findUnique({
-      where: { key: "volunteer_roles" },
-    });
-    const roles = setting ? JSON.parse(setting.value) : [];
+    const settings = await getCachedSiteSettings();
+    const rawRoles = settings.volunteer_roles;
+    const roles = rawRoles ? JSON.parse(rawRoles) : [];
     return NextResponse.json(
       { roles },
       {

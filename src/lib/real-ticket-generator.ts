@@ -15,8 +15,6 @@
  *  - NO "LIVE MUSIC & SOUND" or "BOO!" overlapping text
  */
 
-import QRCode from "qrcode";
-
 export interface RealTicketData {
   ticketNumber: string;
   securityToken: string;
@@ -81,6 +79,7 @@ export async function generateRealTicketPng(data: RealTicketData): Promise<strin
   let qrDataUrl = data.qrCodeDataUrl;
   if (!qrDataUrl) {
     const verifyUrl = `${SITE_URL}verify/ticket/${encodeURIComponent(data.securityToken || data.ticketNumber)}`;
+    const QRCode = await import("qrcode");
     qrDataUrl = await QRCode.toDataURL(verifyUrl, {
       width: 400,
       margin: 1,

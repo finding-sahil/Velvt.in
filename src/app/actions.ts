@@ -20,7 +20,7 @@ import { logAuditEvent } from "@/lib/audit";
 import { getAdminPrefix } from "@/lib/admin-path";
 import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
-import { revalidateSiteSettings } from "@/lib/settings-cache";
+import { revalidateSiteSettings, getCachedSiteSettings } from "@/lib/settings-cache";
 import { headers } from "next/headers";
 import { unlink } from "fs/promises";
 import { existsSync } from "fs";
@@ -3194,15 +3194,21 @@ export async function listGatemen() {
     });
     const eventMap = new Map(events.map((e) => [e.id, e.name]));
 
-    const checkInCounts = await Promise.all(
-      gatemen.map(async (g) => {
-        const count = await prisma.issuedTicket.count({
-          where: { checkedInBy: g.name },
-        });
-        return { id: g.id, count };
-      })
-    );
-    const countMap = new Map(checkInCounts.map((c) => [c.id, c.count]));
+    const names = gatemen.map((g) => g.name).filter(Boolean);
+    const countMap = new Map<string, number>();
+
+    if (names.length > 0) {
+      const grouped = await prisma.issuedTicket.groupBy({
+        by: ["checkedInBy"],
+        where: { checkedInBy: { in: names } },
+        _count: { _all: true },
+      });
+      for (const item of grouped) {
+        if (item.checkedInBy) {
+          countMap.set(item.checkedInBy, item._count._all);
+        }
+      }
+    }
 
     return gatemen.map((g) => ({
       ...g,
@@ -3211,7 +3217,7 @@ export async function listGatemen() {
       eventName: g.assignedEventId
         ? eventMap.get(g.assignedEventId) || "Unknown Event"
         : "All Events",
-      checkInCount: countMap.get(g.id) || 0,
+      checkInCount: countMap.get(g.name) || 0,
     }));
   } catch (error) {
     console.error("listGatemen error:", error);
@@ -4769,35 +4775,12 @@ const DEFAULT_LINKTREE_CONFIG: LinkTreeConfig = {
 
 export async function getLinkTreeData(): Promise<LinkTreeConfig> {
   try {
-    const [configRow, siteSettings] = await Promise.all([
-      prisma.siteSetting.findUnique({
-        where: { key: "linktree_config" },
-      }),
-      prisma.siteSetting.findMany({
-        where: {
-          key: {
-            in: [
-              "brand_name",
-              "tagline",
-              "location",
-              "contact_email",
-              "phone",
-              "social_instagram",
-              "social_whatsapp",
-            ],
-          },
-        },
-      }),
-    ]);
+    const settingsMap = await getCachedSiteSettings();
+    const configRowValue = settingsMap.linktree_config;
 
-    const settingsMap: Record<string, string> = {};
-    for (const s of siteSettings) {
-      settingsMap[s.key] = s.value;
-    }
-
-    if (configRow?.value) {
+    if (configRowValue) {
       try {
-        const parsed = JSON.parse(configRow.value);
+        const parsed = JSON.parse(configRowValue);
         return {
           title: parsed.title || settingsMap.brand_name || DEFAULT_LINKTREE_CONFIG.title,
           bio: parsed.bio || settingsMap.tagline || DEFAULT_LINKTREE_CONFIG.bio,

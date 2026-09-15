@@ -1,5 +1,6 @@
 import { prisma } from "@/lib/db";
 import { requireAdmin } from "@/lib/auth";
+import { getCachedSiteSettings } from "@/lib/settings-cache";
 import { SponsorInquiryManager } from "./SponsorInquiryManager";
 import type { Metadata } from "next";
 
@@ -12,13 +13,11 @@ export const dynamic = "force-dynamic";
 export default async function AdminSponsorsPage() {
   await requireAdmin();
 
-  const [inquiries, deckSetting] = await Promise.all([
+  const [inquiries, siteSettings] = await Promise.all([
     prisma.sponsorInquiry.findMany({
       orderBy: { createdAt: "desc" },
     }),
-    prisma.siteSetting.findUnique({
-      where: { key: "sponsorship_deck_url" },
-    }),
+    getCachedSiteSettings(),
   ]);
 
   return (
@@ -38,7 +37,7 @@ export default async function AdminSponsorsPage() {
 
       <SponsorInquiryManager
         initialInquiries={inquiries}
-        initialDeckUrl={deckSetting?.value || ""}
+        initialDeckUrl={siteSettings.sponsorship_deck_url || ""}
       />
     </div>
   );
