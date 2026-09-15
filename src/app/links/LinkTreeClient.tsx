@@ -12,6 +12,7 @@ import {
   YouTubeIcon,
   MailIcon,
   PhoneIcon,
+  InstagramVerifiedBadge,
 } from "./LinkTreeIcons";
 
 interface LinkTreeClientProps {
@@ -67,9 +68,20 @@ export function LinkTreeClient({ config }: LinkTreeClientProps) {
   const whatsappChatUrl = getWhatsAppChatUrl();
 
   return (
-    <div className="min-h-screen bg-[#060205] text-white relative flex flex-col items-center justify-between px-4 py-8 sm:py-12 selection:bg-red selection:text-white font-sans overflow-x-hidden">
-      {/* ─── Luxury Velvet Ambient Atmosphere & Custom Wallpapers ─── */}
-      <div className="fixed inset-0 pointer-events-none overflow-hidden z-0">
+    <div className="min-h-screen bg-[#060205] text-white relative flex flex-col items-center justify-between px-4 py-8 sm:py-12 selection:bg-red selection:text-white font-sans overflow-x-hidden overscroll-y-contain">
+      {/* ─── Luxury Velvet Ambient Atmosphere & Custom Wallpapers (Locked against mobile scroll shake) ─── */}
+      <div
+        className="fixed top-0 left-0 w-full pointer-events-none overflow-hidden z-0 transform-gpu"
+        style={{
+          height: "100lvh",
+          minHeight: "100vh",
+          transform: "translate3d(0, 0, 0)",
+          WebkitTransform: "translate3d(0, 0, 0)",
+          backfaceVisibility: "hidden",
+          WebkitBackfaceVisibility: "hidden",
+          willChange: "transform",
+        }}
+      >
         {/* Wallpaper Presentation: Separate Desktop vs Mobile with smart single-upload fallback */}
         {config.desktopBackgroundUrl && config.mobileBackgroundUrl ? (
           <>
@@ -77,13 +89,25 @@ export function LinkTreeClient({ config }: LinkTreeClientProps) {
               src={config.desktopBackgroundUrl}
               alt="Link Tree Desktop Background"
               referrerPolicy="no-referrer"
-              className="hidden md:block absolute inset-0 w-full h-full object-cover object-center"
+              className="hidden md:block absolute inset-0 w-full h-full object-cover object-center pointer-events-none select-none transform-gpu"
+              style={{
+                transform: "translate3d(0, 0, 0)",
+                WebkitTransform: "translate3d(0, 0, 0)",
+                backfaceVisibility: "hidden",
+                WebkitBackfaceVisibility: "hidden",
+              }}
             />
             <img
               src={config.mobileBackgroundUrl}
               alt="Link Tree Mobile Background"
               referrerPolicy="no-referrer"
-              className="block md:hidden absolute inset-0 w-full h-full object-cover object-center"
+              className="block md:hidden absolute inset-0 w-full h-full object-cover object-center pointer-events-none select-none transform-gpu"
+              style={{
+                transform: "translate3d(0, 0, 0)",
+                WebkitTransform: "translate3d(0, 0, 0)",
+                backfaceVisibility: "hidden",
+                WebkitBackfaceVisibility: "hidden",
+              }}
             />
           </>
         ) : config.desktopBackgroundUrl ? (
@@ -91,21 +115,33 @@ export function LinkTreeClient({ config }: LinkTreeClientProps) {
             src={config.desktopBackgroundUrl}
             alt="Link Tree Background"
             referrerPolicy="no-referrer"
-            className="absolute inset-0 w-full h-full object-cover object-center"
+            className="absolute inset-0 w-full h-full object-cover object-center pointer-events-none select-none transform-gpu"
+            style={{
+              transform: "translate3d(0, 0, 0)",
+              WebkitTransform: "translate3d(0, 0, 0)",
+              backfaceVisibility: "hidden",
+              WebkitBackfaceVisibility: "hidden",
+            }}
           />
         ) : config.mobileBackgroundUrl ? (
           <img
             src={config.mobileBackgroundUrl}
             alt="Link Tree Background"
             referrerPolicy="no-referrer"
-            className="absolute inset-0 w-full h-full object-cover object-center"
+            className="absolute inset-0 w-full h-full object-cover object-center pointer-events-none select-none transform-gpu"
+            style={{
+              transform: "translate3d(0, 0, 0)",
+              WebkitTransform: "translate3d(0, 0, 0)",
+              backfaceVisibility: "hidden",
+              WebkitBackfaceVisibility: "hidden",
+            }}
           />
         ) : null}
 
         {/* Dark Contrast Dim Overlay (ensures text/links stay 100% readable) */}
         {(config.desktopBackgroundUrl || config.mobileBackgroundUrl) && (
           <div
-            className="absolute inset-0 bg-[#060205]"
+            className="absolute inset-0 bg-[#060205] pointer-events-none"
             style={{ opacity: (config.backgroundDim ?? 70) / 100 }}
           />
         )}
@@ -148,19 +184,27 @@ export function LinkTreeClient({ config }: LinkTreeClientProps) {
             </div>
             {config.verified && (
               <div
-                className="absolute bottom-0 right-0 w-6 h-6 rounded-full bg-red border-2 border-black flex items-center justify-center text-white text-[11px] font-black shadow-[0_0_10px_#c8102e]"
+                className="absolute -bottom-1 -right-1 flex items-center justify-center filter drop-shadow-[0_2px_8px_rgba(0,149,246,0.6)]"
                 title="Official Verified Platform"
               >
-                ✓
+                <InstagramVerifiedBadge className="w-7 h-7" size={28} />
               </div>
             )}
           </div>
 
-          {/* Title: VELVT.in */}
+          {/* Title: VELVT.in with Instagram Verified Tick */}
           <div className="space-y-1">
-            <h1 className="font-display font-black text-3xl sm:text-4xl text-white tracking-wider uppercase">
-              VELVT<span className="text-red">.in</span>
-            </h1>
+            <div className="flex items-center justify-center gap-1.5">
+              <h1 className="font-display font-black text-3xl sm:text-4xl text-white tracking-wider uppercase">
+                VELVT<span className="text-red">.in</span>
+              </h1>
+              {config.verified && (
+                <InstagramVerifiedBadge
+                  className="w-5 h-5 sm:w-6 sm:h-6 drop-shadow-[0_2px_8px_rgba(0,149,246,0.6)] shrink-0"
+                  size={22}
+                />
+              )}
+            </div>
             <p className="text-xs sm:text-sm font-mono text-white/70 max-w-sm leading-relaxed px-2 tracking-widest uppercase">
               {config.bio || "Experience Architecture"}
             </p>

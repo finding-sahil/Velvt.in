@@ -19,6 +19,7 @@ import {
   YouTubeIcon,
   MailIcon,
   PhoneIcon,
+  InstagramVerifiedBadge,
 } from "@/app/links/LinkTreeIcons";
 
 interface LinkTreeManagerProps {
@@ -722,8 +723,9 @@ export function LinkTreeManager({ initialConfig }: LinkTreeManagerProps) {
                         onChange={(e) => setProfileForm({ ...profileForm, verified: e.target.checked })}
                         className="w-4 h-4 rounded border-white/20 bg-black text-primary accent-primary"
                       />
-                      <span className="text-xs font-mono text-white">
-                        Show Official Verified Badge (✓)
+                      <span className="text-xs font-mono text-white flex items-center gap-1.5">
+                        <span>Show Official Instagram Verified Badge</span>
+                        <InstagramVerifiedBadge className="w-3.5 h-3.5" size={14} />
                       </span>
                     </label>
                   </div>
@@ -1080,16 +1082,23 @@ export function LinkTreeManager({ initialConfig }: LinkTreeManagerProps) {
               {/* Scrollable preview content */}
               <div className="w-full overflow-y-auto space-y-4 pr-1 text-center scrollbar-thin scrollbar-thumb-zinc-800 z-10">
                 {/* Avatar */}
-                <div className="w-16 h-16 rounded-full p-0.5 bg-gradient-to-tr from-primary to-red mx-auto flex items-center justify-center">
-                  {config.avatarUrl ? (
-                    <img
-                      src={config.avatarUrl}
-                      alt={config.title}
-                      className="w-full h-full rounded-full object-cover bg-black"
-                    />
-                  ) : (
-                    <div className="w-full h-full rounded-full bg-black flex items-center justify-center text-white font-black text-sm">
-                      V<span className="text-primary">.</span>
+                <div className="relative w-16 h-16 mx-auto">
+                  <div className="w-16 h-16 rounded-full p-0.5 bg-gradient-to-tr from-primary to-red flex items-center justify-center">
+                    {config.avatarUrl ? (
+                      <img
+                        src={config.avatarUrl}
+                        alt={config.title}
+                        className="w-full h-full rounded-full object-cover bg-black"
+                      />
+                    ) : (
+                      <div className="w-full h-full rounded-full bg-black flex items-center justify-center text-white font-black text-sm">
+                        V<span className="text-primary">.</span>
+                      </div>
+                    )}
+                  </div>
+                  {config.verified && (
+                    <div className="absolute -bottom-0.5 -right-0.5 filter drop-shadow-[0_1px_4px_rgba(0,149,246,0.6)]">
+                      <InstagramVerifiedBadge className="w-4 h-4" size={16} />
                     </div>
                   )}
                 </div>
@@ -1101,9 +1110,7 @@ export function LinkTreeManager({ initialConfig }: LinkTreeManagerProps) {
                       VELVT<span className="text-red">.in</span>
                     </span>
                     {config.verified && (
-                      <span className="w-3.5 h-3.5 rounded-full bg-red text-white text-[8px] font-bold flex items-center justify-center shadow-sm">
-                        ✓
-                      </span>
+                      <InstagramVerifiedBadge className="w-3.5 h-3.5 shrink-0" size={14} />
                     )}
                   </div>
                   <p className="text-[10px] font-mono text-muted leading-tight line-clamp-2 px-2 tracking-wider uppercase">
