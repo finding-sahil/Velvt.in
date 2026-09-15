@@ -184,11 +184,12 @@ export function TestimonialsManager({ initialTestimonials }: TestimonialsManager
 
       {/* Control Bar */}
       <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-4 p-4 rounded-2xl border border-white/10 bg-white/[0.02]">
-        <div className="flex items-center gap-2 overflow-x-auto text-xs font-mono uppercase">
+        <div className="flex items-center gap-2 overflow-x-auto text-xs font-mono uppercase pb-1 scrollbar-none">
           {[
             { id: "all", label: `All (${items.length})` },
-            { id: "volunteer", label: `Volunteer Crew (${items.filter((i) => i.category === "volunteer").length})` },
-            { id: "sponsor", label: `Sponsors & Partners (${items.filter((i) => i.category === "sponsor").length})` },
+            { id: "attendee", label: `Attendees (${items.filter((i) => i.category === "attendee" || i.category === "general").length})` },
+            { id: "sponsor", label: `Sponsors (${items.filter((i) => i.category === "sponsor").length})` },
+            { id: "volunteer", label: `Crew (${items.filter((i) => i.category === "volunteer").length})` },
           ].map((c) => (
             <button
               key={c.id}
@@ -206,7 +207,7 @@ export function TestimonialsManager({ initialTestimonials }: TestimonialsManager
 
         <button
           onClick={openCreate}
-          className="px-5 py-2 rounded-full bg-red hover:bg-red-glow text-white font-mono text-xs uppercase tracking-wider font-bold shadow-[0_0_20px_var(--red-glow)] transition-all flex items-center justify-center gap-2 cursor-pointer"
+          className="px-5 py-2 rounded-full bg-red hover:bg-red-glow text-white font-mono text-xs uppercase tracking-wider font-bold shadow-[0_0_20px_var(--red-glow)] transition-all flex items-center justify-center gap-2 cursor-pointer shrink-0"
         >
           <span>+ Add Testimonial</span>
         </button>
@@ -222,7 +223,7 @@ export function TestimonialsManager({ initialTestimonials }: TestimonialsManager
           {filtered.map((item) => (
             <div
               key={item.id}
-              className="p-6 rounded-2xl border border-white/10 bg-black/40 hover:border-white/20 transition-all flex flex-col justify-between space-y-4"
+              className="p-6 rounded-2xl border border-white/10 bg-black/40 hover:border-white/25 hover:scale-[1.01] hover:shadow-[0_0_20px_rgba(200,16,46,0.15)] transition-all duration-300 flex flex-col justify-between space-y-4 relative overflow-hidden group"
             >
               <div className="space-y-3">
                 <div className="flex items-center justify-between text-xs font-mono">
@@ -230,7 +231,11 @@ export function TestimonialsManager({ initialTestimonials }: TestimonialsManager
                     className={`px-2.5 py-0.5 rounded-full text-[10px] uppercase font-bold tracking-wider ${
                       item.category === "sponsor"
                         ? "bg-purple-500/15 text-purple-400 border border-purple-500/30"
-                        : "bg-red/15 text-red border border-red/30"
+                        : item.category === "attendee"
+                        ? "bg-red/15 text-red border border-red/30"
+                        : item.category === "volunteer"
+                        ? "bg-blue-500/15 text-blue-400 border border-blue-500/30"
+                        : "bg-white/10 text-white/80 border border-white/20"
                     }`}
                   >
                     {item.category}
@@ -238,7 +243,7 @@ export function TestimonialsManager({ initialTestimonials }: TestimonialsManager
 
                   <button
                     onClick={() => handleToggleApproval(item.id)}
-                    className={`px-2.5 py-0.5 rounded-full text-[10px] font-mono uppercase tracking-wider border cursor-pointer ${
+                    className={`px-2.5 py-0.5 rounded-full text-[10px] font-mono uppercase tracking-wider border cursor-pointer transition-colors ${
                       item.isApproved
                         ? "bg-emerald-500/10 text-emerald-400 border-emerald-500/30"
                         : "bg-amber-500/10 text-amber-400 border-amber-500/30"
@@ -253,39 +258,43 @@ export function TestimonialsManager({ initialTestimonials }: TestimonialsManager
                 </p>
               </div>
 
-              <div className="pt-3 border-t border-white/[0.08] flex items-center justify-between">
-                <div className="flex items-center gap-3">
+              <div className="pt-3 border-t border-white/[0.08] flex items-center justify-between gap-3">
+                <div className="flex items-center gap-3 min-w-0 flex-1">
                   {item.avatarUrl ? (
                     <img
                       src={item.avatarUrl}
                       alt={item.authorName}
-                      className="w-10 h-10 rounded-full object-cover border border-white/15"
+                      className="w-10 h-10 rounded-full object-cover border border-white/15 shrink-0"
                     />
                   ) : (
-                    <div className="w-10 h-10 rounded-full bg-white/10 flex items-center justify-center font-display font-bold text-white text-sm">
+                    <div className="w-10 h-10 rounded-full bg-white/10 flex items-center justify-center font-display font-bold text-white text-sm shrink-0">
                       {item.authorName.charAt(0)}
                     </div>
                   )}
-                  <div className="min-w-0">
+                  <div className="min-w-0 flex-1">
                     <h4 className="font-display font-bold text-sm uppercase text-white truncate">
                       {item.authorName}
                     </h4>
-                    <p className="text-[10px] font-mono text-g5 truncate">
+                    <p
+                      className="text-[10px] font-mono text-g5 truncate"
+                      title={`${item.authorRole}${item.company ? ` • ${item.company}` : ""}`}
+                    >
                       {item.authorRole} {item.company ? `• ${item.company}` : ""}
                     </p>
                   </div>
                 </div>
 
-                <div className="flex items-center gap-1.5">
+                <div className="flex items-center gap-1.5 shrink-0">
                   <button
                     onClick={() => openEdit(item)}
-                    className="px-2.5 py-1 rounded-lg border border-white/10 hover:border-white/30 text-xs font-mono text-g5 hover:text-white cursor-pointer"
+                    className="px-2.5 py-1 rounded-lg border border-white/10 hover:border-white/30 text-xs font-mono text-g5 hover:text-white transition-colors cursor-pointer"
                   >
                     Edit
                   </button>
                   <button
                     onClick={() => handleDelete(item.id)}
-                    className="px-2.5 py-1 rounded-lg border border-red/20 text-xs font-mono text-red hover:bg-red/10 cursor-pointer"
+                    className="px-2.5 py-1 rounded-lg border border-red/20 text-xs font-mono text-red hover:bg-red/10 transition-colors cursor-pointer"
+                    title="Delete"
                   >
                     ✕
                   </button>

@@ -10,12 +10,22 @@ import {
   deleteLinkTreeLink,
   reorderLinkTreeLinks,
 } from "@/app/actions";
+import {
+  REAL_ICON_OPTIONS,
+  RealLinkIcon,
+  InstagramIcon,
+  WhatsAppIcon,
+  SpotifyIcon,
+  YouTubeIcon,
+  MailIcon,
+  PhoneIcon,
+} from "@/app/links/LinkTreeIcons";
 
 interface LinkTreeManagerProps {
   initialConfig: LinkTreeConfig;
 }
 
-const EMOJI_PRESETS = ["🎟️", "👑", "⚡", "🛡️", "🎭", "💬", "🏛️", "📷", "📰", "📞", "💎", "🎧", "📍", "🔥", "🔮", "🔗"];
+const EMOJI_PRESETS = ["ticket", "crown", "instagram", "whatsapp", "spotify", "youtube", "camera", "crew", "sponsor", "phone", "mail", "location", "lightning", "fire", "star", "link"];
 
 const URL_PRESETS = [
   { label: "Flagship Event (Curse 2.O)", url: "/events/velvt-curse-2-0" },
@@ -377,12 +387,12 @@ export function LinkTreeManager({ initialConfig }: LinkTreeManagerProps) {
                   {config.links.map((link, idx) => (
                     <div
                       key={link.id}
-                      className={`p-4 rounded-2xl border transition-all duration-200 flex flex-col sm:flex-row sm:items-center justify-between gap-4 ${
+                      className={`p-4 rounded-2xl border transition-all duration-300 flex flex-col sm:flex-row sm:items-center justify-between gap-4 ${
                         link.isFeatured
-                          ? "bg-red-dim/30 border-red-glow/60 shadow-[0_0_20px_rgba(200,16,46,0.15)]"
+                          ? "bg-red-dim/30 border-red-glow/60 shadow-[0_0_20px_rgba(200,16,46,0.15)] hover:scale-[1.01]"
                           : link.isActive
-                          ? "bg-white/[0.03] border-white/10 hover:border-white/20"
-                          : "bg-white/[0.01] border-white/5 opacity-60"
+                          ? "bg-white/[0.03] border-white/10 hover:border-white/25 hover:scale-[1.01] hover:shadow-[0_0_15px_rgba(200,16,46,0.15)]"
+                          : "bg-white/[0.01] border-white/5 opacity-60 hover:scale-[1.01]"
                       }`}
                     >
                       {/* Left info */}
@@ -408,8 +418,8 @@ export function LinkTreeManager({ initialConfig }: LinkTreeManagerProps) {
                         </div>
 
                         {/* Icon */}
-                        <div className="w-10 h-10 rounded-xl bg-white/[0.05] border border-white/10 flex items-center justify-center text-xl shrink-0">
-                          {link.icon || "🔗"}
+                        <div className="w-10 h-10 rounded-xl bg-white/[0.05] border border-white/10 flex items-center justify-center shrink-0">
+                          <RealLinkIcon icon={link.icon} title={link.title} url={link.url} className="w-5 h-5" />
                         </div>
 
                         {/* Details */}
@@ -739,11 +749,13 @@ export function LinkTreeManager({ initialConfig }: LinkTreeManagerProps) {
                 </div>
 
                 {/* Socials bar */}
-                <div className="flex items-center justify-center gap-1.5 text-xs">
-                  {config.socials.instagram && <span className="text-muted">📷</span>}
-                  {config.socials.whatsapp && <span className="text-emerald-400">💬</span>}
-                  {config.socials.email && <span className="text-muted">✉️</span>}
-                  {config.socials.phone && <span className="text-muted">📞</span>}
+                <div className="flex items-center justify-center gap-2 pt-1">
+                  {config.socials.instagram && <InstagramIcon className="w-3.5 h-3.5 text-pink-500" />}
+                  {config.socials.whatsapp && <WhatsAppIcon className="w-3.5 h-3.5 text-[#25D366]" />}
+                  {config.socials.spotify && <SpotifyIcon className="w-3.5 h-3.5 text-[#1DB954]" />}
+                  {config.socials.youtube && <YouTubeIcon className="w-3.5 h-3.5 text-red-500" />}
+                  {config.socials.email && <MailIcon className="w-3.5 h-3.5 text-blue-400" />}
+                  {config.socials.phone && <PhoneIcon className="w-3.5 h-3.5 text-emerald-400" />}
                 </div>
 
                 {/* Simulated Link Cards */}
@@ -759,8 +771,10 @@ export function LinkTreeManager({ initialConfig }: LinkTreeManagerProps) {
                             : "bg-white/[0.04] border-white/10"
                         }`}
                       >
-                        <div className="flex items-center gap-2 min-w-0">
-                          <span className="text-sm shrink-0">{link.icon || "🔗"}</span>
+                        <div className="flex items-center gap-2.5 min-w-0">
+                          <div className="w-6 h-6 rounded-lg bg-white/[0.06] border border-white/10 flex items-center justify-center shrink-0">
+                            <RealLinkIcon icon={link.icon} title={link.title} url={link.url} className="w-3.5 h-3.5" />
+                          </div>
                           <div className="min-w-0">
                             <p className="font-display font-bold text-[11px] text-white uppercase truncate">
                               {link.title}
@@ -804,26 +818,37 @@ export function LinkTreeManager({ initialConfig }: LinkTreeManagerProps) {
             </div>
 
             <form onSubmit={handleSaveLink} className="space-y-4">
-              {/* Emoji / Icon Selector */}
+              {/* Real Vector Icon Selector */}
               <div>
                 <label className="block text-xs font-mono text-muted uppercase tracking-wider mb-2">
-                  Select Icon / Emoji
+                  Select Real Icon Style
                 </label>
-                <div className="flex items-center gap-2 flex-wrap pb-1">
-                  {EMOJI_PRESETS.map((emoji) => (
-                    <button
-                      type="button"
-                      key={emoji}
-                      onClick={() => setLinkForm({ ...linkForm, icon: emoji })}
-                      className={`w-9 h-9 rounded-xl border text-base flex items-center justify-center transition-all cursor-pointer ${
-                        linkForm.icon === emoji
-                          ? "bg-primary border-primary shadow-[0_0_10px_rgba(200,16,46,0.4)] scale-110"
-                          : "bg-white/[0.04] border-white/10 hover:border-white/30"
-                      }`}
-                    >
-                      {emoji}
-                    </button>
-                  ))}
+                <div className="grid grid-cols-4 sm:grid-cols-6 gap-2 max-h-44 overflow-y-auto p-1 bg-black/40 border border-white/10 rounded-xl">
+                  {REAL_ICON_OPTIONS.map((opt) => {
+                    const IconComp = opt.component;
+                    const isSelected =
+                      linkForm.icon === opt.id ||
+                      (linkForm.icon === "🎟️" && opt.id === "ticket") ||
+                      (linkForm.icon === "👑" && opt.id === "crown") ||
+                      (linkForm.icon === "📷" && opt.id === "instagram") ||
+                      (linkForm.icon === "💬" && opt.id === "whatsapp") ||
+                      (linkForm.icon === "🎧" && opt.id === "spotify");
+                    return (
+                      <button
+                        type="button"
+                        key={opt.id}
+                        onClick={() => setLinkForm({ ...linkForm, icon: opt.id })}
+                        className={`p-2 rounded-xl border flex flex-col items-center justify-center gap-1 transition-all cursor-pointer ${
+                          isSelected
+                            ? "bg-red/20 border-red text-white shadow-[0_0_12px_rgba(200,16,46,0.4)] scale-105"
+                            : "bg-white/[0.03] border-white/10 hover:border-white/30 text-white/70 hover:text-white"
+                        }`}
+                      >
+                        <IconComp className={`w-5 h-5 ${opt.colorClass}`} />
+                        <span className="text-[9px] font-mono truncate w-full text-center">{opt.name}</span>
+                      </button>
+                    );
+                  })}
                 </div>
               </div>
 

@@ -38,13 +38,13 @@ export default async function AdminLayout({
   return (
     <div
       suppressHydrationWarning
-      className="min-h-screen bg-[#050507] text-white flex flex-col md:flex-row font-sans selection:bg-red selection:text-white"
+      className="admin-shell min-h-screen bg-[#050507] text-white flex flex-col md:flex-row font-sans selection:bg-red selection:text-white"
     >
       {/* ─── Left Sidebar Navigation (Desktop Fixed + Mobile Drawer) ─── */}
       <AdminNav user={session.user} />
 
       {/* ─── Main Content Canvas (Right Side) ─── */}
-      <div className="flex-1 flex flex-col min-w-0 min-h-screen bg-black/40">
+      <div className="admin-canvas flex-1 flex flex-col min-w-0 min-h-screen bg-black/40">
         {/* Subtle Ambient Background Gradient */}
         <div className="fixed top-0 right-0 w-[500px] h-[350px] bg-red/5 rounded-full filter blur-[140px] pointer-events-none -z-10" />
 

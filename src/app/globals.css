@@ -690,8 +690,9 @@ html, body {
   animation-play-state: paused;
 }
 
-/* ─── Admin Theme: Light Mode Overrides ──────────────────────────────────────── */
+/* ─── Admin Theme: Comprehensive Light Mode Overrides ────────────────────────── */
 [data-admin-theme="light"] {
+  color-scheme: light;
   --admin-bg: #f8fafc;
   --admin-surface: #ffffff;
   --admin-border: #e2e8f0;
@@ -699,47 +700,216 @@ html, body {
   --admin-text-muted: #64748b;
 }
 
-[data-admin-theme="light"] body.is-admin,
+/* 1. Base Layout Backgrounds */
+[data-admin-theme="light"] body,
 [data-admin-theme="light"] .admin-shell,
+[data-admin-theme="light"] .admin-canvas,
+[data-admin-theme="light"] body.is-admin,
 [data-admin-theme="light"] aside,
-[data-admin-theme="light"] main {
+[data-admin-theme="light"] main,
+[data-admin-theme="light"] [class*="bg-[#050507]"] {
   background-color: #f8fafc !important;
   color: #0f172a !important;
 }
 
+/* 2. Left Sidebar Navigation */
+[data-admin-theme="light"] aside {
+  background-color: #ffffff !important;
+  border-color: #e2e8f0 !important;
+  box-shadow: 1px 0 3px 0 rgba(0, 0, 0, 0.04);
+}
+
+[data-admin-theme="light"] aside [class*="border-white/"] {
+  border-color: #f1f5f9 !important;
+}
+
+[data-admin-theme="light"] aside a:not([class*="bg-red"]):not([class*="bg-primary"]) {
+  color: #475569 !important;
+}
+
+[data-admin-theme="light"] aside a:not([class*="bg-red"]):not([class*="bg-primary"]):hover {
+  background-color: #f1f5f9 !important;
+  color: #0f172a !important;
+}
+
+/* 3. Cards, Panels, Modals, Tables, Dropdowns */
 [data-admin-theme="light"] .admin-card,
-[data-admin-theme="light"] .bg-black\/40,
-[data-admin-theme="light"] .bg-black\/60,
-[data-admin-theme="light"] .bg-white\/\[0\.02\],
-[data-admin-theme="light"] .bg-white\/\[0\.03\],
-[data-admin-theme="light"] .bg-white\/\[0\.04\] {
+[data-admin-theme="light"] [class*="bg-[#09090b]"],
+[data-admin-theme="light"] [class*="bg-[#0a0a0d]"],
+[data-admin-theme="light"] [class*="bg-[#0c0c0e]"],
+[data-admin-theme="light"] [class*="bg-[#111115]"],
+[data-admin-theme="light"] [class*="bg-[#141419]"],
+[data-admin-theme="light"] [class*="bg-black/30"],
+[data-admin-theme="light"] [class*="bg-black/40"],
+[data-admin-theme="light"] [class*="bg-black/50"],
+[data-admin-theme="light"] [class*="bg-black/60"],
+[data-admin-theme="light"] [class*="bg-black/70"],
+[data-admin-theme="light"] [class*="bg-black/80"],
+[data-admin-theme="light"] [class*="bg-black/90"],
+[data-admin-theme="light"] [class*="bg-white/[0.01]"],
+[data-admin-theme="light"] [class*="bg-white/[0.02]"],
+[data-admin-theme="light"] [class*="bg-white/[0.03]"],
+[data-admin-theme="light"] [class*="bg-white/[0.04]"],
+[data-admin-theme="light"] [class*="bg-white/[0.05]"],
+[data-admin-theme="light"] [class*="bg-white/[0.06]"],
+[data-admin-theme="light"] [class*="bg-white/[0.07]"],
+[data-admin-theme="light"] [class*="bg-white/[0.08]"],
+[data-admin-theme="light"] [class*="bg-white/10"] {
   background-color: #ffffff !important;
   border-color: #e2e8f0 !important;
   color: #0f172a !important;
-  box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.05), 0 1px 2px -1px rgba(0, 0, 0, 0.05);
+  box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.05), 0 1px 2px -1px rgba(0, 0, 0, 0.03);
 }
 
-[data-admin-theme="light"] .text-white {
+/* 4. Text Contrast Overrides: Make ALL white text variations dark slate */
+[data-admin-theme="light"] .text-white,
+[data-admin-theme="light"] [class*="text-white/"] {
   color: #0f172a !important;
 }
 
+[data-admin-theme="light"] [class*="text-white/70"],
+[data-admin-theme="light"] [class*="text-white/60"],
+[data-admin-theme="light"] [class*="text-white/50"],
+[data-admin-theme="light"] [class*="text-white/40"],
 [data-admin-theme="light"] .text-g4,
 [data-admin-theme="light"] .text-g5,
-[data-admin-theme="light"] .text-muted {
+[data-admin-theme="light"] .text-muted,
+[data-admin-theme="light"] .text-muted-foreground {
   color: #64748b !important;
 }
 
-[data-admin-theme="light"] .border-white\/10,
-[data-admin-theme="light"] .border-white\/15,
-[data-admin-theme="light"] .border-white\/5 {
+/* 5. CRITICAL EXEMPTION: Buttons with solid colored backgrounds MUST keep clean white text */
+[data-admin-theme="light"] .bg-red,
+[data-admin-theme="light"] .bg-red *,
+[data-admin-theme="light"] .bg-primary,
+[data-admin-theme="light"] .bg-primary *,
+[data-admin-theme="light"] button[class*="bg-red"],
+[data-admin-theme="light"] button[class*="bg-red"] *,
+[data-admin-theme="light"] button[class*="bg-primary"],
+[data-admin-theme="light"] button[class*="bg-primary"] *,
+[data-admin-theme="light"] a[class*="bg-red"],
+[data-admin-theme="light"] a[class*="bg-red"] *,
+[data-admin-theme="light"] a[class*="bg-primary"],
+[data-admin-theme="light"] a[class*="bg-primary"] *,
+[data-admin-theme="light"] .bg-red .text-white,
+[data-admin-theme="light"] .bg-primary .text-white {
+  color: #ffffff !important;
+}
+
+[data-admin-theme="light"] .bg-red {
+  background-color: #c8102e !important;
+}
+
+[data-admin-theme="light"] .bg-primary {
+  background-color: #c8102e !important;
+}
+
+/* 6. Inputs, Selects, and Textareas */
+[data-admin-theme="light"] input:not([type="checkbox"]):not([type="radio"]),
+[data-admin-theme="light"] select,
+[data-admin-theme="light"] textarea {
+  background-color: #ffffff !important;
+  border-color: #cbd5e1 !important;
+  color: #0f172a !important;
+  box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.04);
+}
+
+[data-admin-theme="light"] input::placeholder,
+[data-admin-theme="light"] textarea::placeholder {
+  color: #94a3b8 !important;
+}
+
+[data-admin-theme="light"] input:focus,
+[data-admin-theme="light"] select:focus,
+[data-admin-theme="light"] textarea:focus {
+  border-color: #c8102e !important;
+  outline: 2px solid rgba(200, 16, 46, 0.15) !important;
+}
+
+/* 7. Status Badges & Pill Contrast */
+[data-admin-theme="light"] [class*="bg-emerald-950"],
+[data-admin-theme="light"] [class*="bg-emerald-500/10"],
+[data-admin-theme="light"] [class*="bg-emerald-500/15"] {
+  background-color: #ecfdf5 !important;
+  border-color: #a7f3d0 !important;
+  color: #047857 !important;
+}
+[data-admin-theme="light"] [class*="bg-emerald-950"] *,
+[data-admin-theme="light"] [class*="text-emerald-300"],
+[data-admin-theme="light"] [class*="text-emerald-400"] {
+  color: #047857 !important;
+}
+
+[data-admin-theme="light"] [class*="bg-amber-950"],
+[data-admin-theme="light"] [class*="bg-amber-500/10"],
+[data-admin-theme="light"] [class*="bg-amber-500/15"] {
+  background-color: #fffbeb !important;
+  border-color: #fde68a !important;
+  color: #b45309 !important;
+}
+[data-admin-theme="light"] [class*="bg-amber-950"] *,
+[data-admin-theme="light"] [class*="text-amber-300"],
+[data-admin-theme="light"] [class*="text-amber-400"] {
+  color: #b45309 !important;
+}
+
+[data-admin-theme="light"] [class*="bg-purple-950"],
+[data-admin-theme="light"] [class*="bg-purple-500/10"],
+[data-admin-theme="light"] [class*="bg-purple-500/15"] {
+  background-color: #faf5ff !important;
+  border-color: #e9d5ff !important;
+  color: #7e22ce !important;
+}
+[data-admin-theme="light"] [class*="bg-purple-950"] *,
+[data-admin-theme="light"] [class*="text-purple-300"],
+[data-admin-theme="light"] [class*="text-purple-400"] {
+  color: #7e22ce !important;
+}
+
+[data-admin-theme="light"] [class*="bg-red-950"],
+[data-admin-theme="light"] [class*="bg-red/10"],
+[data-admin-theme="light"] [class*="bg-red/15"] {
+  background-color: #fef2f2 !important;
+  border-color: #fecaca !important;
+  color: #b91c1c !important;
+}
+[data-admin-theme="light"] [class*="bg-red-950"] *,
+[data-admin-theme="light"] [class*="text-red-400"] {
+  color: #b91c1c !important;
+}
+
+/* 8. Modal Backdrop Contrast */
+[data-admin-theme="light"] div[class*="fixed"][class*="inset-0"][class*="bg-black"] {
+  background-color: rgba(15, 23, 42, 0.6) !important;
+}
+
+/* 9. Universal Borders & Dividers */
+[data-admin-theme="light"] [class*="border-white/"] {
   border-color: #e2e8f0 !important;
 }
 
-[data-admin-theme="light"] input,
-[data-admin-theme="light"] select,
-[data-admin-theme="light"] textarea {
-  background-color: #f8fafc !important;
-  border-color: #cbd5e1 !important;
+[data-admin-theme="light"] [class*="divide-white/"] {
+  border-color: #e2e8f0 !important;
+}
+
+/* 10. Tables */
+[data-admin-theme="light"] table {
+  background-color: #ffffff !important;
   color: #0f172a !important;
+}
+
+[data-admin-theme="light"] th {
+  background-color: #f8fafc !important;
+  color: #475569 !important;
+  border-color: #e2e8f0 !important;
+}
+
+[data-admin-theme="light"] td {
+  border-color: #f1f5f9 !important;
+  color: #0f172a !important;
+}
+
+[data-admin-theme="light"] tr:hover td {
+  background-color: #f8fafc !important;
 }
 

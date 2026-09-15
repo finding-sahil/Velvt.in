@@ -718,14 +718,14 @@ export function GalleryManager({ items, events }: GalleryManagerProps) {
             return (
               <div
                 key={item.id}
-                className={`border rounded-2xl overflow-hidden flex flex-col justify-between transition-all relative ${
+                className={`group relative border rounded-2xl overflow-hidden flex flex-col justify-between transition-all duration-300 ${
                   isSelected
-                    ? "border-primary bg-primary/[0.06] ring-2 ring-primary/40 shadow-[0_0_25px_rgba(200,16,46,0.25)]"
-                    : "border-white/10 bg-white/[0.03] hover:border-white/20"
+                    ? "border-red shadow-[0_0_22px_rgba(200,16,46,0.35)] ring-1 ring-red scale-[1.01] bg-red/[0.04]"
+                    : "border-white/10 bg-white/[0.03] hover:border-white/25 hover:scale-[1.01]"
                 }`}
               >
                 {/* Image Container with Top Badges & Selection Checkbox */}
-                <div className="aspect-video relative bg-black/60 overflow-hidden group">
+                <div className="aspect-video relative bg-black/60 overflow-hidden">
                   {item.url ? (
                     <img
                       src={item.url}
@@ -738,21 +738,22 @@ export function GalleryManager({ items, events }: GalleryManagerProps) {
                     </div>
                   )}
 
-                  {/* Multi-Select Checkbox overlay */}
-                  <label
-                    onClick={(e) => e.stopPropagation()}
-                    className="absolute top-2.5 left-2.5 z-10 flex items-center gap-1.5 bg-black/80 backdrop-blur-md px-2 py-1 rounded-md border border-white/20 cursor-pointer select-none hover:border-primary transition-colors"
+                  {/* Multi-Select Animated Button matching Media Library */}
+                  <button
+                    type="button"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      toggleSelect(item.id);
+                    }}
+                    className={`absolute top-2.5 left-2.5 w-6 h-6 rounded-md border flex items-center justify-center transition-all duration-200 z-10 cursor-pointer text-xs font-bold ${
+                      isSelected
+                        ? "bg-red border-red text-white shadow-md scale-100 ring-2 ring-red/30"
+                        : "bg-black/70 border-white/30 text-transparent hover:border-white opacity-0 group-hover:opacity-100 scale-90 hover:scale-100"
+                    }`}
+                    title={isSelected ? "Deselect item" : "Select item"}
                   >
-                    <input
-                      type="checkbox"
-                      checked={isSelected}
-                      onChange={() => toggleSelect(item.id)}
-                      className="cursor-pointer accent-red-600 w-3.5 h-3.5"
-                    />
-                    <span className="text-[10px] font-mono text-white uppercase font-bold">
-                      {isSelected ? "Selected" : "Select"}
-                    </span>
-                  </label>
+                    ✓
+                  </button>
 
                   {/* Top Right Status & Year Badge */}
                   <div className="absolute top-2.5 right-2.5 flex items-center gap-1.5 z-10">
