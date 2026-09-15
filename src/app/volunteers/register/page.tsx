@@ -13,6 +13,8 @@ export default function VolunteerRegisterPage() {
   const [photoUrl, setPhotoUrl] = useState("");
   const [success, setSuccess] = useState(false);
   const [errors, setErrors] = useState<Record<string, string[]>>({});
+  const [selectedRole, setSelectedRole] = useState("");
+  const [customRoleText, setCustomRoleText] = useState("");
 
   useEffect(() => {
     // Fetch events and roles
@@ -59,6 +61,9 @@ export default function VolunteerRegisterPage() {
     setErrors({});
 
     const formData = new FormData(e.currentTarget);
+    if (selectedRole === "Other") {
+      formData.set("preferredRole", customRoleText.trim());
+    }
     formData.set("consentGiven", formData.get("consentGiven") ? "true" : "false");
     if (photoUrl) {
       formData.set("photo", photoUrl);
@@ -190,6 +195,8 @@ export default function VolunteerRegisterPage() {
               <select
                 name="preferredRole"
                 required
+                value={selectedRole}
+                onChange={(e) => setSelectedRole(e.target.value)}
                 className="w-full px-5 py-3.5 bg-black/80 border border-white/10 rounded-xl text-white text-sm focus:outline-none focus:border-primary focus:shadow-[0_0_14px_rgba(200,16,46,0.35)] transition-all"
               >
                 <option value="">Select a role</option>
@@ -198,7 +205,24 @@ export default function VolunteerRegisterPage() {
                     {role}
                   </option>
                 ))}
+                <option value="Other">Other (Custom Role)...</option>
               </select>
+              {selectedRole === "Other" && (
+                <div className="mt-3 animate-in fade-in slide-in-from-top-1 duration-150">
+                  <label className="block text-[11px] font-mono text-primary uppercase tracking-wider mb-1.5">
+                    Specify Your Role / Area of Expertise *
+                  </label>
+                  <input
+                    type="text"
+                    required
+                    value={customRoleText}
+                    onChange={(e) => setCustomRoleText(e.target.value)}
+                    placeholder="e.g. Stage Management, Sound Assistant, Decor..."
+                    className="w-full px-5 py-3 bg-black/80 border border-primary/50 rounded-xl text-white text-sm placeholder:text-muted focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary"
+                    autoFocus
+                  />
+                </div>
+              )}
               {errors.preferredRole && (
                 <p className="text-xs text-primary mt-1">
                   {errors.preferredRole[0]}

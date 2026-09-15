@@ -176,6 +176,8 @@ export function VolunteerManager({ volunteers, events = [] }: VolunteerManagerPr
   const [showAddModal, setShowAddModal] = useState(false);
   const [addLoading, setAddLoading] = useState(false);
   const [addPhotoUploading, setAddPhotoUploading] = useState(false);
+  const [addIsOtherRole, setAddIsOtherRole] = useState(false);
+  const [addCustomRoleText, setAddCustomRoleText] = useState("");
   const [addForm, setAddForm] = useState({
     fullName: "",
     email: "",
@@ -276,14 +278,38 @@ export function VolunteerManager({ volunteers, events = [] }: VolunteerManagerPr
 
   const handleImportVolPastedText = () => {
     if (!volPasteRaw.trim()) return;
-    const lines = volPasteRaw.split(/\r?\n/).map((l) => l.trim()).filter(Boolean);
-    const parsedRows = lines.map((line, idx) => {
+    const rawLines = volPasteRaw.split(/\r?\n/).map((l) => l.trim()).filter(Boolean);
+    if (rawLines.length === 0) return;
+
+    // Check if line 0 looks like a header row
+    const firstLineCols = (rawLines[0].includes("\t") ? rawLines[0].split("\t") : rawLines[0].split(","))
+      .map((c) => c.trim().toLowerCase());
+    const isHeader = firstLineCols.some((c) =>
+      c.includes("name") || c.includes("email") || c.includes("phone") || c.includes("role") || c.includes("dept") || c.includes("city")
+    );
+
+    let nameIdx = 0, emailIdx = 1, phoneIdx = 2, roleIdx = 3, cityIdx = 4;
+    let dataLines = rawLines;
+    if (isHeader) {
+      dataLines = rawLines.slice(1);
+      firstLineCols.forEach((col, idx) => {
+        if (col.includes("name")) nameIdx = idx;
+        else if (col.includes("email") || col.includes("mail")) emailIdx = idx;
+        else if (col.includes("phone") || col.includes("contact") || col.includes("mobile")) phoneIdx = idx;
+        else if (col.includes("role") || col.includes("dept") || col.includes("department") || col.includes("designation")) roleIdx = idx;
+        else if (col.includes("city") || col.includes("location")) cityIdx = idx;
+      });
+    }
+
+    const parsedRows = dataLines.map((line, idx) => {
       const parts = line.includes("\t") ? line.split("\t") : line.split(",");
-      const fullName = (parts[0] || "").trim();
-      const email = (parts[1] || "").trim();
-      const phone = (parts[2] || "").trim();
-      const role = (parts[3] || "").trim() || massVolForm.role || ROLE_PRESETS[0];
-      const city = (parts[4] || "").trim() || "Silchar";
+      const fullName = (parts[nameIdx] || "").trim();
+      const email = (parts[emailIdx] || "").trim();
+      const phone = (parts[phoneIdx] || "").trim();
+      // Take the role as it was written in the sheet
+      const rawRole = (parts[roleIdx] || "").trim();
+      const role = rawRole || massVolForm.role || ROLE_PRESETS[0];
+      const city = (parts[cityIdx] || "").trim() || "Silchar";
       return {
         id: `vrow-${Date.now()}-${idx}`,
         fullName,
@@ -292,13 +318,13 @@ export function VolunteerManager({ volunteers, events = [] }: VolunteerManagerPr
         role,
         city,
       };
-    });
+    }).filter((r) => r.fullName.length > 0 || r.email.length > 0 || r.phone.length > 0 || r.role.length > 0);
 
     if (parsedRows.length > 0) {
       setVolSheetRows(parsedRows);
       setIsVolPasteOpen(false);
       setVolPasteRaw("");
-      setToast({ message: `Imported ${parsedRows.length} crew rows from clipboard!`, type: "success" });
+      setToast({ message: `Imported ${parsedRows.length} crew rows with exact roles preserved!`, type: "success" });
     }
   };
 
@@ -791,6 +817,11 @@ export function VolunteerManager({ volunteers, events = [] }: VolunteerManagerPr
       return;
     }
 
+    if (addIsOtherRole && !addForm.preferredRole.trim()) {
+      setToast({ message: "Please enter your custom department / role", type: "error" });
+      return;
+    }
+
     setAddLoading(true);
 
     try {
@@ -813,6 +844,8 @@ export function VolunteerManager({ volunteers, events = [] }: VolunteerManagerPr
 
       if (res.success && res.volunteer) {
         setShowAddModal(false);
+        setAddIsOtherRole(false);
+        setAddCustomRoleText("");
         setVolunteerList((prev) => [res.volunteer as any, ...prev]);
         setToast({
           message: `Volunteer "${res.volunteer.fullName}" registered directly with ID ${res.volunteer.volunteerId || "created"}`,
@@ -1627,14 +1660,24 @@ export function VolunteerManager({ volunteers, events = [] }: VolunteerManagerPr
                       Department / Role *
                     </label>
                     <select
-                      value={addForm.preferredRole}
+                      value={addIsOtherRole ? "Other" : (ROLE_PRESETS.includes(addForm.preferredRole) ? addForm.preferredRole : "Other")}
                       onChange={(e) => {
                         const val = e.target.value;
-                        setAddForm((prev) => ({
-                          ...prev,
-                          preferredRole: val,
-                          assignedRole: prev.assignedRole || val,
-                        }));
+                        if (val === "Other") {
+                          setAddIsOtherRole(true);
+                          setAddForm((prev) => ({
+                            ...prev,
+                            preferredRole: addCustomRoleText,
+                            assignedRole: prev.assignedRole === prev.preferredRole ? addCustomRoleText : prev.assignedRole,
+                          }));
+                        } else {
+                          setAddIsOtherRole(false);
+                          setAddForm((prev) => ({
+                            ...prev,
+                            preferredRole: val,
+                            assignedRole: prev.assignedRole === prev.preferredRole ? val : (prev.assignedRole || val),
+                          }));
+                        }
                       }}
                       className="w-full bg-black/60 border border-white/10 rounded-lg p-2.5 text-white focus:outline-none focus:border-primary cursor-pointer"
                     >
@@ -1643,7 +1686,33 @@ export function VolunteerManager({ volunteers, events = [] }: VolunteerManagerPr
                           {role}
                         </option>
                       ))}
+                      <option value="Other">Other (Custom Role)...</option>
                     </select>
+
+                    {(addIsOtherRole || (!ROLE_PRESETS.includes(addForm.preferredRole) && addForm.preferredRole !== "")) && (
+                      <div className="mt-2 animate-in fade-in slide-in-from-top-1 duration-150">
+                        <label className="block text-primary text-[10px] uppercase font-mono mb-1">
+                          Specify Custom Role / Department *
+                        </label>
+                        <input
+                          type="text"
+                          required
+                          value={addIsOtherRole ? addCustomRoleText : addForm.preferredRole}
+                          onChange={(e) => {
+                            const val = e.target.value;
+                            setAddCustomRoleText(val);
+                            setAddForm((prev) => ({
+                              ...prev,
+                              preferredRole: val,
+                              assignedRole: prev.assignedRole === prev.preferredRole ? val : (prev.assignedRole || val),
+                            }));
+                          }}
+                          placeholder="e.g. Stage Management / Host"
+                          className="w-full bg-black/80 border border-primary/60 rounded-lg p-2.5 text-white text-xs placeholder:text-white/40 focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary"
+                          autoFocus
+                        />
+                      </div>
+                    )}
                   </div>
 
                   <div>
@@ -2089,17 +2158,43 @@ export function VolunteerManager({ volunteers, events = [] }: VolunteerManagerPr
                               />
                             </td>
                             <td className="p-1.5">
-                              <select
-                                value={row.role}
-                                onChange={(e) => handleVolRowChange(row.id, "role", e.target.value)}
-                                className="w-full bg-black/50 border border-white/10 rounded px-2 py-1 text-xs text-white focus:outline-none focus:border-red"
-                              >
-                                {ROLE_PRESETS.map((r) => (
-                                  <option key={r} value={r}>
-                                    {r}
+                              <div className="space-y-1">
+                                <select
+                                  value={ROLE_PRESETS.includes(row.role) ? row.role : "__custom__"}
+                                  onChange={(e) => {
+                                    const val = e.target.value;
+                                    if (val === "__custom__") {
+                                      if (ROLE_PRESETS.includes(row.role)) {
+                                        handleVolRowChange(row.id, "role", "");
+                                      }
+                                    } else {
+                                      handleVolRowChange(row.id, "role", val);
+                                    }
+                                  }}
+                                  className="w-full bg-black/50 border border-white/10 rounded px-2 py-1 text-xs text-white focus:outline-none focus:border-red cursor-pointer"
+                                >
+                                  {ROLE_PRESETS.map((r) => (
+                                    <option key={r} value={r}>
+                                      {r}
+                                    </option>
+                                  ))}
+                                  <option value="__custom__">
+                                    {row.role && !ROLE_PRESETS.includes(row.role)
+                                      ? `Custom: ${row.role}`
+                                      : "Other / Custom Role..."}
                                   </option>
-                                ))}
-                              </select>
+                                </select>
+                                {(!ROLE_PRESETS.includes(row.role) || row.role === "") && (
+                                  <input
+                                    type="text"
+                                    value={row.role}
+                                    onChange={(e) => handleVolRowChange(row.id, "role", e.target.value)}
+                                    placeholder="Type custom role..."
+                                    className="w-full bg-black/80 border border-primary/60 rounded px-2 py-1 text-xs text-white placeholder:text-white/40 focus:outline-none focus:border-primary"
+                                    autoFocus={row.role === ""}
+                                  />
+                                )}
+                              </div>
                             </td>
                             <td className="p-1.5">
                               <input
@@ -2136,16 +2231,40 @@ export function VolunteerManager({ volunteers, events = [] }: VolunteerManagerPr
                       Department / Assigned Role <span className="text-red">*</span>
                     </label>
                     <select
-                      value={massVolForm.role}
-                      onChange={(e) => setMassVolForm({ ...massVolForm, role: e.target.value })}
-                      className="w-full bg-black/60 border border-white/10 rounded-lg p-2.5 text-white focus:outline-none focus:border-primary"
+                      value={ROLE_PRESETS.includes(massVolForm.role) ? massVolForm.role : "Other"}
+                      onChange={(e) => {
+                        const val = e.target.value;
+                        if (val === "Other") {
+                          setMassVolForm({ ...massVolForm, role: "" });
+                        } else {
+                          setMassVolForm({ ...massVolForm, role: val });
+                        }
+                      }}
+                      className="w-full bg-black/60 border border-white/10 rounded-lg p-2.5 text-white focus:outline-none focus:border-primary cursor-pointer"
                     >
                       {ROLE_PRESETS.map((r) => (
                         <option key={r} value={r}>
                           {r}
                         </option>
                       ))}
+                      <option value="Other">Other (Custom Role)...</option>
                     </select>
+                    {!ROLE_PRESETS.includes(massVolForm.role) && (
+                      <div className="mt-2 animate-in fade-in slide-in-from-top-1 duration-150">
+                        <label className="block text-primary text-[10px] uppercase font-mono mb-1">
+                          Specify Custom Role / Department *
+                        </label>
+                        <input
+                          type="text"
+                          required
+                          value={massVolForm.role}
+                          onChange={(e) => setMassVolForm({ ...massVolForm, role: e.target.value })}
+                          placeholder="e.g. Production Coordinator"
+                          className="w-full bg-black/80 border border-primary/60 rounded-lg p-2.5 text-white text-xs placeholder:text-white/40 focus:outline-none focus:border-primary"
+                          autoFocus
+                        />
+                      </div>
+                    )}
                   </div>
 
                   {/* Quantity with quick chips */}
