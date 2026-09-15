@@ -48,6 +48,7 @@ export function LinkTreeManager({ initialConfig }: LinkTreeManagerProps) {
   // Link Modal States
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
   const [editingLink, setEditingLink] = useState<LinkTreeLink | null>(null);
+  const [isUploadingLogo, setIsUploadingLogo] = useState(false);
 
   // Form State for Add/Edit
   const [linkForm, setLinkForm] = useState({
@@ -79,6 +80,36 @@ export function LinkTreeManager({ initialConfig }: LinkTreeManagerProps) {
   function showToast(message: string, type: "success" | "error" = "success") {
     setToast({ message, type });
     setTimeout(() => setToast(null), 3000);
+  }
+
+  async function handleLogoUpload(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    setIsUploadingLogo(true);
+    try {
+      const formData = new FormData();
+      formData.append("file", file);
+      formData.append("purpose", "linktree-logo");
+
+      const res = await fetch("/api/upload", {
+        method: "POST",
+        body: formData,
+      });
+
+      const data = await res.json();
+      if (!res.ok || !data.success) {
+        throw new Error(data.error || "Failed to upload logo");
+      }
+
+      setProfileForm((prev) => ({ ...prev, avatarUrl: data.url }));
+      showToast("Link Tree logo uploaded successfully!");
+    } catch (err: any) {
+      showToast(err.message || "Failed to upload logo", "error");
+    } finally {
+      setIsUploadingLogo(false);
+      e.target.value = "";
+    }
   }
 
   function openAddModal() {
@@ -558,21 +589,63 @@ export function LinkTreeManager({ initialConfig }: LinkTreeManagerProps) {
                   />
                 </div>
 
-                <div className="grid sm:grid-cols-2 gap-4">
-                  <div>
-                    <label className="block text-xs font-mono text-muted uppercase tracking-wider mb-1.5">
-                      Custom Avatar URL (Optional)
-                    </label>
-                    <input
-                      type="text"
-                      value={profileForm.avatarUrl}
-                      onChange={(e) => setProfileForm({ ...profileForm, avatarUrl: e.target.value })}
-                      placeholder="Leave blank to use default VELVT luxury monogram"
-                      className="w-full px-4 py-2.5 bg-black/60 border border-white/10 rounded-xl text-xs text-white focus:outline-none focus:border-red"
-                    />
+                {/* Logo / Avatar Editor with Upload */}
+                <div className="p-4 rounded-xl bg-white/[0.02] border border-white/10 space-y-3">
+                  <label className="block text-xs font-mono text-muted uppercase tracking-wider">
+                    Link Tree Logo / Avatar
+                  </label>
+
+                  <div className="flex items-center gap-4 flex-wrap">
+                    {/* Live Logo Preview */}
+                    <div className="w-16 h-16 rounded-full border border-red/50 p-0.5 bg-gradient-to-tr from-red-600 to-red-950 flex items-center justify-center shrink-0 shadow-[0_0_15px_rgba(200,16,46,0.35)]">
+                      {profileForm.avatarUrl ? (
+                        <img
+                          src={profileForm.avatarUrl}
+                          alt="Logo Preview"
+                          className="w-full h-full rounded-full object-cover bg-black"
+                        />
+                      ) : (
+                        <div className="w-full h-full rounded-full bg-black flex items-center justify-center text-white font-black text-sm">
+                          V<span className="text-red">.</span>
+                        </div>
+                      )}
+                    </div>
+
+                    <div className="flex-1 min-w-[200px] space-y-2">
+                      <div className="flex items-center gap-2 flex-wrap">
+                        <label className="px-3 py-1.5 rounded-lg bg-red hover:bg-red/90 text-white text-xs font-mono font-bold uppercase tracking-wider transition-all cursor-pointer shadow-sm flex items-center gap-1.5">
+                          <span>{isUploadingLogo ? "Uploading..." : "📁 Upload New Logo"}</span>
+                          <input
+                            type="file"
+                            accept="image/*"
+                            onChange={handleLogoUpload}
+                            disabled={isUploadingLogo}
+                            className="hidden"
+                          />
+                        </label>
+
+                        {profileForm.avatarUrl && (
+                          <button
+                            type="button"
+                            onClick={() => setProfileForm((prev) => ({ ...prev, avatarUrl: "" }))}
+                            className="px-3 py-1.5 rounded-lg bg-white/[0.05] hover:bg-white/[0.1] border border-white/10 text-xs font-mono text-muted hover:text-white transition-all cursor-pointer"
+                          >
+                            Reset to Default
+                          </button>
+                        )}
+                      </div>
+
+                      <input
+                        type="text"
+                        value={profileForm.avatarUrl}
+                        onChange={(e) => setProfileForm({ ...profileForm, avatarUrl: e.target.value })}
+                        placeholder="Or enter public image URL (https://...)"
+                        className="w-full px-3.5 py-1.5 bg-black/60 border border-white/10 rounded-lg text-xs font-mono text-white focus:outline-none focus:border-red"
+                      />
+                    </div>
                   </div>
 
-                  <div className="flex items-center gap-3 pt-6">
+                  <div className="pt-2">
                     <label className="flex items-center gap-2 cursor-pointer select-none">
                       <input
                         type="checkbox"
@@ -737,14 +810,18 @@ export function LinkTreeManager({ initialConfig }: LinkTreeManagerProps) {
 
                 {/* Title */}
                 <div className="space-y-0.5">
-                  <div className="flex items-center justify-center gap-1">
-                    <span className="font-display font-black text-sm text-white uppercase">
-                      {config.title}
+                  <div className="flex items-center justify-center gap-1.5">
+                    <span className="font-display font-black text-sm text-white uppercase tracking-wider">
+                      VELVT<span className="text-red">.in</span>
                     </span>
-                    {config.verified && <span className="text-primary text-[10px]">●</span>}
+                    {config.verified && (
+                      <span className="w-3.5 h-3.5 rounded-full bg-red text-white text-[8px] font-bold flex items-center justify-center shadow-sm">
+                        ✓
+                      </span>
+                    )}
                   </div>
-                  <p className="text-[10px] font-mono text-muted leading-tight line-clamp-2 px-2">
-                    {config.bio}
+                  <p className="text-[10px] font-mono text-muted leading-tight line-clamp-2 px-2 tracking-wider uppercase">
+                    {config.bio || "Experience Architecture"}
                   </p>
                 </div>
 
@@ -792,8 +869,9 @@ export function LinkTreeManager({ initialConfig }: LinkTreeManagerProps) {
                 </div>
 
                 {/* Footer in phone */}
-                <div className="pt-4 text-[9px] font-mono text-muted uppercase">
-                  VELVT.in • Experience Architecture
+                <div className="pt-4 text-[9px] font-mono text-white/50 space-y-1">
+                  <p>&copy; 2026 VELVT. All rights reserved.</p>
+                  <p className="text-[8px] text-white/70">Created with ❤️ by Sahil</p>
                 </div>
               </div>
             </div>

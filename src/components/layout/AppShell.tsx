@@ -10,8 +10,9 @@ interface AppShellProps {
 export function AppShell({ children, footer }: AppShellProps) {
   const pathname = usePathname();
   const isAdmin = pathname?.startsWith("/velvt-management");
+  const isLinkTree = pathname === "/links" || pathname === "/linktree";
 
-  if (isAdmin) {
+  if (isAdmin || isLinkTree) {
     return (
       <main className="flex-1 min-h-screen">
         {children}

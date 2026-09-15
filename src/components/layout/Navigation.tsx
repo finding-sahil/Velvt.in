@@ -17,8 +17,14 @@ export function Navigation() {
   const pathname = usePathname();
   const [mobileOpen, setMobileOpen] = useState(false);
 
-  // Don't render on management pages
-  if (pathname?.startsWith("/velvt-management")) return null;
+  // Don't render on management or locked standalone link tree pages
+  if (
+    pathname?.startsWith("/velvt-management") ||
+    pathname === "/links" ||
+    pathname === "/linktree"
+  ) {
+    return null;
+  }
 
   return (
     <>
