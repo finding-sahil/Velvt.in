@@ -4671,7 +4671,7 @@ const DEFAULT_LINKTREE_CONFIG: LinkTreeConfig = {
   location: "Silchar, Assam, India",
   socials: {
     instagram: "https://www.instagram.com/velvt.in",
-    whatsapp: "https://chat.whatsapp.com/E5F1PCTqmgU2ljE2rtuzl8",
+    whatsapp: "https://wa.me/919395178940",
     email: "velvt.in@gmail.com",
     phone: "+91 93951 78940",
   },

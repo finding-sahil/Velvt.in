@@ -54,21 +54,35 @@ export function LinkTreeClient({ config }: LinkTreeClientProps) {
     trackLinkTreeClick(link.id);
   }
 
+  // Dedicated WhatsApp direct chat link (+91 93951 78940)
+  const getWhatsAppChatUrl = () => {
+    if (config.socials.whatsapp && (config.socials.whatsapp.includes("wa.me") || config.socials.whatsapp.includes("send?phone="))) {
+      return config.socials.whatsapp;
+    }
+    const rawNumber = config.socials.phone || "+91 93951 78940";
+    const digits = rawNumber.replace(/\D/g, "");
+    const formatted = digits.length === 10 ? `91${digits}` : digits;
+    return `https://wa.me/${formatted}`;
+  };
+  const whatsappChatUrl = getWhatsAppChatUrl();
+
   return (
     <div className="min-h-screen bg-[#060205] text-white relative flex flex-col items-center justify-between px-4 py-8 sm:py-12 selection:bg-red selection:text-white font-sans overflow-x-hidden">
       {/* ─── Luxury Velvet Ambient Atmosphere & Custom Wallpapers ─── */}
-      <div className="fixed inset-0 pointer-events-none overflow-hidden -z-10">
+      <div className="fixed inset-0 pointer-events-none overflow-hidden z-0">
         {/* Wallpaper Presentation: Separate Desktop vs Mobile with smart single-upload fallback */}
         {config.desktopBackgroundUrl && config.mobileBackgroundUrl ? (
           <>
             <img
               src={config.desktopBackgroundUrl}
               alt="Link Tree Desktop Background"
+              referrerPolicy="no-referrer"
               className="hidden md:block absolute inset-0 w-full h-full object-cover object-center"
             />
             <img
               src={config.mobileBackgroundUrl}
               alt="Link Tree Mobile Background"
+              referrerPolicy="no-referrer"
               className="block md:hidden absolute inset-0 w-full h-full object-cover object-center"
             />
           </>
@@ -76,12 +90,14 @@ export function LinkTreeClient({ config }: LinkTreeClientProps) {
           <img
             src={config.desktopBackgroundUrl}
             alt="Link Tree Background"
+            referrerPolicy="no-referrer"
             className="absolute inset-0 w-full h-full object-cover object-center"
           />
         ) : config.mobileBackgroundUrl ? (
           <img
             src={config.mobileBackgroundUrl}
             alt="Link Tree Background"
+            referrerPolicy="no-referrer"
             className="absolute inset-0 w-full h-full object-cover object-center"
           />
         ) : null}
@@ -110,7 +126,7 @@ export function LinkTreeClient({ config }: LinkTreeClientProps) {
       </div>
 
       {/* ─── Locked Bio Profile Container (No top bar) ─── */}
-      <main className="w-full max-w-lg flex-1 flex flex-col items-center space-y-7 z-10">
+      <main className="w-full max-w-lg flex-1 flex flex-col items-center space-y-7 relative z-10">
         {/* Profile Header Block */}
         <div className="flex flex-col items-center text-center space-y-3.5 pt-2 sm:pt-4">
           {/* Avatar / Editable Logo */}
@@ -174,18 +190,17 @@ export function LinkTreeClient({ config }: LinkTreeClientProps) {
                 <InstagramIcon className="w-5 h-5 text-pink-500" />
               </a>
             )}
-            {config.socials.whatsapp && (
-              <a
-                href={config.socials.whatsapp}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="w-10 h-10 rounded-full bg-white/[0.05] border border-white/15 flex items-center justify-center text-white/80 hover:text-white hover:border-emerald-500/80 hover:bg-emerald-950/40 hover:scale-110 hover:shadow-[0_0_15px_rgba(37,211,102,0.5)] transition-all cursor-pointer"
-                title="WhatsApp VIP Community"
-                aria-label="WhatsApp VIP Community"
-              >
-                <WhatsAppIcon className="w-5 h-5 text-[#25D366]" />
-              </a>
-            )}
+            {/* Direct WhatsApp Chat with official number +91 93951 78940 */}
+            <a
+              href={whatsappChatUrl}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="w-10 h-10 rounded-full bg-white/[0.05] border border-white/15 flex items-center justify-center text-white/80 hover:text-white hover:border-emerald-500/80 hover:bg-emerald-950/40 hover:scale-110 hover:shadow-[0_0_15px_rgba(37,211,102,0.5)] transition-all cursor-pointer"
+              title="Chat on WhatsApp (+91 93951 78940)"
+              aria-label="Chat on WhatsApp (+91 93951 78940)"
+            >
+              <WhatsAppIcon className="w-5 h-5 text-[#25D366]" />
+            </a>
             {config.socials.spotify && (
               <a
                 href={config.socials.spotify}
@@ -389,7 +404,7 @@ export function LinkTreeClient({ config }: LinkTreeClientProps) {
       </main>
 
       {/* ─── Clean Locked Footer (Exact user request) ─── */}
-      <footer className="w-full max-w-lg pt-8 pb-10 text-center space-y-2.5 z-10 border-t border-white/[0.08] mt-8">
+      <footer className="w-full max-w-lg pt-8 pb-10 text-center space-y-2.5 relative z-10 border-t border-white/[0.08] mt-8">
         <p className="text-xs font-mono text-white/50">
           &copy; 2026 VELVT. All rights reserved.
         </p>

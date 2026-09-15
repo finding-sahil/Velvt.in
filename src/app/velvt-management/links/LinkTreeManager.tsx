@@ -922,13 +922,13 @@ export function LinkTreeManager({ initialConfig }: LinkTreeManagerProps) {
 
                   <div>
                     <label className="block text-xs font-mono text-muted uppercase tracking-wider mb-1.5">
-                      WhatsApp Community Link
+                      WhatsApp Chat Link (or Number)
                     </label>
                     <input
-                      type="url"
+                      type="text"
                       value={profileForm.whatsapp}
                       onChange={(e) => setProfileForm({ ...profileForm, whatsapp: e.target.value })}
-                      placeholder="https://chat.whatsapp.com/..."
+                      placeholder="https://wa.me/919395178940 or phone number"
                       className="w-full px-4 py-2.5 bg-black/60 border border-white/10 rounded-xl text-xs text-white focus:outline-none focus:border-red"
                     />
                   </div>
