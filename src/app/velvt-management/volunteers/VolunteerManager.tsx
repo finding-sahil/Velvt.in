@@ -1604,7 +1604,7 @@ export function VolunteerManager({ volunteers, events = [] }: VolunteerManagerPr
                   onChange={(e) => {
                     const val = e.target.value;
                     if (val === "Other") {
-                      bulkIsOtherRole || setBulkIsOtherRole(true);
+                      if (!bulkIsOtherRole) setBulkIsOtherRole(true);
                     } else {
                       setBulkIsOtherRole(false);
                       setBulkSelectedRole(val);

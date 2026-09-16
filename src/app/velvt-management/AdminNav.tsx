@@ -358,7 +358,7 @@ export function AdminNav({ user }: AdminNavProps) {
     <div className="flex flex-col h-full">
       {/* ─── Top Brand Header ─── */}
       <div className="p-5 border-b border-white/[0.08] flex items-center justify-between">
-        <Link href={adminPath()} className="flex items-center gap-2 group">
+        <Link href={adminPath()} prefetch={false} className="flex items-center gap-2 group">
           <div className="w-8 h-8 rounded-xl bg-gradient-to-br from-red to-red-dim border border-red/40 flex items-center justify-center font-display font-black text-white text-base shadow-[0_0_15px_var(--red-glow)] group-hover:scale-105 transition-transform">
             V
           </div>
@@ -402,6 +402,7 @@ export function AdminNav({ user }: AdminNavProps) {
                     <Link
                       key={item.href}
                       href={item.href}
+                      prefetch={false}
                       className={`group relative flex items-center gap-3 px-3 py-2.5 rounded-xl text-xs font-mono tracking-wider transition-all duration-200 ${
                         isActive
                           ? "bg-red/10 text-white font-semibold border border-red/25 shadow-[0_0_15px_rgba(200,16,46,0.15)]"
@@ -458,6 +459,7 @@ export function AdminNav({ user }: AdminNavProps) {
           </button>
           <Link
             href="/"
+            prefetch={false}
             target="_blank"
             className="flex-1 px-3 py-1.5 rounded-xl bg-white/[0.04] hover:bg-white/[0.08] border border-white/10 text-[11px] font-mono text-g5 hover:text-white transition-all flex items-center justify-center gap-1.5 whitespace-nowrap"
           >
@@ -481,7 +483,7 @@ export function AdminNav({ user }: AdminNavProps) {
     <>
       {/* ─── Mobile Sticky Top Bar ─── */}
       <div className="md:hidden sticky top-0 z-40 bg-[#09090b]/95 backdrop-blur-xl border-b border-white/[0.08] px-4 py-3 flex items-center justify-between">
-        <Link href={adminPath()} className="flex items-center gap-2">
+        <Link href={adminPath()} prefetch={false} className="flex items-center gap-2">
           <span className="font-display font-black text-xl tracking-wider text-white">
             VELVT<span className="text-red">.in</span>
           </span>

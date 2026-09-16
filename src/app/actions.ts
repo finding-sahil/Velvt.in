@@ -1590,11 +1590,21 @@ export async function deleteGalleryItem(id: string) {
   try {
     await requireAdmin();
 
-    await prisma.galleryItem.delete({ where: { id } });
+    const item = await prisma.galleryItem.findUnique({
+      where: { id },
+      select: { url: true },
+    });
+
+    if (item?.url) {
+      await deleteMediaAsset(item.url).catch(() => {});
+    }
+
+    await prisma.galleryItem.delete({ where: { id } }).catch(() => {});
 
     revalidatePath("/");
     revalidatePath("/gallery");
     revalidatePath("/velvt-management/gallery");
+    revalidatePath("/velvt-management/media");
     return { success: true };
   } catch (error: any) {
     return { success: false, error: error?.message || "Failed to delete gallery item." };
@@ -1606,6 +1616,17 @@ export async function bulkDeleteGalleryItems(ids: string[]) {
     await requireAdmin();
     if (!ids || ids.length === 0) return { success: true, count: 0 };
 
+    const items = await prisma.galleryItem.findMany({
+      where: { id: { in: ids } },
+      select: { url: true },
+    });
+
+    for (const item of items) {
+      if (item.url) {
+        await deleteMediaAsset(item.url).catch(() => {});
+      }
+    }
+
     const res = await prisma.galleryItem.deleteMany({
       where: { id: { in: ids } },
     });
@@ -1613,6 +1634,7 @@ export async function bulkDeleteGalleryItems(ids: string[]) {
     revalidatePath("/");
     revalidatePath("/gallery");
     revalidatePath("/velvt-management/gallery");
+    revalidatePath("/velvt-management/media");
     return { success: true, count: res.count };
   } catch (error: any) {
     console.error("Bulk delete gallery items error:", error);
@@ -1876,30 +1898,58 @@ export async function deleteMediaAsset(fileUrl: string) {
     return { success: false, error: "Invalid path traversal sequence detected." };
   }
 
+  // Extract clean filename and clean path
+  let cleanFilename = "";
+  if (sanitized.includes("/storage/v1/object/public/uploads/")) {
+    cleanFilename = sanitized.split("/storage/v1/object/public/uploads/")[1] || "";
+  } else if (sanitized.includes("/storage/v1/object/uploads/")) {
+    cleanFilename = sanitized.split("/storage/v1/object/uploads/")[1] || "";
+  } else if (sanitized.includes("/uploads/")) {
+    cleanFilename = sanitized.split("/uploads/")[1] || "";
+  } else if (sanitized.includes("/gallery/")) {
+    cleanFilename = sanitized.split("/gallery/")[1] || "";
+  } else if (sanitized.includes("/images/")) {
+    cleanFilename = sanitized.split("/images/")[1] || "";
+  } else {
+    cleanFilename = path.basename(sanitized);
+  }
+
+  // Strip query strings and hash
+  if (cleanFilename.includes("?")) cleanFilename = cleanFilename.split("?")[0];
+  if (cleanFilename.includes("#")) cleanFilename = cleanFilename.split("#")[0];
+  cleanFilename = decodeURIComponent(cleanFilename).trim();
+
+  let deletedFromSupabase = false;
   let deletedFromDisk = false;
 
-  // 1. Supabase Storage deletion (if it's an external Supabase storage URL)
+  // 1. Supabase Storage deletion via REST API
   const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
   const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
 
-  if (supabaseUrl && supabaseKey && sanitized.startsWith("http") && sanitized.includes("/storage/v1/object/public/uploads/")) {
+  if (supabaseUrl && supabaseKey && cleanFilename) {
     try {
-      const filename = sanitized.split("/storage/v1/object/public/uploads/")[1];
-      if (filename) {
-        await fetch(`${supabaseUrl}/storage/v1/object/uploads/${filename}`, {
-          method: "DELETE",
-          headers: {
-            Authorization: `Bearer ${supabaseKey}`,
-            apikey: supabaseKey,
-          },
-        });
+      const res = await fetch(`${supabaseUrl}/storage/v1/object/uploads`, {
+        method: "DELETE",
+        headers: {
+          Authorization: `Bearer ${supabaseKey}`,
+          apikey: supabaseKey,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ prefixes: [cleanFilename] }),
+      });
+
+      if (res.ok) {
+        deletedFromSupabase = true;
+      } else {
+        const errorText = await res.text().catch(() => "");
+        console.warn("Supabase storage delete failed:", res.status, errorText);
       }
-    } catch (err) {
-      console.warn("Supabase storage delete failed:", err);
+    } catch (err: any) {
+      console.warn("Supabase storage delete network error:", err);
     }
   }
 
-  // 2. Local disk file deletion (for public/uploads, public/gallery, public/images)
+  // 2. Local disk file deletion (checks public/uploads, public/gallery, public/images)
   try {
     const publicDir = path.resolve(process.cwd(), "public");
     const allowedDirs = [
@@ -1908,30 +1958,48 @@ export async function deleteMediaAsset(fileUrl: string) {
       path.resolve(publicDir, "images"),
     ];
 
-    // Remove leading slash if present
-    const relativePath = sanitized.startsWith("/") ? sanitized.slice(1) : sanitized;
-    const targetFilePath = path.resolve(publicDir, relativePath);
+    const possiblePaths = new Set<string>();
 
-    // Verify the target path is strictly within one of the allowed directories
-    const isAllowed = allowedDirs.some(
-      (dir) => targetFilePath.startsWith(dir + path.sep) || targetFilePath === dir
-    );
+    if (!sanitized.startsWith("http")) {
+      const relativePath = sanitized.startsWith("/") ? sanitized.slice(1) : sanitized;
+      possiblePaths.add(path.resolve(publicDir, relativePath));
+    }
+    if (cleanFilename) {
+      possiblePaths.add(path.resolve(publicDir, "uploads", cleanFilename));
+      possiblePaths.add(path.resolve(publicDir, "gallery", cleanFilename));
+      possiblePaths.add(path.resolve(publicDir, "images", cleanFilename));
+    }
 
-    if (isAllowed && existsSync(targetFilePath)) {
-      await unlink(targetFilePath);
-      deletedFromDisk = true;
+    for (const targetFilePath of possiblePaths) {
+      const isAllowed = allowedDirs.some(
+        (dir) => targetFilePath.startsWith(dir + path.sep) || targetFilePath === dir
+      );
+      if (isAllowed && existsSync(targetFilePath)) {
+        await unlink(targetFilePath);
+        deletedFromDisk = true;
+      }
     }
   } catch (err) {
     console.warn("Local disk unlink error:", err);
   }
 
-  // 3. Clean up matching GalleryItem in database if present
+  // 3. Clean up database references so asset never resurrects or leaves broken images
+  const matchingKeys = [
+    sanitized,
+    sanitized.startsWith("/") ? sanitized : `/${sanitized}`,
+    cleanFilename,
+    cleanFilename ? `/uploads/${cleanFilename}` : "",
+    cleanFilename ? `/gallery/${cleanFilename}` : "",
+    cleanFilename && supabaseUrl ? `${supabaseUrl}/storage/v1/object/public/uploads/${cleanFilename}` : "",
+  ].filter(Boolean) as string[];
+
   try {
+    // Gallery Items
     await prisma.galleryItem.deleteMany({
       where: {
         OR: [
-          { url: sanitized },
-          { url: sanitized.startsWith("/") ? sanitized : `/${sanitized}` },
+          { url: { in: matchingKeys } },
+          ...(cleanFilename ? [{ url: { contains: cleanFilename } }] : []),
         ],
       },
     });
@@ -1939,12 +2007,134 @@ export async function deleteMediaAsset(fileUrl: string) {
     console.warn("GalleryItem cleanup error:", err);
   }
 
+  try {
+    // Event coverImage
+    await prisma.event.updateMany({
+      where: {
+        OR: [
+          { coverImage: { in: matchingKeys } },
+          ...(cleanFilename ? [{ coverImage: { contains: cleanFilename } }] : []),
+        ],
+      },
+      data: { coverImage: null },
+    });
+  } catch (err) {
+    console.warn("Event coverImage cleanup error:", err);
+  }
+
+  try {
+    // TeamMember portrait
+    await prisma.teamMember.updateMany({
+      where: {
+        OR: [
+          { portrait: { in: matchingKeys } },
+          ...(cleanFilename ? [{ portrait: { contains: cleanFilename } }] : []),
+        ],
+      },
+      data: { portrait: null },
+    });
+  } catch (err) {
+    console.warn("TeamMember portrait cleanup error:", err);
+  }
+
+  try {
+    // Partner logo
+    await prisma.partner.updateMany({
+      where: {
+        OR: [
+          { logo: { in: matchingKeys } },
+          ...(cleanFilename ? [{ logo: { contains: cleanFilename } }] : []),
+        ],
+      },
+      data: { logo: null },
+    });
+  } catch (err) {
+    console.warn("Partner logo cleanup error:", err);
+  }
+
+  try {
+    // Testimonial avatarUrl
+    await prisma.testimonial.updateMany({
+      where: {
+        OR: [
+          { avatarUrl: { in: matchingKeys } },
+          ...(cleanFilename ? [{ avatarUrl: { contains: cleanFilename } }] : []),
+        ],
+      },
+      data: { avatarUrl: null },
+    });
+  } catch (err) {
+    console.warn("Testimonial avatarUrl cleanup error:", err);
+  }
+
+  try {
+    // Volunteer photo
+    await prisma.volunteer.updateMany({
+      where: {
+        OR: [
+          { photo: { in: matchingKeys } },
+          ...(cleanFilename ? [{ photo: { contains: cleanFilename } }] : []),
+        ],
+      },
+      data: { photo: null },
+    });
+  } catch (err) {
+    console.warn("Volunteer photo cleanup error:", err);
+  }
+
+  try {
+    // SiteSetting (e.g. hero image or linktree config avatar)
+    const settingsWithImage = await prisma.siteSetting.findMany({
+      where: {
+        OR: [
+          { value: { in: matchingKeys } },
+          ...(cleanFilename ? [{ value: { contains: cleanFilename } }] : []),
+        ],
+      },
+    });
+
+    for (const setting of settingsWithImage) {
+      if (setting.key === "linktree_config") {
+        try {
+          const parsed = JSON.parse(setting.value);
+          let modified = false;
+          if (parsed.avatarUrl && (matchingKeys.includes(parsed.avatarUrl) || (cleanFilename && parsed.avatarUrl.includes(cleanFilename)))) {
+            parsed.avatarUrl = "";
+            modified = true;
+          }
+          if (parsed.desktopBackgroundUrl && (matchingKeys.includes(parsed.desktopBackgroundUrl) || (cleanFilename && parsed.desktopBackgroundUrl.includes(cleanFilename)))) {
+            parsed.desktopBackgroundUrl = "";
+            modified = true;
+          }
+          if (parsed.mobileBackgroundUrl && (matchingKeys.includes(parsed.mobileBackgroundUrl) || (cleanFilename && parsed.mobileBackgroundUrl.includes(cleanFilename)))) {
+            parsed.mobileBackgroundUrl = "";
+            modified = true;
+          }
+          if (modified) {
+            await prisma.siteSetting.update({
+              where: { id: setting.id },
+              data: { value: JSON.stringify(parsed) },
+            });
+          }
+        } catch {}
+      } else {
+        await prisma.siteSetting.update({
+          where: { id: setting.id },
+          data: { value: "" },
+        });
+      }
+    }
+  } catch (err) {
+    console.warn("SiteSetting cleanup error:", err);
+  }
+
   // 4. Audit logging
   try {
     await logAuditEvent({
       action: "media.delete",
       targetType: "MediaAsset",
-      targetId: sanitized,
+      targetId: cleanFilename || sanitized,
+      metadata: { deletedFromSupabase, deletedFromDisk, url: sanitized },
       actor: { id: session.userId, email: session.user.email },
     });
   } catch (e) {
@@ -1952,9 +2142,13 @@ export async function deleteMediaAsset(fileUrl: string) {
   }
 
   revalidatePath("/velvt-management/media");
+  revalidatePath("/velvt-management/gallery");
+  revalidatePath("/velvt-management/events");
   revalidatePath("/gallery");
+  revalidatePath("/");
+  revalidateSiteSettings();
 
-  return { success: true };
+  return { success: true, deletedFromDisk, deletedFromSupabase };
 }
 
 export async function bulkDeleteMediaAssets(fileUrls: string[]) {

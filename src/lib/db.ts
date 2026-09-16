@@ -23,6 +23,11 @@ const globalForPrisma = globalThis as unknown as {
   prisma: PrismaClient | undefined;
 };
 
+let tunedDbUrl = resolvedDbUrl;
+if (tunedDbUrl && tunedDbUrl.includes("pgbouncer=true") && !tunedDbUrl.includes("connection_limit")) {
+  tunedDbUrl += tunedDbUrl.includes("?") ? "&connection_limit=5&pool_timeout=15" : "?connection_limit=5&pool_timeout=15";
+}
+
 export const prisma =
   globalForPrisma.prisma ??
   new PrismaClient({
@@ -33,10 +38,10 @@ export const prisma =
             { emit: "stdout", level: "error" },
           ]
         : ["error"],
-    datasources: resolvedDbUrl
+    datasources: tunedDbUrl
       ? {
           db: {
-            url: resolvedDbUrl,
+            url: tunedDbUrl,
           },
         }
       : undefined,

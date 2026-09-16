@@ -13,6 +13,7 @@ export const metadata = {
 };
 
 export const dynamic = "force-dynamic";
+export const revalidate = 0;
 
 export default async function MediaLibraryPage() {
   const session = await getSession();
@@ -21,12 +22,25 @@ export default async function MediaLibraryPage() {
   }
 
   // 1. Query all database records that reference media assets
-  const [events, teamMembers, partners, galleryItems, testimonials, siteSettings] = await Promise.all([
+  const [
+    events,
+    teamMembers,
+    partners,
+    galleryItems,
+    testimonials,
+    volunteers,
+    venues,
+    pressMentions,
+    siteSettings,
+  ] = await Promise.all([
     prisma.event.findMany({ select: { id: true, name: true, coverImage: true } }).catch(() => []),
     prisma.teamMember.findMany({ select: { id: true, name: true, portrait: true } }).catch(() => []),
     prisma.partner.findMany({ select: { id: true, name: true, logo: true } }).catch(() => []),
     prisma.galleryItem.findMany({ select: { id: true, caption: true, url: true } }).catch(() => []),
     prisma.testimonial.findMany({ select: { id: true, authorName: true, avatarUrl: true } }).catch(() => []),
+    prisma.volunteer.findMany({ select: { id: true, fullName: true, photo: true } }).catch(() => []),
+    prisma.venue.findMany({ select: { id: true, name: true, image: true } }).catch(() => []),
+    prisma.pressMention.findMany({ select: { id: true, publication: true, logo: true } }).catch(() => []),
     getCachedSiteSettings(),
   ]);
 
@@ -39,11 +53,12 @@ export default async function MediaLibraryPage() {
     if (!trimmed) return;
 
     // Extract filename and pathname
-    const cleanPath = trimmed.split("?")[0];
+    const cleanPath = trimmed.split("?")[0].split("#")[0];
     const filename = path.basename(cleanPath);
+    const decodedFilename = decodeURIComponent(filename);
     const normalized = cleanPath.startsWith("/") ? cleanPath : `/${cleanPath}`;
 
-    const keys = [normalized, cleanPath, filename, decodeURIComponent(filename)];
+    const keys = [normalized, cleanPath, filename, decodedFilename, trimmed];
 
     for (const key of keys) {
       if (!key) continue;
@@ -80,6 +95,21 @@ export default async function MediaLibraryPage() {
     registerUsage(t.avatarUrl, `Testimonial Avatar: ${t.authorName}`);
   }
 
+  // Populate usage from volunteers
+  for (const v of volunteers) {
+    registerUsage(v.photo, `Volunteer Badge: ${v.fullName}`);
+  }
+
+  // Populate usage from venues
+  for (const vn of venues) {
+    registerUsage(vn.image, `Venue Photo: ${vn.name}`);
+  }
+
+  // Populate usage from press mentions
+  for (const pm of pressMentions) {
+    registerUsage(pm.logo, `Press Logo: ${pm.publication}`);
+  }
+
   // Populate usage from site settings (e.g. hero, linktree avatar, etc.)
   for (const [key, val] of Object.entries(siteSettings)) {
     if (val && (val.includes("/") || val.includes("."))) {
@@ -87,6 +117,8 @@ export default async function MediaLibraryPage() {
         try {
           const parsed = JSON.parse(val);
           if (parsed.avatarUrl) registerUsage(parsed.avatarUrl, "Link Tree Avatar");
+          if (parsed.desktopBackgroundUrl) registerUsage(parsed.desktopBackgroundUrl, "Link Tree Desktop BG");
+          if (parsed.mobileBackgroundUrl) registerUsage(parsed.mobileBackgroundUrl, "Link Tree Mobile BG");
         } catch {}
       } else if (val.startsWith("/") || val.startsWith("http")) {
         registerUsage(val, `CMS Setting: ${key}`);
@@ -98,14 +130,19 @@ export default async function MediaLibraryPage() {
   registerUsage("/logo.png", "Core Brand Logo");
   registerUsage("logo.png", "Core Brand Logo");
 
-  const items: MediaItem[] = [];
+  const itemsMap = new Map<string, MediaItem>();
 
   // Helper to check if an unreferenced file is considered cache or clutter
   const isClutterFile = (filename: string, relativeFolder: string): boolean => {
     const lower = filename.toLowerCase();
     // Timestamped or hash-generated upload patterns (e.g. name-1789134742513-x3akg.png or Screenshot_...)
     if (/\d{10,}/.test(filename)) return true;
-    if (lower.startsWith("screenshot_") || lower.startsWith("chatgpt_") || lower.startsWith("tmp-") || lower.startsWith("temp-")) {
+    if (
+      lower.startsWith("screenshot_") ||
+      lower.startsWith("chatgpt_") ||
+      lower.startsWith("tmp-") ||
+      lower.startsWith("temp-")
+    ) {
       return true;
     }
     // Orphaned upload files that were never attached to any event or profile
@@ -113,7 +150,68 @@ export default async function MediaLibraryPage() {
     return false;
   };
 
-  // Helper to read a directory of assets
+  // 3. Fetch objects directly from Supabase Storage 'uploads' bucket
+  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
+  const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+
+  if (supabaseUrl && supabaseKey) {
+    try {
+      const res = await fetch(`${supabaseUrl}/storage/v1/object/list/uploads`, {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${supabaseKey}`,
+          apikey: supabaseKey,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          prefix: "",
+          limit: 1000,
+          offset: 0,
+          sortBy: { column: "created_at", order: "desc" },
+        }),
+        cache: "no-store",
+      });
+
+      if (res.ok) {
+        const files = await res.json();
+        if (Array.isArray(files)) {
+          for (const file of files) {
+            if (!file?.name || file.name.startsWith(".")) continue;
+
+            const publicUrl = `${supabaseUrl}/storage/v1/object/public/uploads/${file.name}`;
+            const directMatches =
+              usageMap.get(publicUrl) ||
+              usageMap.get(file.name) ||
+              usageMap.get(`/uploads/${file.name}`) ||
+              [];
+            const isInUse = directMatches.length > 0;
+            const isClutter = !isInUse && isClutterFile(file.name, "uploads");
+
+            const usageStatus: "in_use" | "not_in_use" | "cache_clutter" = isInUse
+              ? "in_use"
+              : isClutter
+              ? "cache_clutter"
+              : "not_in_use";
+
+            itemsMap.set(file.name, {
+              id: `supabase-${file.name}`,
+              name: file.name,
+              url: publicUrl,
+              size: file.metadata?.size || file.metadata?.contentLength || 0,
+              category: "upload",
+              modifiedAt: file.updated_at || file.created_at || new Date().toISOString(),
+              usageStatus,
+              usedIn: directMatches,
+            });
+          }
+        }
+      }
+    } catch (err) {
+      console.warn("Supabase storage list failed:", err);
+    }
+  }
+
+  // 4. Helper to scan local filesystem folders
   const scanDirectory = async (
     relativeFolder: string,
     category: "upload" | "gallery" | "brand"
@@ -136,7 +234,11 @@ export default async function MediaLibraryPage() {
         const url = `/${relativeFolder}/${file}`;
 
         // Look up usages
-        const directMatches = usageMap.get(url) || usageMap.get(file) || [];
+        const directMatches =
+          usageMap.get(url) ||
+          usageMap.get(file) ||
+          usageMap.get(decodeURIComponent(file)) ||
+          [];
         const isInUse = directMatches.length > 0;
         const isClutter = !isInUse && isClutterFile(file, relativeFolder);
 
@@ -146,33 +248,45 @@ export default async function MediaLibraryPage() {
           ? "cache_clutter"
           : "not_in_use";
 
-        items.push({
-          id: `${category}-${file}`,
-          name: file,
-          url,
-          size: fileStat.size,
-          category,
-          modifiedAt: fileStat.mtime.toISOString(),
-          usageStatus,
-          usedIn: directMatches,
-        });
+        // If item was already found in Supabase Storage, update size if 0 or keep existing
+        if (itemsMap.has(file)) {
+          const existing = itemsMap.get(file)!;
+          if (!existing.size && fileStat.size) {
+            existing.size = fileStat.size;
+          }
+          if (directMatches.length > 0 && existing.usedIn.length === 0) {
+            existing.usedIn = directMatches;
+            existing.usageStatus = "in_use";
+          }
+        } else {
+          itemsMap.set(file, {
+            id: `${category}-${file}`,
+            name: file,
+            url,
+            size: fileStat.size,
+            category,
+            modifiedAt: fileStat.mtime.toISOString(),
+            usageStatus,
+            usedIn: directMatches,
+          });
+        }
       }
     } catch (err) {
       console.warn(`Failed to scan media directory ${relativeFolder}:`, err);
     }
   };
 
-  // Scan uploads, gallery, and images
+  // Scan local uploads, gallery, and images
   await scanDirectory("uploads", "upload");
   await scanDirectory("gallery", "gallery");
   await scanDirectory("images", "brand");
 
-  // Also include root logo if present
+  // Root brand logo if present
   const logoPath = path.join(process.cwd(), "public", "logo.png");
-  if (existsSync(logoPath)) {
+  if (existsSync(logoPath) && !itemsMap.has("logo.png")) {
     try {
       const s = await stat(logoPath);
-      items.push({
+      itemsMap.set("logo.png", {
         id: "brand-logo",
         name: "logo.png",
         url: "/logo.png",
@@ -184,6 +298,34 @@ export default async function MediaLibraryPage() {
       });
     } catch (e) {}
   }
+
+  // 5. Ingest any remaining database-referenced media URLs that aren't on disk or in list
+  for (const [rawUrl, labels] of usageMap.entries()) {
+    if (!rawUrl || (!rawUrl.startsWith("/") && !rawUrl.startsWith("http"))) continue;
+    const clean = rawUrl.split("?")[0].split("#")[0];
+    const filename = path.basename(clean);
+    if (!filename || filename === "/" || itemsMap.has(filename)) continue;
+
+    const isSupabaseUrl = rawUrl.includes("supabase.co");
+    const category: "upload" | "gallery" | "brand" = rawUrl.includes("/gallery/")
+      ? "gallery"
+      : isSupabaseUrl || rawUrl.includes("/uploads/")
+      ? "upload"
+      : "brand";
+
+    itemsMap.set(filename, {
+      id: `db-${filename}`,
+      name: filename,
+      url: rawUrl,
+      size: 0,
+      category,
+      modifiedAt: new Date().toISOString(),
+      usageStatus: "in_use",
+      usedIn: labels,
+    });
+  }
+
+  const items = Array.from(itemsMap.values());
 
   // Sort: Clutter and Not in use first, or by modification time descending
   items.sort((a, b) => {

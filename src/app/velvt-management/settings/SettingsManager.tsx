@@ -1406,7 +1406,7 @@ export function SettingsManager({
             {/* Services Section */}
             <div className="p-6 bg-white/[0.03] border border-white/10 rounded-2xl space-y-4">
               <h3 className="font-display text-xl text-white font-bold uppercase tracking-wider pb-2 border-b border-white/10">
-                "What We Do" Section
+                &quot;What We Do&quot; Section
               </h3>
 
               <div className="grid sm:grid-cols-2 gap-4">

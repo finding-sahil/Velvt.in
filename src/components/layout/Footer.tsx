@@ -46,7 +46,7 @@ export async function Footer() {
             </Link>
             
             <p className="text-xs text-g5 italic max-w-xs leading-relaxed">
-              "It starts as a thought, ends as a memory."
+              &quot;It starts as a thought, ends as a memory.&quot;
             </p>
 
             <div className="pt-2 space-y-2">
