@@ -1943,7 +1943,10 @@ export async function deleteMediaAsset(fileUrl: string) {
           body: JSON.stringify({ prefixes: [cleanFilename] }),
         });
         if (res.ok) {
-          deletedFromSupabase = true;
+          const data = await res.json().catch(() => []);
+          if (Array.isArray(data) && data.length > 0) {
+            deletedFromSupabase = true;
+          }
         }
       } catch (err) {
         console.warn("Supabase storage delete network error:", err);
@@ -2046,6 +2049,24 @@ export async function deleteMediaAsset(fileUrl: string) {
           ],
         },
         data: { photo: null },
+      }),
+      prisma.venue.updateMany({
+        where: {
+          OR: [
+            { image: { in: matchingKeys } },
+            ...(cleanFilename ? [{ image: { contains: cleanFilename } }] : []),
+          ],
+        },
+        data: { image: null },
+      }),
+      prisma.pressMention.updateMany({
+        where: {
+          OR: [
+            { logo: { in: matchingKeys } },
+            ...(cleanFilename ? [{ logo: { contains: cleanFilename } }] : []),
+          ],
+        },
+        data: { logo: null },
       }),
     ]);
 
@@ -2193,6 +2214,8 @@ export async function bulkDeleteMediaAssets(fileUrls: string[]) {
       prisma.partner.updateMany({ where: { logo: { in: keysArray } }, data: { logo: null } }),
       prisma.testimonial.updateMany({ where: { avatarUrl: { in: keysArray } }, data: { avatarUrl: null } }),
       prisma.volunteer.updateMany({ where: { photo: { in: keysArray } }, data: { photo: null } }),
+      prisma.venue.updateMany({ where: { image: { in: keysArray } }, data: { image: null } }),
+      prisma.pressMention.updateMany({ where: { logo: { in: keysArray } }, data: { logo: null } }),
     ]);
 
     // 4. Audit Log

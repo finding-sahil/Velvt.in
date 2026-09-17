@@ -1,7 +1,8 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import Image from "next/image";
+import { useRouter } from "next/navigation";
 import { deleteMediaAsset, bulkDeleteMediaAssets } from "@/app/actions";
 
 export interface MediaItem {
@@ -20,7 +21,12 @@ interface MediaLibraryManagerProps {
 }
 
 export function MediaLibraryManager({ initialItems }: MediaLibraryManagerProps) {
+  const router = useRouter();
   const [items, setItems] = useState<MediaItem[]>(initialItems);
+
+  useEffect(() => {
+    setItems(initialItems);
+  }, [initialItems]);
   const [filterUsage, setFilterUsage] = useState<"all" | "in_use" | "not_in_use" | "cache_clutter">("all");
   const [filterCategory, setFilterCategory] = useState<string>("all");
   const [searchQuery, setSearchQuery] = useState("");
@@ -82,6 +88,7 @@ export function MediaLibraryManager({ initialItems }: MediaLibraryManagerProps) 
           setSelectedItem(null);
         }
         setConfirmDelete(null);
+        router.refresh();
         setActionFeedback({
           type: "success",
           text: `Asset "${item.name}" was permanently deleted from storage.`,
@@ -116,6 +123,7 @@ export function MediaLibraryManager({ initialItems }: MediaLibraryManagerProps) 
         setItems((prev) => prev.filter((i) => !selectedUrls.has(i.url)));
         setSelectedUrls(new Set());
         setConfirmBulkDelete(false);
+        router.refresh();
         setActionFeedback({
           type: "success",
           text: `Successfully deleted ${res.count} media asset(s). Reclaimed ${formatSize(selectedTotalSize)}.`,

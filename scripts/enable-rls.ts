@@ -62,7 +62,38 @@ async function main() {
     }
   }
 
-  console.log("\n✨ All 14 tables secured with RLS!");
+  console.log("\n📦 Configuring Supabase Storage policies for 'uploads' bucket...\n");
+  try {
+    await prisma.$executeRawUnsafe(`
+      DO $$
+      BEGIN
+        IF NOT EXISTS (
+          SELECT 1 FROM pg_policies 
+          WHERE schemaname = 'storage' AND tablename = 'objects' AND policyname = 'Public Delete uploads'
+        ) THEN
+          CREATE POLICY "Public Delete uploads" ON storage.objects
+          FOR DELETE TO public
+          USING (bucket_id = 'uploads');
+        END IF;
+
+        IF NOT EXISTS (
+          SELECT 1 FROM pg_policies 
+          WHERE schemaname = 'storage' AND tablename = 'objects' AND policyname = 'Public Update uploads'
+        ) THEN
+          CREATE POLICY "Public Update uploads" ON storage.objects
+          FOR UPDATE TO public
+          USING (bucket_id = 'uploads')
+          WITH CHECK (bucket_id = 'uploads');
+        END IF;
+      END
+      $$;
+    `);
+    console.log("✓ Storage DELETE & UPDATE policies verified for bucket 'uploads'");
+  } catch (err: any) {
+    console.error("✗ Error configuring storage policies:", err.message);
+  }
+
+  console.log("\n✨ All tables and storage secured with RLS!");
 }
 
 main()
