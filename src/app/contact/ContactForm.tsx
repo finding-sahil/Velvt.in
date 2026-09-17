@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { submitContactInquiry } from "@/app/actions";
 import { Button } from "@/components/ui/Button";
 
@@ -31,6 +31,18 @@ export function ContactForm({
   const [loading, setLoading] = useState(false);
   const [success, setSuccess] = useState(false);
   const [errors, setErrors] = useState<Record<string, string[]>>({});
+  const [selectedCategory, setSelectedCategory] = useState("general");
+
+  // Read URL search param (e.g. /contact?category=media)
+  useEffect(() => {
+    if (typeof window !== "undefined") {
+      const params = new URLSearchParams(window.location.search);
+      const cat = params.get("category");
+      if (cat && categories.some((c) => c.value === cat)) {
+        setSelectedCategory(cat);
+      }
+    }
+  }, []);
 
   const cleanPhone = phone.replace(/\s+/g, "");
 
@@ -98,12 +110,14 @@ export function ContactForm({
                 {/* Anti-spam honeypot */}
                 <input type="text" name="_gotcha" className="hidden" tabIndex={-1} autoComplete="off" aria-hidden="true" />
                 <div>
-                  <label className="block text-xs font-mono font-medium uppercase tracking-[0.15em] text-muted mb-2">
+                  <label htmlFor="contact-name" className="block text-xs font-mono font-medium uppercase tracking-[0.15em] text-muted mb-2">
                     Name <span className="text-primary">*</span>
                   </label>
                   <input
+                    id="contact-name"
                     type="text"
                     name="name"
+                    autoComplete="name"
                     required
                     className="w-full px-5 py-3.5 bg-white/[0.04] border border-white/10 rounded-xl text-white text-sm focus:outline-none focus:border-primary focus:shadow-[0_0_14px_rgba(200,16,46,0.35)] transition-all"
                   />
@@ -113,12 +127,14 @@ export function ContactForm({
                 </div>
 
                 <div>
-                  <label className="block text-xs font-mono font-medium uppercase tracking-[0.15em] text-muted mb-2">
+                  <label htmlFor="contact-email" className="block text-xs font-mono font-medium uppercase tracking-[0.15em] text-muted mb-2">
                     Email <span className="text-primary">*</span>
                   </label>
                   <input
+                    id="contact-email"
                     type="email"
                     name="email"
+                    autoComplete="email"
                     required
                     className="w-full px-5 py-3.5 bg-white/[0.04] border border-white/10 rounded-xl text-white text-sm focus:outline-none focus:border-primary focus:shadow-[0_0_14px_rgba(200,16,46,0.35)] transition-all"
                   />
@@ -128,24 +144,28 @@ export function ContactForm({
                 </div>
 
                 <div>
-                  <label className="block text-xs font-mono font-medium uppercase tracking-[0.15em] text-muted mb-2">
+                  <label htmlFor="contact-phone" className="block text-xs font-mono font-medium uppercase tracking-[0.15em] text-muted mb-2">
                     Phone Number
                   </label>
                   <input
+                    id="contact-phone"
                     type="tel"
                     name="phone"
+                    autoComplete="tel"
                     className="w-full px-5 py-3.5 bg-white/[0.04] border border-white/10 rounded-xl text-white text-sm focus:outline-none focus:border-primary focus:shadow-[0_0_14px_rgba(200,16,46,0.35)] transition-all"
                   />
                 </div>
 
                 <div>
-                  <label className="block text-xs font-mono font-medium uppercase tracking-[0.15em] text-muted mb-2">
+                  <label htmlFor="contact-category" className="block text-xs font-mono font-medium uppercase tracking-[0.15em] text-muted mb-2">
                     Category <span className="text-primary">*</span>
                   </label>
                   <select
+                    id="contact-category"
                     name="category"
                     required
-                    defaultValue="general"
+                    value={selectedCategory}
+                    onChange={(e) => setSelectedCategory(e.target.value)}
                     className="w-full px-5 py-3.5 bg-zinc-900 border border-white/10 rounded-xl text-white text-sm focus:outline-none focus:border-primary focus:shadow-[0_0_14px_rgba(200,16,46,0.35)] transition-all"
                   >
                     {categories.map((c) => (
@@ -160,10 +180,11 @@ export function ContactForm({
                 </div>
 
                 <div>
-                  <label className="block text-xs font-mono font-medium uppercase tracking-[0.15em] text-muted mb-2">
+                  <label htmlFor="contact-message" className="block text-xs font-mono font-medium uppercase tracking-[0.15em] text-muted mb-2">
                     Message <span className="text-primary">*</span>
                   </label>
                   <textarea
+                    id="contact-message"
                     name="message"
                     required
                     rows={5}

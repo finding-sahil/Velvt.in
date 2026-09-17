@@ -1,6 +1,7 @@
 import { prisma } from "@/lib/db";
 import { notFound } from "next/navigation";
 import { headers } from "next/headers";
+import Link from "next/link";
 import type { Metadata } from "next";
 import DownloadQrButton from "@/components/ui/DownloadQrButton";
 
@@ -74,12 +75,12 @@ export default async function VerifyVolunteerPage({
             No volunteer record was found matching this credential ID. Please verify the code or contact the VELVT production desk.
           </p>
           <div className="pt-2">
-            <a
+            <Link
               href="/verify"
-              className="inline-flex items-center gap-2 px-6 py-2.5 rounded-full bg-white/[0.06] border border-white/10 text-xs font-mono uppercase tracking-widest text-white hover:border-primary/40 hover:text-primary transition-all"
+              className="inline-flex items-center gap-2 px-6 py-2.5 rounded-full bg-white/[0.06] border border-white/10 text-xs font-mono uppercase tracking-widest text-white hover:border-primary/40 hover:text-primary transition-all min-h-[44px]"
             >
               ← Try Another ID
-            </a>
+            </Link>
           </div>
         </div>
       </div>
@@ -105,12 +106,12 @@ export default async function VerifyVolunteerPage({
             This volunteer credential has been archived or revoked. If you believe this is an error, please contact the VELVT production desk.
           </p>
           <div className="pt-2">
-            <a
+            <Link
               href="/verify"
-              className="inline-flex items-center gap-2 px-6 py-2.5 rounded-full bg-white/[0.06] border border-white/10 text-xs font-mono uppercase tracking-widest text-white hover:border-primary/40 hover:text-primary transition-all"
+              className="inline-flex items-center gap-2 px-6 py-2.5 rounded-full bg-white/[0.06] border border-white/10 text-xs font-mono uppercase tracking-widest text-white hover:border-primary/40 hover:text-primary transition-all min-h-[44px]"
             >
               ← Return to Verification
-            </a>
+            </Link>
           </div>
         </div>
       </div>
@@ -377,12 +378,12 @@ export default async function VerifyVolunteerPage({
         </div>
 
         <div className="flex items-center justify-between text-xs text-muted/60 font-mono px-2">
-          <a href="/verify" className="hover:text-primary transition-colors">
+          <Link href="/verify" className="hover:text-primary transition-colors min-h-[44px] flex items-center">
             ← Search Another
-          </a>
-          <a href="/volunteers" className="hover:text-primary transition-colors">
+          </Link>
+          <Link href="/volunteers" className="hover:text-primary transition-colors min-h-[44px] flex items-center">
             Volunteer Directory →
-          </a>
+          </Link>
         </div>
       </div>
     </div>

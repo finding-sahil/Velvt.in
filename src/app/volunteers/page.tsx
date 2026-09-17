@@ -62,7 +62,7 @@ export default async function VolunteersPage() {
       department: "Production",
       description: "Assist production leads with stage geometry, artist run-of-show timing, and equipment changeovers.",
       requirements: "High stamina, punctuality, and ability to stay calm in high-energy environments.",
-      availability: "Active / Recieving Applications",
+      availability: "Active / Receiving Applications",
       badgeColor: "bg-emerald-500/10 text-emerald-400 border-emerald-500/30",
     },
     {
@@ -155,6 +155,7 @@ export default async function VolunteersPage() {
         {isSectionEnabled(settings, "volunteers_section_apply_cta") && (
           <section className="container-velvt space-y-10">
             <SectionHeading
+              as="h1"
               title="Production Crew & Volunteers."
               subtitle="The heartbeat of every VELVT nocturnal production. Join our verified crew, gain hands-on production mastery, and shape culture."
             />

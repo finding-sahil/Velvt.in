@@ -198,7 +198,10 @@ export function InteractiveGallery({ items }: InteractiveGalleryProps) {
         {/* Search input */}
         <div className="relative min-w-[240px]">
           <input
+            id="gallery-search"
             type="text"
+            role="searchbox"
+            aria-label="Search captures and artists"
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
             placeholder="Search captures, artists..."
@@ -209,6 +212,7 @@ export function InteractiveGallery({ items }: InteractiveGalleryProps) {
             fill="none"
             stroke="currentColor"
             viewBox="0 0 24 24"
+            aria-hidden="true"
           >
             <path
               strokeLinecap="round"
@@ -219,8 +223,10 @@ export function InteractiveGallery({ items }: InteractiveGalleryProps) {
           </svg>
           {searchQuery && (
             <button
+              type="button"
               onClick={() => setSearchQuery("")}
-              className="absolute right-3.5 top-1/2 -translate-y-1/2 text-white/40 hover:text-white text-xs font-mono"
+              aria-label="Clear search input"
+              className="absolute right-3.5 top-1/2 -translate-y-1/2 text-white/40 hover:text-white text-xs font-mono p-1"
             >
               &times;
             </button>
@@ -241,6 +247,7 @@ export function InteractiveGallery({ items }: InteractiveGalleryProps) {
         <div className="py-20 text-center border border-dashed border-white/10 rounded-2xl bg-white/[0.02]">
           <p className="text-white/60 font-mono text-sm">No captures matched your filter.</p>
           <button
+            type="button"
             onClick={() => {
               setSelectedTimeline("current");
               setActiveCategory("all");
@@ -256,8 +263,17 @@ export function InteractiveGallery({ items }: InteractiveGalleryProps) {
           {filteredItems.slice(0, visibleCount).map((item, idx) => (
             <div
               key={item.id}
+              role="button"
+              tabIndex={0}
+              aria-label={`Enlarge photo: ${item.caption || item.event?.name || 'Archive capture'}`}
               onClick={() => setLightboxIndex(idx)}
-              className="group relative overflow-hidden rounded-[18px] border border-white/10 bg-white/[0.03] backdrop-blur-[12px] aspect-[4/5] cursor-pointer transition-all duration-500 hover:border-primary/50 hover:shadow-[0_0_30px_rgba(200,16,46,0.25)] hover:-translate-y-1"
+              onKeyDown={(e) => {
+                if (e.key === "Enter" || e.key === " ") {
+                  e.preventDefault();
+                  setLightboxIndex(idx);
+                }
+              }}
+              className="group relative overflow-hidden rounded-[18px] border border-white/10 bg-white/[0.03] backdrop-blur-[12px] aspect-[4/5] cursor-pointer transition-all duration-500 hover:border-primary/50 hover:shadow-[0_0_30px_rgba(200,16,46,0.25)] hover:-translate-y-1 focus:outline-none focus:ring-2 focus:ring-primary/60"
             >
               {/* Responsive Image with WebP */}
               <div className="absolute inset-0 overflow-hidden">
@@ -315,6 +331,9 @@ export function InteractiveGallery({ items }: InteractiveGalleryProps) {
       {/* ─── Lightbox Modal ─── */}
       {activeLightboxItem && lightboxIndex !== null && (
         <div
+          role="dialog"
+          aria-modal="true"
+          aria-label="Visual lightbox"
           className="fixed inset-0 z-50 flex items-center justify-center bg-black/90 backdrop-blur-md p-4 sm:p-8 animate-fadeIn"
           onClick={() => setLightboxIndex(null)}
         >

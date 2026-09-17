@@ -14,7 +14,7 @@ export default function GlobalError({ error, reset }: ErrorProps) {
   }, [error]);
 
   return (
-    <main className="min-h-[80vh] flex items-center justify-center relative overflow-hidden py-24 px-6">
+    <div className="min-h-[80vh] flex items-center justify-center relative overflow-hidden py-24 px-6">
       <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[500px] h-[500px] rounded-full bg-primary/15 blur-[120px] pointer-events-none" />
 
       <div className="relative z-10 max-w-lg mx-auto text-center space-y-6 animate-fade-in">
@@ -50,6 +50,6 @@ export default function GlobalError({ error, reset }: ErrorProps) {
           </Button>
         </div>
       </div>
-    </main>
+    </div>
   );
 }

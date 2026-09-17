@@ -77,12 +77,14 @@ export function SponsorInquiryForm({ deckUrl }: SponsorInquiryFormProps) {
 
       <div className="grid sm:grid-cols-2 gap-5">
         <div>
-          <label className="text-xs font-mono uppercase tracking-wider text-g5 block mb-1.5">
+          <label htmlFor="companyName" className="text-xs font-mono uppercase tracking-wider text-g5 block mb-1.5">
             Company / Brand Name *
           </label>
           <input
+            id="companyName"
             type="text"
             name="companyName"
+            autoComplete="organization"
             required
             placeholder="e.g. Red Bull, Monster, Local Brand"
             className="w-full px-4 py-3 rounded-xl bg-black/60 border border-white/15 text-white text-sm focus:border-red focus:outline-none transition-colors"
@@ -93,12 +95,14 @@ export function SponsorInquiryForm({ deckUrl }: SponsorInquiryFormProps) {
         </div>
 
         <div>
-          <label className="text-xs font-mono uppercase tracking-wider text-g5 block mb-1.5">
+          <label htmlFor="contactPerson" className="text-xs font-mono uppercase tracking-wider text-g5 block mb-1.5">
             Contact Person &amp; Designation *
           </label>
           <input
+            id="contactPerson"
             type="text"
             name="contactPerson"
+            autoComplete="name"
             required
             placeholder="e.g. Jane Doe, Brand Lead"
             className="w-full px-4 py-3 rounded-xl bg-black/60 border border-white/15 text-white text-sm focus:border-red focus:outline-none transition-colors"
@@ -111,12 +115,14 @@ export function SponsorInquiryForm({ deckUrl }: SponsorInquiryFormProps) {
 
       <div className="grid sm:grid-cols-2 gap-5">
         <div>
-          <label className="text-xs font-mono uppercase tracking-wider text-g5 block mb-1.5">
+          <label htmlFor="sponsor-email" className="text-xs font-mono uppercase tracking-wider text-g5 block mb-1.5">
             Official Email Address *
           </label>
           <input
+            id="sponsor-email"
             type="email"
             name="email"
+            autoComplete="email"
             required
             placeholder="partner@company.com"
             className="w-full px-4 py-3 rounded-xl bg-black/60 border border-white/15 text-white text-sm focus:border-red focus:outline-none transition-colors"
@@ -127,12 +133,14 @@ export function SponsorInquiryForm({ deckUrl }: SponsorInquiryFormProps) {
         </div>
 
         <div>
-          <label className="text-xs font-mono uppercase tracking-wider text-g5 block mb-1.5">
+          <label htmlFor="sponsor-phone" className="text-xs font-mono uppercase tracking-wider text-g5 block mb-1.5">
             Phone / WhatsApp Number
           </label>
           <input
+            id="sponsor-phone"
             type="tel"
             name="phone"
+            autoComplete="tel"
             placeholder="+91 98765 43210"
             className="w-full px-4 py-3 rounded-xl bg-black/60 border border-white/15 text-white text-sm focus:border-red focus:outline-none transition-colors"
           />
@@ -141,10 +149,11 @@ export function SponsorInquiryForm({ deckUrl }: SponsorInquiryFormProps) {
 
       <div className="grid sm:grid-cols-2 gap-5">
         <div>
-          <label className="text-xs font-mono uppercase tracking-wider text-g5 block mb-1.5">
+          <label htmlFor="sponsorshipInterest" className="text-xs font-mono uppercase tracking-wider text-g5 block mb-1.5">
             Sponsorship Interest *
           </label>
           <select
+            id="sponsorshipInterest"
             name="sponsorshipInterest"
             required
             className="w-full px-4 py-3 rounded-xl bg-black/60 border border-white/15 text-white text-sm focus:border-red focus:outline-none transition-colors"
@@ -160,10 +169,11 @@ export function SponsorInquiryForm({ deckUrl }: SponsorInquiryFormProps) {
         </div>
 
         <div>
-          <label className="text-xs font-mono uppercase tracking-wider text-g5 block mb-1.5">
+          <label htmlFor="budgetRange" className="text-xs font-mono uppercase tracking-wider text-g5 block mb-1.5">
             Estimated Budget Range
           </label>
           <select
+            id="budgetRange"
             name="budgetRange"
             className="w-full px-4 py-3 rounded-xl bg-black/60 border border-white/15 text-white text-sm focus:border-red focus:outline-none transition-colors"
           >
@@ -178,10 +188,11 @@ export function SponsorInquiryForm({ deckUrl }: SponsorInquiryFormProps) {
       </div>
 
       <div>
-        <label className="text-xs font-mono uppercase tracking-wider text-g5 block mb-1.5">
+        <label htmlFor="sponsor-message" className="text-xs font-mono uppercase tracking-wider text-g5 block mb-1.5">
           Collaboration Vision &amp; Message *
         </label>
         <textarea
+          id="sponsor-message"
           name="message"
           rows={4}
           required
@@ -196,7 +207,7 @@ export function SponsorInquiryForm({ deckUrl }: SponsorInquiryFormProps) {
       <button
         type="submit"
         disabled={loading}
-        className="w-full py-3.5 rounded-full bg-red hover:bg-red-glow text-white font-mono text-xs uppercase tracking-widest font-bold shadow-[0_0_25px_var(--red-glow)] transition-all flex items-center justify-center gap-2 cursor-pointer disabled:opacity-50"
+        className="w-full py-3.5 rounded-full bg-red hover:bg-red-glow text-white font-mono text-xs uppercase tracking-widest font-bold shadow-[0_0_25px_var(--red-glow)] transition-all flex items-center justify-center gap-2 cursor-pointer disabled:opacity-50 min-h-[44px]"
       >
         {loading ? (
           <>

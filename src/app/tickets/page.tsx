@@ -47,9 +47,10 @@ export default async function TicketsPage() {
       customTitle={customTitle}
       customSubtitle={customSubtitle}
     >
-      <main className="py-12 md:py-20 relative min-h-[70vh]">
+      <div className="py-12 md:py-20 relative min-h-[70vh]">
         <div className="container-velvt space-y-12">
           <SectionHeading
+            as="h1"
             title="Tickets & Passes."
             subtitle={
               upcomingEvent
@@ -167,7 +168,7 @@ export default async function TicketsPage() {
             </div>
           )}
         </div>
-      </main>
+      </div>
     </PageStatusGate>
   );
 }

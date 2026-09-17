@@ -37,7 +37,7 @@ export function PageStatusGate({
       : "This section is temporarily paused for scheduled maintenance and updates.");
 
   return (
-    <main className="py-16 md:py-24 relative min-h-[75vh] flex flex-col items-center justify-center px-4">
+    <div className="py-16 md:py-24 relative min-h-[75vh] flex flex-col items-center justify-center px-4">
       {/* Ambient glowing atmosphere */}
       <div className="absolute top-1/3 left-1/2 -translate-x-1/2 w-[500px] h-[500px] rounded-full bg-primary/20 blur-[180px] pointer-events-none" />
       <div className="absolute bottom-1/4 right-1/4 w-72 h-72 rounded-full bg-amber-500/10 blur-[120px] pointer-events-none" />
@@ -108,6 +108,6 @@ export function PageStatusGate({
           VELVT • Silchar, Assam, India
         </p>
       </div>
-    </main>
+    </div>
   );
 }

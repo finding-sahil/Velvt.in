@@ -3,7 +3,7 @@ import { Button } from "@/components/ui/Button";
 
 export default function NotFound() {
   return (
-    <main className="min-h-[85vh] flex items-center justify-center relative overflow-hidden py-24 px-6">
+    <div className="min-h-[85vh] flex items-center justify-center relative overflow-hidden py-24 px-6">
       {/* Ambient background glows */}
       <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[550px] h-[550px] rounded-full bg-primary/15 blur-[140px] pointer-events-none" />
 
@@ -11,12 +11,15 @@ export default function NotFound() {
 
         {/* Large Decorative 404 */}
         <div className="relative">
-          <h1 className="font-display font-black text-8xl sm:text-9xl tracking-tight text-white/5 select-none absolute inset-0 flex items-center justify-center -translate-y-2 uppercase">
+          <span
+            aria-hidden="true"
+            className="font-display font-black text-8xl sm:text-9xl tracking-tight text-white/5 select-none absolute inset-0 flex items-center justify-center -translate-y-2 uppercase pointer-events-none"
+          >
             404
-          </h1>
-          <h2 className="font-display font-extrabold text-4xl sm:text-5xl lg:text-6xl text-white relative z-10 tracking-tight uppercase">
+          </span>
+          <h1 className="font-display font-extrabold text-4xl sm:text-5xl lg:text-6xl text-white relative z-10 tracking-tight uppercase">
             Lost in the Shadows.
-          </h2>
+          </h1>
         </div>
 
         {/* Glowing Red Rule */}
@@ -51,6 +54,6 @@ export default function NotFound() {
           </Link>
         </div>
       </div>
-    </main>
+    </div>
   );
 }

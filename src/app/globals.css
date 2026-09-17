@@ -34,13 +34,15 @@
   --color-glass-hv: rgba(255, 255, 255, 0.11);
   --color-glass-border: rgba(255, 255, 255, 0.1);
 
-  /* Grays */
+  /* Grays & Muted Copy */
   --color-g1: #111111;
   --color-g2: #1a1a1a;
   --color-g3: #d4d4d8;
   --color-g4: #a1a1aa;
   --color-g5: #9ca3af;
   --color-g6: #f4f4f5;
+  --color-muted: #9b9ba1;
+  --color-muted-foreground: #9ca3af;
 
   /* Typography */
   --font-display: var(--font-barlow), "Barlow Condensed", "Arial Narrow", sans-serif;
@@ -86,6 +88,8 @@
   --g4: #a1a1aa;
   --g5: #9ca3af;
   --g6: #f4f4f5;
+  --muted: #9b9ba1;
+  --muted-foreground: #9ca3af;
 
   --radius-card: 20px;
   --radius-pill: 999px;
@@ -456,7 +460,7 @@ body.is-admin .scanlines {
 .hero-title {
   font-family: var(--font-display);
   font-weight: 900;
-  font-size: clamp(3.75rem, 12vw, 9.5rem);
+  font-size: clamp(2.75rem, 11vw, 9.5rem);
   line-height: 0.92;
   letter-spacing: -0.03em;
   text-transform: uppercase;
@@ -485,6 +489,21 @@ body.is-admin .scanlines {
   font-size: 0.95rem;
   color: var(--g6);
   line-height: 1.8;
+}
+
+/* Explicit Muted Utility Classes */
+.text-muted {
+  color: var(--color-muted, #9b9ba1);
+}
+
+.text-muted-foreground {
+  color: var(--color-muted-foreground, #9ca3af);
+}
+
+/* Mask Fade Edges for Marquees and Sliders */
+.mask-fade-edges {
+  mask-image: linear-gradient(to right, transparent 0%, black 8%, black 92%, transparent 100%);
+  -webkit-mask-image: linear-gradient(to right, transparent 0%, black 8%, black 92%, transparent 100%);
 }
 
 /* Glowing Crimson Divider Line */
@@ -661,6 +680,34 @@ html, body {
 .animate-float-marquee-left:hover,
 .animate-float-marquee-right:hover {
   animation-play-state: paused;
+}
+
+/* ─── Accessibility: prefers-reduced-motion ─────────────────────────────────── */
+@media (prefers-reduced-motion: reduce) {
+  html {
+    scroll-behavior: auto !important;
+  }
+
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+
+  .animate-float-marquee-left,
+  .animate-float-marquee-right,
+  .animate-scanner-laser {
+    animation: none !important;
+    transform: none !important;
+  }
+
+  .animate-ping,
+  .animate-pulse {
+    animation: none !important;
+  }
 }
 
 /* ─── Admin Theme: Comprehensive Light Mode Overrides ────────────────────────── */

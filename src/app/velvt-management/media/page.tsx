@@ -150,11 +150,13 @@ export default async function MediaLibraryPage() {
     return false;
   };
 
-  // 3. Fetch objects directly from Supabase Storage 'uploads' bucket
+  // 3. Fetch objects directly from Supabase Storage 'uploads' bucket with strict timeout
   const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
   const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
 
   if (supabaseUrl && supabaseKey) {
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 3500);
     try {
       const res = await fetch(`${supabaseUrl}/storage/v1/object/list/uploads`, {
         method: "POST",
@@ -165,12 +167,14 @@ export default async function MediaLibraryPage() {
         },
         body: JSON.stringify({
           prefix: "",
-          limit: 1000,
+          limit: 500,
           offset: 0,
           sortBy: { column: "created_at", order: "desc" },
         }),
+        signal: controller.signal,
         cache: "no-store",
       });
+      clearTimeout(timeoutId);
 
       if (res.ok) {
         const files = await res.json();
@@ -207,11 +211,12 @@ export default async function MediaLibraryPage() {
         }
       }
     } catch (err) {
-      console.warn("Supabase storage list failed:", err);
+      clearTimeout(timeoutId);
+      console.warn("Supabase storage list skipped or timed out:", err);
     }
   }
 
-  // 4. Helper to scan local filesystem folders
+  // 4. Helper to scan local filesystem folders in parallel
   const scanDirectory = async (
     relativeFolder: string,
     category: "upload" | "gallery" | "brand"
@@ -220,66 +225,77 @@ export default async function MediaLibraryPage() {
     if (!existsSync(dirPath)) return;
 
     try {
-      const files = await readdir(dirPath);
-      for (const file of files) {
-        if (file.startsWith(".")) continue;
+      const entries = await readdir(dirPath, { withFileTypes: true });
+      const imageEntries = entries.filter((ent) => {
+        if (!ent.isFile() || ent.name.startsWith(".")) return false;
+        const ext = path.extname(ent.name).toLowerCase();
+        return [".jpg", ".jpeg", ".png", ".webp", ".gif", ".svg"].includes(ext);
+      });
 
-        const ext = path.extname(file).toLowerCase();
-        if (![".jpg", ".jpeg", ".png", ".webp", ".gif", ".svg"].includes(ext)) {
-          continue;
-        }
+      await Promise.all(
+        imageEntries.map(async (ent) => {
+          const file = ent.name;
+          const filePath = path.join(dirPath, file);
+          let fileSize = 0;
+          let fileMtime = new Date().toISOString();
+          try {
+            const fileStat = await stat(filePath);
+            fileSize = fileStat.size;
+            fileMtime = fileStat.mtime.toISOString();
+          } catch {}
 
-        const filePath = path.join(dirPath, file);
-        const fileStat = await stat(filePath);
-        const url = `/${relativeFolder}/${file}`;
+          const url = `/${relativeFolder}/${file}`;
 
-        // Look up usages
-        const directMatches =
-          usageMap.get(url) ||
-          usageMap.get(file) ||
-          usageMap.get(decodeURIComponent(file)) ||
-          [];
-        const isInUse = directMatches.length > 0;
-        const isClutter = !isInUse && isClutterFile(file, relativeFolder);
+          // Look up usages
+          const directMatches =
+            usageMap.get(url) ||
+            usageMap.get(file) ||
+            usageMap.get(decodeURIComponent(file)) ||
+            [];
+          const isInUse = directMatches.length > 0;
+          const isClutter = !isInUse && isClutterFile(file, relativeFolder);
 
-        const usageStatus: "in_use" | "not_in_use" | "cache_clutter" = isInUse
-          ? "in_use"
-          : isClutter
-          ? "cache_clutter"
-          : "not_in_use";
+          const usageStatus: "in_use" | "not_in_use" | "cache_clutter" = isInUse
+            ? "in_use"
+            : isClutter
+            ? "cache_clutter"
+            : "not_in_use";
 
-        // If item was already found in Supabase Storage, update size if 0 or keep existing
-        if (itemsMap.has(file)) {
-          const existing = itemsMap.get(file)!;
-          if (!existing.size && fileStat.size) {
-            existing.size = fileStat.size;
+          // If item was already found in Supabase Storage, update size if 0 or keep existing
+          if (itemsMap.has(file)) {
+            const existing = itemsMap.get(file)!;
+            if (!existing.size && fileSize) {
+              existing.size = fileSize;
+            }
+            if (directMatches.length > 0 && existing.usedIn.length === 0) {
+              existing.usedIn = directMatches;
+              existing.usageStatus = "in_use";
+            }
+          } else {
+            itemsMap.set(file, {
+              id: `${category}-${file}`,
+              name: file,
+              url,
+              size: fileSize,
+              category,
+              modifiedAt: fileMtime,
+              usageStatus,
+              usedIn: directMatches,
+            });
           }
-          if (directMatches.length > 0 && existing.usedIn.length === 0) {
-            existing.usedIn = directMatches;
-            existing.usageStatus = "in_use";
-          }
-        } else {
-          itemsMap.set(file, {
-            id: `${category}-${file}`,
-            name: file,
-            url,
-            size: fileStat.size,
-            category,
-            modifiedAt: fileStat.mtime.toISOString(),
-            usageStatus,
-            usedIn: directMatches,
-          });
-        }
-      }
+        })
+      );
     } catch (err) {
       console.warn(`Failed to scan media directory ${relativeFolder}:`, err);
     }
   };
 
-  // Scan local uploads, gallery, and images
-  await scanDirectory("uploads", "upload");
-  await scanDirectory("gallery", "gallery");
-  await scanDirectory("images", "brand");
+  // Scan local uploads, gallery, and images concurrently
+  await Promise.all([
+    scanDirectory("uploads", "upload"),
+    scanDirectory("gallery", "gallery"),
+    scanDirectory("images", "brand"),
+  ]);
 
   // Root brand logo if present
   const logoPath = path.join(process.cwd(), "public", "logo.png");

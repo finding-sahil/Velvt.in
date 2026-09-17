@@ -75,23 +75,30 @@ export function NewsletterSection({
 
         <form onSubmit={handleSubmit} className="max-w-lg mx-auto space-y-3.5 pt-2">
           <div className="flex flex-col sm:flex-row gap-2.5">
+            <label htmlFor="newsletter-email" className="sr-only">
+              Email address for newsletter updates
+            </label>
             <input
+              id="newsletter-email"
+              name="email"
               type="email"
+              autoComplete="email"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               placeholder="Enter your email address..."
               required
+              aria-label="Email address for newsletter updates"
               disabled={isPending || status === "success"}
               className="flex-1 bg-white/[0.04] border border-white/10 focus:border-red rounded-xl px-4 py-3 text-sm font-mono text-white placeholder-g5 focus:outline-none transition-all"
             />
             <button
               type="submit"
               disabled={isPending || status === "success"}
-              className="px-6 py-3 rounded-xl bg-red hover:bg-red/90 text-white font-mono text-xs font-bold uppercase tracking-wider transition-all disabled:opacity-50 cursor-pointer shadow-[0_0_20px_rgba(200,16,46,0.3)] hover:shadow-[0_0_30px_rgba(200,16,46,0.5)] flex items-center justify-center gap-2"
+              className="px-6 py-3 rounded-xl bg-red hover:bg-red/90 text-white font-mono text-xs font-bold uppercase tracking-wider transition-all disabled:opacity-50 cursor-pointer shadow-[0_0_20px_rgba(200,16,46,0.3)] hover:shadow-[0_0_30px_rgba(200,16,46,0.5)] flex items-center justify-center gap-2 min-h-[44px]"
             >
               {isPending ? (
                 <>
-                  <svg className="animate-spin h-3.5 w-3.5 text-white" viewBox="0 0 24 24">
+                  <svg className="animate-spin h-3.5 w-3.5 text-white" viewBox="0 0 24 24" aria-hidden="true">
                     <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" fill="none" />
                     <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
                   </svg>
@@ -106,8 +113,10 @@ export function NewsletterSection({
           </div>
 
           {/* Explicit Consent Checkbox */}
-          <label className="flex items-start gap-2.5 text-left text-[11px] font-mono text-g5 cursor-pointer select-none">
+          <label htmlFor="newsletter-consent" className="flex items-start gap-2.5 text-left text-[11px] font-mono text-g5 cursor-pointer select-none">
             <input
+              id="newsletter-consent"
+              name="consent"
               type="checkbox"
               checked={consent}
               onChange={(e) => setConsent(e.target.checked)}
@@ -121,12 +130,12 @@ export function NewsletterSection({
 
           {/* Feedback Messages */}
           {status === "success" && (
-            <div className="p-3 rounded-xl bg-emerald-500/10 border border-emerald-500/30 text-emerald-300 text-xs font-mono animate-fade-in">
+            <div role="status" aria-live="polite" className="p-3 rounded-xl bg-emerald-500/10 border border-emerald-500/30 text-emerald-300 text-xs font-mono animate-fade-in">
               {message}
             </div>
           )}
           {status === "error" && (
-            <div className="p-3 rounded-xl bg-red-dim border border-red/40 text-red text-xs font-mono animate-fade-in">
+            <div role="status" aria-live="polite" className="p-3 rounded-xl bg-red-dim border border-red/40 text-red text-xs font-mono animate-fade-in">
               {message}
             </div>
           )}

@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
+import Link from "next/link";
 import { Button } from "@/components/ui/Button";
 
 export default function VerifySearchPage() {
@@ -35,7 +36,12 @@ export default function VerifySearchPage() {
           onSubmit={handleSubmit}
           className="flex flex-col gap-4 pt-2"
         >
+          <label htmlFor="volunteerId" className="sr-only">
+            Volunteer Credential ID
+          </label>
           <input
+            id="volunteerId"
+            name="volunteerId"
             type="text"
             value={id}
             onChange={(e) => setId(e.target.value)}
@@ -51,6 +57,16 @@ export default function VerifySearchPage() {
         <p className="text-[11px] text-muted/50 font-mono tracking-wider">
           Standard Format: VEL-YYYY-NNNNN
         </p>
+
+        {/* Quick Verification Hub Navigation */}
+        <div className="pt-4 border-t border-white/10 flex items-center justify-between text-xs font-mono text-muted/70">
+          <Link href="/volunteers" className="hover:text-primary transition-colors min-h-[36px] flex items-center">
+            Volunteer Hub →
+          </Link>
+          <Link href="/tickets" className="hover:text-primary transition-colors min-h-[36px] flex items-center">
+            Event Passes →
+          </Link>
+        </div>
       </div>
     </div>
   );

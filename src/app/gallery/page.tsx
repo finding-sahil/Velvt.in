@@ -4,6 +4,7 @@ import { PageStatusGate } from "@/components/ui/PageStatusGate";
 import { SectionHeading } from "@/components/ui/SectionHeading";
 import { EmptyState } from "@/components/ui/EmptyState";
 import { InteractiveGallery } from "./InteractiveGallery";
+import Link from "next/link";
 import type { Metadata } from "next";
 
 export const revalidate = 60;
@@ -33,12 +34,13 @@ export default async function GalleryPage() {
       customTitle={customTitle}
       customSubtitle={customSubtitle}
     >
-      <main className="py-12 md:py-20 relative">
+      <div className="py-12 md:py-20 relative">
       {/* Ambient background glow */}
       <div className="absolute top-1/4 left-1/3 w-96 h-96 rounded-full bg-primary/15 blur-[140px] pointer-events-none" />
 
       <div className="container-velvt space-y-16">
         <SectionHeading
+          as="h1"
           title="The Visual Archive."
           subtitle="Glimpses into our immersive productions — the light sculptures, crowd cadence, and unrepeatable nocturnal atmosphere."
         />
@@ -63,16 +65,16 @@ export default async function GalleryPage() {
             We collaborate with visual artists, videographers, and editorial photographers. Submit your nocturnal coverage for inclusion in the official VELVT archive.
           </p>
           <div className="pt-2">
-            <a
-              href="/contact"
-              className="inline-flex items-center gap-2 px-6 py-2.5 rounded-full bg-red-dim border border-red-glow text-xs font-mono uppercase tracking-widest text-white hover:bg-primary hover:border-primary transition-all duration-300"
+            <Link
+              href="/contact?category=media"
+              className="inline-flex items-center gap-2 px-6 py-2.5 rounded-full bg-red-dim border border-red-glow text-xs font-mono uppercase tracking-widest text-white hover:bg-primary hover:border-primary transition-all duration-300 min-h-[44px]"
             >
               Submit Media Coverage &rarr;
-            </a>
+            </Link>
           </div>
         </div>
       </div>
-    </main>
+    </div>
     </PageStatusGate>
   );
 }

@@ -15,6 +15,7 @@ export default function VolunteerRegisterPage() {
   const [errors, setErrors] = useState<Record<string, string[]>>({});
   const [selectedRole, setSelectedRole] = useState("");
   const [customRoleText, setCustomRoleText] = useState("");
+  const [uploadError, setUploadError] = useState<string | null>(null);
 
   useEffect(() => {
     // Fetch events and roles
@@ -34,6 +35,7 @@ export default function VolunteerRegisterPage() {
     if (!file) return;
 
     setUploading(true);
+    setUploadError(null);
     try {
       const fd = new FormData();
       fd.append("file", file);
@@ -46,10 +48,10 @@ export default function VolunteerRegisterPage() {
       if (data.success && data.url) {
         setPhotoUrl(data.url);
       } else {
-        alert(data.error || "Failed to upload photo");
+        setUploadError(data.error || "Failed to upload photo. Ensure file is under 5MB.");
       }
     } catch (err: any) {
-      alert("Upload failed: " + err.message);
+      setUploadError("Upload failed: " + (err.message || "Network error."));
     } finally {
       setUploading(false);
     }
@@ -167,10 +169,11 @@ export default function VolunteerRegisterPage() {
 
             {/* Event Selection */}
             <div>
-              <label className="block text-xs font-mono font-medium uppercase tracking-[0.15em] text-muted mb-2">
+              <label htmlFor="eventId" className="block text-xs font-mono font-medium uppercase tracking-[0.15em] text-muted mb-2">
                 Event <span className="text-primary">*</span>
               </label>
               <select
+                id="eventId"
                 name="eventId"
                 required
                 className="w-full px-5 py-3.5 bg-black/80 border border-white/10 rounded-xl text-white text-sm focus:outline-none focus:border-primary focus:shadow-[0_0_14px_rgba(200,16,46,0.35)] transition-all"
@@ -189,10 +192,11 @@ export default function VolunteerRegisterPage() {
 
             {/* Role Selection */}
             <div>
-              <label className="block text-xs font-mono font-medium uppercase tracking-[0.15em] text-muted mb-2">
+              <label htmlFor="preferredRole" className="block text-xs font-mono font-medium uppercase tracking-[0.15em] text-muted mb-2">
                 Preferred Role <span className="text-primary">*</span>
               </label>
               <select
+                id="preferredRole"
                 name="preferredRole"
                 required
                 value={selectedRole}
@@ -212,10 +216,11 @@ export default function VolunteerRegisterPage() {
               </select>
               {selectedRole === "Other" && (
                 <div className="mt-3 animate-in fade-in slide-in-from-top-1 duration-150">
-                  <label className="block text-[11px] font-mono text-primary uppercase tracking-wider mb-1.5">
+                  <label htmlFor="customRole" className="block text-[11px] font-mono text-primary uppercase tracking-wider mb-1.5">
                     Specify Your Role / Area of Expertise *
                   </label>
                   <input
+                    id="customRole"
                     type="text"
                     required
                     value={customRoleText}
@@ -235,10 +240,11 @@ export default function VolunteerRegisterPage() {
 
             {/* Availability */}
             <div>
-              <label className="block text-xs font-mono font-medium uppercase tracking-[0.15em] text-muted mb-2">
+              <label htmlFor="availability" className="block text-xs font-mono font-medium uppercase tracking-[0.15em] text-muted mb-2">
                 Availability &amp; Commitment Window <span className="text-primary">*</span>
               </label>
               <select
+                id="availability"
                 name="availability"
                 required
                 defaultValue="Full Event (Setup + Night + Wrap)"
@@ -254,10 +260,11 @@ export default function VolunteerRegisterPage() {
 
             {/* Experience */}
             <div>
-              <label className="block text-xs font-mono font-medium uppercase tracking-[0.15em] text-muted mb-2">
+              <label htmlFor="experience" className="block text-xs font-mono font-medium uppercase tracking-[0.15em] text-muted mb-2">
                 Relevant Experience
               </label>
               <textarea
+                id="experience"
                 name="experience"
                 rows={3}
                 className="w-full px-5 py-3.5 bg-white/[0.04] border border-white/10 rounded-2xl text-white text-sm focus:outline-none focus:border-primary focus:shadow-[0_0_14px_rgba(200,16,46,0.35)] transition-all resize-none"
@@ -336,12 +343,18 @@ export default function VolunteerRegisterPage() {
                   />
                 </label>
               </div>
+              {uploadError && (
+                <p role="alert" className="text-xs text-primary font-mono mt-1">
+                  {uploadError}
+                </p>
+              )}
             </div>
 
             {/* Consent */}
             <div>
-              <label className="flex items-start gap-3 cursor-pointer">
+              <label htmlFor="consentGiven" className="flex items-start gap-3 cursor-pointer">
                 <input
+                  id="consentGiven"
                   type="checkbox"
                   name="consentGiven"
                   className="mt-1 accent-[#c8102e]"
@@ -381,6 +394,7 @@ function FormField({
   type = "text",
   required,
   placeholder,
+  autoComplete,
   error,
 }: {
   label: string;
@@ -388,16 +402,23 @@ function FormField({
   type?: string;
   required?: boolean;
   placeholder?: string;
+  autoComplete?: string;
   error?: string[];
 }) {
+  const computedAutoComplete =
+    autoComplete ||
+    (name === "email" ? "email" : name === "phone" ? "tel" : name === "fullName" ? "name" : name === "city" ? "address-level2" : undefined);
+
   return (
     <div>
-      <label className="block text-xs font-mono font-medium uppercase tracking-[0.15em] text-muted mb-2">
+      <label htmlFor={name} className="block text-xs font-mono font-medium uppercase tracking-[0.15em] text-muted mb-2">
         {label} {required && <span className="text-primary">*</span>}
       </label>
       <input
+        id={name}
         type={type}
         name={name}
+        autoComplete={computedAutoComplete}
         required={required}
         placeholder={placeholder}
         className="w-full px-5 py-3.5 bg-white/[0.04] border border-white/10 rounded-xl text-white text-sm focus:outline-none focus:border-primary focus:shadow-[0_0_14px_rgba(200,16,46,0.35)] transition-all"

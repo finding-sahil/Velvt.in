@@ -30,8 +30,8 @@ export function FinalCTASection({
           <Button href="/volunteers/register" variant="secondary" size="md">
             Join As Volunteer
           </Button>
-          <Button href="/contact" variant="outline" size="md">
-            Direct Inquiry
+          <Button href="/sponsors" variant="outline" size="md">
+            Brand Sponsorships
           </Button>
         </div>
       </div>

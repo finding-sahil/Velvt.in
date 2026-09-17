@@ -37,12 +37,13 @@ export default async function PressPage() {
       customTitle={customTitle}
       customSubtitle={customSubtitle}
     >
-      <main className="py-12 md:py-20 relative">
+      <div className="py-12 md:py-20 relative">
       {/* Ambient background glow */}
       <div className="absolute top-1/4 left-1/3 w-96 h-96 rounded-full bg-primary/15 blur-[140px] pointer-events-none" />
 
       <div className="container-velvt space-y-20">
         <SectionHeading
+          as="h1"
           title="Press & Editorial."
           subtitle="Official stories, media kits, press releases, and editorial resources for journalists and creators."
         />
@@ -65,10 +66,10 @@ export default async function PressPage() {
               Includes vector logos (SVG/PNG), typography documentation, color palette tokens, executive bios, and approved nocturnal event press imagery for editorial publication.
             </p>
             <div className="pt-3 flex flex-wrap gap-4">
-              <Button href="/contact" variant="primary" size="md">
+              <Button href="/contact?category=media" variant="primary" size="md">
                 Request Media Kit
               </Button>
-              <Button href="/contact" variant="secondary" size="md">
+              <Button href="/contact?category=media" variant="secondary" size="md">
                 Request Press Pass
               </Button>
             </div>
@@ -156,7 +157,7 @@ export default async function PressPage() {
           </div>
         </div>
       </div>
-    </main>
+    </div>
     </PageStatusGate>
   );
 }

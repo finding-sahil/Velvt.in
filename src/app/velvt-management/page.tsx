@@ -27,6 +27,7 @@ export default async function AdminDashboardPage() {
     newInquiriesCount,
     issuedTicketsCount,
     checkedInTicketsCount,
+    subscribersCount,
     recentVolunteers,
     recentInquiries,
     siteSettings,
@@ -37,6 +38,7 @@ export default async function AdminDashboardPage() {
     prisma.contactInquiry.count({ where: { status: "new" } }),
     prisma.issuedTicket.count(),
     prisma.issuedTicket.count({ where: { isCheckedIn: true } }),
+    prisma.newsletterSubscriber.count(),
     prisma.volunteer.findMany({
       take: 5,
       orderBy: { appliedAt: "desc" },
@@ -89,7 +91,7 @@ export default async function AdminDashboardPage() {
       </div>
 
       {/* KPI Cards Grid */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+      <div className="grid grid-cols-2 lg:grid-cols-5 gap-4">
         {/* Total Events */}
         <div className="border border-white/10 bg-white/[0.03] p-5 rounded-2xl space-y-2 relative overflow-hidden">
           <div className="flex justify-between items-center text-[10px] font-mono text-g5 uppercase tracking-wider">
@@ -128,6 +130,21 @@ export default async function AdminDashboardPage() {
           </p>
         </div>
 
+        {/* The Velvet Loop Subscribers */}
+        <Link
+          href={adminPath("/subscribers")}
+          className="border border-red/30 bg-red-950/15 hover:bg-red-950/25 hover:border-red/60 transition-all p-5 rounded-2xl space-y-2 relative overflow-hidden group block"
+        >
+          <div className="flex justify-between items-center text-[10px] font-mono text-red uppercase tracking-wider">
+            <span>The Velvet Loop</span>
+            <span className="w-2 h-2 rounded-full bg-red animate-pulse" />
+          </div>
+          <p className="font-display font-black text-4xl text-white group-hover:text-red transition-colors tracking-tight">
+            {subscribersCount}
+          </p>
+          <p className="text-[11px] text-g5">Subscribers &amp; dispatch list</p>
+        </Link>
+
         {/* Inquiries */}
         <div className="border border-white/10 bg-white/[0.03] p-5 rounded-2xl space-y-2 relative overflow-hidden">
           <div className="flex justify-between items-center text-[10px] font-mono text-g5 uppercase tracking-wider">
@@ -135,7 +152,7 @@ export default async function AdminDashboardPage() {
             <span className="w-2 h-2 rounded-full bg-red" />
           </div>
           <p className="font-display font-black text-4xl text-white tracking-tight">{newInquiriesCount}</p>
-          <p className="text-[11px] text-g5">Sponsors &amp; collaboration requests</p>
+          <p className="text-[11px] text-g5">Sponsors &amp; collaboration</p>
         </div>
       </div>
 
@@ -145,7 +162,7 @@ export default async function AdminDashboardPage() {
           <span className="w-2 h-[2px] bg-red" />
           <span>Quick Launchpad</span>
         </h3>
-        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">
+        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-7 gap-3">
           <Link
             href={adminPath("/events")}
             className="p-3.5 rounded-xl border border-white/10 bg-white/[0.02] hover:bg-white/[0.06] hover:border-red/40 transition-all text-center flex flex-col items-center gap-1.5 group"
@@ -159,6 +176,13 @@ export default async function AdminDashboardPage() {
           >
             <span className="text-xl group-hover:scale-110 transition-transform">🎫</span>
             <span className="text-xs font-mono text-g6 group-hover:text-white uppercase font-bold">Tickets &amp; QR</span>
+          </Link>
+          <Link
+            href={adminPath("/subscribers")}
+            className="p-3.5 rounded-xl border border-white/10 bg-white/[0.02] hover:bg-white/[0.06] hover:border-red/40 transition-all text-center flex flex-col items-center gap-1.5 group"
+          >
+            <span className="text-xl group-hover:scale-110 transition-transform">📬</span>
+            <span className="text-xs font-mono text-g6 group-hover:text-white uppercase font-bold">The Loop</span>
           </Link>
           <Link
             href={adminPath("/volunteers")}

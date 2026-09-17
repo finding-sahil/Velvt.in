@@ -48,6 +48,7 @@ export default async function EventsPage() {
       <div className="py-section-sm md:py-section">
       <div className="container-velvt">
         <SectionHeading
+          as="h1"
           title="Every Event Leaves A Trace."
           subtitle="A curated archive of the experiences we've brought to life — and the ones yet to come."
         />

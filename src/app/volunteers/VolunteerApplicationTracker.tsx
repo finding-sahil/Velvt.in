@@ -42,24 +42,30 @@ export function VolunteerApplicationTracker() {
       </div>
 
       <form onSubmit={handleSearch} className="flex flex-col sm:flex-row gap-3">
+        <label htmlFor="tracker-query" className="sr-only">
+          Registered email or Volunteer ID
+        </label>
         <input
+          id="tracker-query"
+          name="query"
           type="text"
           value={query}
           onChange={(e) => setQuery(e.target.value)}
           placeholder="Enter registered email or Volunteer ID..."
+          aria-label="Enter registered email or Volunteer ID"
           className="flex-1 px-4 py-3 rounded-xl bg-black/60 border border-white/15 text-white text-xs sm:text-sm font-mono focus:border-red focus:outline-none transition-colors"
         />
         <button
           type="submit"
           disabled={loading || !query.trim()}
-          className="px-6 py-3 rounded-xl bg-red hover:bg-red-glow text-white font-mono text-xs uppercase tracking-wider font-bold transition-all disabled:opacity-50 cursor-pointer shadow-[0_0_15px_var(--red-glow)]"
+          className="px-6 py-3 rounded-xl bg-red hover:bg-red-glow text-white font-mono text-xs uppercase tracking-wider font-bold transition-all disabled:opacity-50 cursor-pointer shadow-[0_0_15px_var(--red-glow)] min-h-[44px]"
         >
           {loading ? "Searching..." : "Track Status →"}
         </button>
       </form>
 
       {searched && (
-        <div className="pt-2">
+        <div role="status" aria-live="polite" className="pt-2">
           {result ? (
             <div className="p-6 rounded-2xl border border-white/15 bg-black/60 space-y-4">
               <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 pb-3 border-b border-white/10">

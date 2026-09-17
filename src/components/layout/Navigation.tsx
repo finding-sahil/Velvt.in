@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { useState } from "react";
+import { useState, useEffect, useRef } from "react";
 import dynamic from "next/dynamic";
 import { GlobalSearchTrigger } from "@/components/ui/GlobalSearchModal";
 
@@ -23,6 +23,37 @@ const navLinks = [
 export function Navigation() {
   const pathname = usePathname();
   const [mobileOpen, setMobileOpen] = useState(false);
+  const headerRef = useRef<HTMLElement>(null);
+
+  // Close mobile drawer on route change
+  useEffect(() => {
+    setMobileOpen(false);
+  }, [pathname]);
+
+  // Close mobile drawer on Escape key or outside click
+  useEffect(() => {
+    if (!mobileOpen) return;
+
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === "Escape") {
+        setMobileOpen(false);
+      }
+    };
+
+    const handleClickOutside = (e: MouseEvent) => {
+      if (headerRef.current && !headerRef.current.contains(e.target as Node)) {
+        setMobileOpen(false);
+      }
+    };
+
+    window.addEventListener("keydown", handleKeyDown);
+    document.addEventListener("mousedown", handleClickOutside);
+
+    return () => {
+      window.removeEventListener("keydown", handleKeyDown);
+      document.removeEventListener("mousedown", handleClickOutside);
+    };
+  }, [mobileOpen]);
 
   // Don't render on management or locked standalone link tree pages
   if (
@@ -35,7 +66,16 @@ export function Navigation() {
 
   return (
     <>
-      <header className="fixed top-4 left-1/2 -translate-x-1/2 w-[calc(100%-2rem)] max-w-[860px] z-50">
+      {/* Mobile Drawer Backdrop */}
+      {mobileOpen && (
+        <div
+          className="fixed inset-0 bg-black/70 backdrop-blur-sm z-40 md:hidden animate-fade-in"
+          onClick={() => setMobileOpen(false)}
+          aria-hidden="true"
+        />
+      )}
+
+      <header ref={headerRef} className="fixed top-4 left-1/2 -translate-x-1/2 w-[calc(100%-2rem)] max-w-[860px] z-50">
         {/* Floating Glass Capsule Navigation Bar */}
         <nav className="h-[54px] rounded-full border border-white/10 bg-black/60 backdrop-blur-xl px-4 sm:px-6 flex items-center justify-between shadow-[0_8px_32px_rgba(0,0,0,0.6)]">
           {/* Brand Logo with Red Dot Accent */}
@@ -125,10 +165,19 @@ export function Navigation() {
         {/* Mobile Drawer */}
         <div
           className={`md:hidden overflow-hidden transition-all duration-300 ease-smooth mt-2 rounded-[20px] border border-white/10 bg-black/95 backdrop-blur-2xl ${
-            mobileOpen ? "max-h-[500px] p-5 shadow-2xl" : "max-h-0 p-0 border-transparent"
+            mobileOpen ? "max-h-[calc(100vh-5.5rem)] overflow-y-auto p-5 shadow-2xl" : "max-h-0 p-0 border-transparent"
           }`}
         >
           <div className="flex flex-col space-y-1">
+            <Link
+              href="/"
+              onClick={() => setMobileOpen(false)}
+              className={`text-sm font-medium tracking-[0.14em] uppercase py-2.5 min-h-[44px] flex items-center transition-colors ${
+                pathname === "/" ? "text-red font-bold" : "text-g6 hover:text-white"
+              }`}
+            >
+              Home
+            </Link>
             {navLinks.map((link) => {
               const isActive =
                 link.href === "/"

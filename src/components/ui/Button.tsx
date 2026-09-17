@@ -8,6 +8,9 @@ interface ButtonProps extends React.ButtonHTMLAttributes<HTMLButtonElement> {
   variant?: ButtonVariant;
   size?: ButtonSize;
   href?: string;
+  target?: string;
+  rel?: string;
+  download?: boolean | string;
   loading?: boolean;
   children: React.ReactNode;
 }
@@ -28,15 +31,17 @@ const variantClasses: Record<ButtonVariant, string> = {
 };
 
 const sizeClasses: Record<ButtonSize, string> = {
-  sm: "px-4 py-1.5 text-[0.72rem] tracking-[0.14em] font-bold",
-  md: "px-6 py-2.5 text-[0.78rem] tracking-[0.16em] font-bold",
-  lg: "px-7 py-3 text-[0.82rem] tracking-[0.18em] font-extrabold",
+  sm: "min-h-[36px] px-4 py-1.5 text-[0.72rem] tracking-[0.14em] font-bold",
+  md: "min-h-[42px] px-6 py-2.5 text-[0.78rem] tracking-[0.16em] font-bold",
+  lg: "min-h-[48px] px-7 py-3 text-[0.82rem] tracking-[0.18em] font-extrabold",
 };
 
 export function Button({
   variant = "primary",
   size = "md",
   href,
+  target,
+  rel,
   loading,
   disabled,
   children,
@@ -55,8 +60,15 @@ export function Button({
   `.trim();
 
   if (href && !disabled) {
+    const relAttr = rel || (target === "_blank" ? "noopener noreferrer" : undefined);
     return (
-      <Link href={href} className={classes}>
+      <Link
+        href={href}
+        className={classes}
+        target={target}
+        rel={relAttr}
+        {...(props as any)}
+      >
         {children}
       </Link>
     );

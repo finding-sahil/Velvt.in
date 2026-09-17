@@ -319,6 +319,8 @@ export default async function EventDetailPage({ params }: EventPageProps) {
                     variant="outline"
                     size="sm"
                     className="w-full"
+                    target="_blank"
+                    rel="noopener noreferrer"
                   >
                     View on Google Maps →
                   </Button>
@@ -528,6 +530,8 @@ export default async function EventDetailPage({ params }: EventPageProps) {
                           href={ticket.bookingUrl}
                           size="sm"
                           variant="primary"
+                          target="_blank"
+                          rel="noopener noreferrer"
                         >
                           Book Now
                         </Button>

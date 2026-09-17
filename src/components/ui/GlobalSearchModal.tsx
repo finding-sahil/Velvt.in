@@ -121,6 +121,9 @@ export function GlobalSearchModal() {
 
       {/* Modal Dialog */}
       <div
+        role="dialog"
+        aria-modal="true"
+        aria-label="Global site search"
         className="relative w-full max-w-2xl bg-[#09090b] border border-white/15 rounded-2xl shadow-[0_16px_70px_rgba(0,0,0,0.9)] overflow-hidden z-10 animate-fade-in-up"
         onClick={(e) => e.stopPropagation()}
       >
@@ -131,6 +134,7 @@ export function GlobalSearchModal() {
             fill="none"
             stroke="currentColor"
             viewBox="0 0 24 24"
+            aria-hidden="true"
           >
             <circle cx="11" cy="11" r="8" strokeWidth="2" />
             <line x1="21" y1="21" x2="16.65" y2="16.65" strokeWidth="2" />
@@ -139,6 +143,8 @@ export function GlobalSearchModal() {
           <input
             ref={inputRef}
             type="text"
+            role="searchbox"
+            aria-label="Search events, artists, stories, passes, FAQs"
             value={query}
             onChange={(e) => setQuery(e.target.value)}
             placeholder="Search events, artists, stories, passes, FAQs..."
@@ -146,11 +152,22 @@ export function GlobalSearchModal() {
           />
 
           {isPending && (
-            <svg className="animate-spin h-4 w-4 text-red shrink-0" viewBox="0 0 24 24">
+            <svg className="animate-spin h-4 w-4 text-red shrink-0" viewBox="0 0 24 24" aria-label="Loading search results">
               <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" fill="none" />
               <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
             </svg>
           )}
+
+          <button
+            type="button"
+            onClick={() => setIsOpen(false)}
+            aria-label="Close search"
+            className="sm:hidden p-1.5 text-g5 hover:text-white transition-colors rounded-lg min-w-[36px] min-h-[36px] flex items-center justify-center"
+          >
+            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12" />
+            </svg>
+          </button>
 
           <kbd className="hidden sm:inline-flex items-center gap-0.5 px-2 py-0.5 rounded border border-white/10 bg-white/[0.04] text-[10px] font-mono text-g5 uppercase">
             ESC

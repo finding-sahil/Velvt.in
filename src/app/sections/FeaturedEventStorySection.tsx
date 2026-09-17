@@ -129,7 +129,7 @@ export function FeaturedEventStorySection({
 
             <div className="pt-2 flex flex-wrap items-center gap-4">
               <Link
-                href={`/events/${event.slug}`}
+                href={isCompleted ? `/events/${event.slug}` : "/tickets"}
                 className="px-6 py-3 rounded-full bg-red hover:bg-red-glow text-white font-mono text-xs uppercase tracking-wider font-bold shadow-[0_0_25px_var(--red-glow)] transition-all flex items-center gap-2"
               >
                 <span>{isCompleted ? "Explore Event Archive" : "Secure Event Passes"}</span>

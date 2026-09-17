@@ -7,6 +7,7 @@ interface SectionHeadingProps {
   align?: "left" | "center";
   accentLine?: boolean;
   className?: string;
+  as?: "h1" | "h2" | "h3";
 }
 
 export function SectionHeading({
@@ -16,8 +17,10 @@ export function SectionHeading({
   align = "left",
   accentLine = true,
   className = "",
+  as = "h2",
 }: SectionHeadingProps) {
   const isCenter = align === "center";
+  const HeadingTag = as;
 
   return (
     <div className={`mb-8 md:mb-12 ${isCenter ? "text-center" : "text-left"} ${className}`}>
@@ -29,9 +32,9 @@ export function SectionHeading({
       )}
 
       {/* Main Display Title */}
-      <h2 className="section-title">
+      <HeadingTag className="section-title">
         {title}
-      </h2>
+      </HeadingTag>
 
       {/* Glowing Crimson Rule */}
       {accentLine && (

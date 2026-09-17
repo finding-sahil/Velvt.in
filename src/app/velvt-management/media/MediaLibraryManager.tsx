@@ -536,6 +536,21 @@ export function MediaLibraryManager({ initialItems }: MediaLibraryManagerProps) 
                     ✓
                   </button>
 
+                  {/* Quick Delete Button */}
+                  <button
+                    type="button"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setConfirmDelete(item);
+                    }}
+                    title="Delete Asset"
+                    className="absolute top-2 left-2 w-6 h-6 rounded-md bg-red/80 hover:bg-red text-white border border-red/50 flex items-center justify-center transition-all z-10 opacity-0 group-hover:opacity-100 cursor-pointer shadow-sm"
+                  >
+                    <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth="2.5">
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                    </svg>
+                  </button>
+
                   {/* Bottom Hover Filename */}
                   <div className="absolute inset-0 bg-gradient-to-t from-black/85 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity flex items-end p-2 pointer-events-none">
                     <span className="text-[10px] font-mono text-white/90 truncate w-full">

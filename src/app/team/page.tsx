@@ -46,6 +46,7 @@ export default async function TeamPage() {
 
       <div className="container-velvt space-y-16">
         <SectionHeading
+          as="h1"
           title="Core Team."
           subtitle="The directors, creators, and operators shaping the vision and bringing each nocturnal experience to life."
         />
@@ -184,7 +185,7 @@ export default async function TeamPage() {
                                 href={instagramUrl}
                                 target="_blank"
                                 rel="noopener noreferrer"
-                                className="h-7 px-2.5 rounded-full bg-white/[0.06] hover:bg-red/20 border border-white/10 hover:border-red/40 flex items-center gap-1.5 text-[10px] font-mono text-white/80 hover:text-white transition-all duration-200"
+                                className="min-h-[32px] sm:min-h-[36px] px-3 rounded-full bg-white/[0.06] hover:bg-red/20 border border-white/10 hover:border-red/40 flex items-center gap-1.5 text-[10px] font-mono text-white/80 hover:text-white transition-all duration-200"
                                 title={`${member.name} on Instagram`}
                               >
                                 <svg className="w-3 h-3 fill-current text-red" viewBox="0 0 24 24">
@@ -198,7 +199,7 @@ export default async function TeamPage() {
                                   href={socials.linkedin.startsWith("http") ? socials.linkedin : `https://linkedin.com/in/${socials.linkedin}`}
                                   target="_blank"
                                   rel="noopener noreferrer"
-                                  className="w-7 h-7 rounded-full bg-white/[0.06] hover:bg-sky-500/20 border border-white/10 hover:border-sky-500/40 flex items-center justify-center text-g5 hover:text-sky-400 transition-colors"
+                                  className="min-w-[32px] min-h-[32px] sm:min-w-[36px] sm:min-h-[36px] rounded-full bg-white/[0.06] hover:bg-sky-500/20 border border-white/10 hover:border-sky-500/40 flex items-center justify-center text-g5 hover:text-sky-400 transition-colors"
                                   title="LinkedIn"
                                 >
                                   <svg className="w-3 h-3 fill-current" viewBox="0 0 24 24">
@@ -210,7 +211,7 @@ export default async function TeamPage() {
 
                             <Link
                               href={`/team/${member.id}`}
-                              className="h-7 px-3 rounded-full bg-red/15 hover:bg-red text-red hover:text-white border border-red/40 hover:border-red flex items-center gap-1.5 text-[10px] font-mono tracking-wider font-semibold uppercase transition-all duration-200 shadow-[0_0_10px_var(--red-glow)]"
+                              className="min-h-[32px] sm:min-h-[36px] px-3.5 rounded-full bg-red/15 hover:bg-red text-red hover:text-white border border-red/40 hover:border-red flex items-center gap-1.5 text-[10px] font-mono tracking-wider font-semibold uppercase transition-all duration-200 shadow-[0_0_10px_var(--red-glow)]"
                             >
                               <span>Profile</span>
                               <span>&rarr;</span>
