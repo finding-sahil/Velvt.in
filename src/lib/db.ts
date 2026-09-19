@@ -6,8 +6,8 @@ const resolvedDbUrl =
     ? process.env.DATABASE_URL
     : process.env.POSTGRES_PRISMA_URL || process.env.POSTGRES_URL || "";
 
-if (resolvedDbUrl && (!process.env.DATABASE_URL || process.env.DATABASE_URL.trim() === "")) {
-  process.env.DATABASE_URL = resolvedDbUrl;
+if (!process.env.DATABASE_URL || process.env.DATABASE_URL.trim() === "") {
+  process.env.DATABASE_URL = resolvedDbUrl || "postgresql://postgres:postgres@localhost:5432/postgres";
 }
 
 const resolvedDirectUrl =
@@ -15,8 +15,8 @@ const resolvedDirectUrl =
     ? process.env.DIRECT_URL
     : process.env.POSTGRES_URL_NON_POOLING || "";
 
-if (resolvedDirectUrl && (!process.env.DIRECT_URL || process.env.DIRECT_URL.trim() === "")) {
-  process.env.DIRECT_URL = resolvedDirectUrl;
+if (!process.env.DIRECT_URL || process.env.DIRECT_URL.trim() === "") {
+  process.env.DIRECT_URL = resolvedDirectUrl || "postgresql://postgres:postgres@localhost:5432/postgres";
 }
 
 const globalForPrisma = globalThis as unknown as {
