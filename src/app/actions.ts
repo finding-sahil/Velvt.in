@@ -3667,6 +3667,7 @@ export async function updateSiteTheme(theme: string) {
     "witch_coven",
     "halloween_mix",
     "legacy",
+    "cinematic",
     "halloween",
   ];
   if (!validThemes.includes(theme)) {

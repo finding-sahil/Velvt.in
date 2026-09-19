@@ -5,7 +5,6 @@ import { usePathname } from "next/navigation";
 import { useState, useEffect, useRef } from "react";
 import dynamic from "next/dynamic";
 import { GlobalSearchTrigger } from "@/components/ui/GlobalSearchModal";
-import { ThemeSelector, ThemeSelectorCompact } from "@/components/ui/ThemeSelector";
 
 const GlobalSearchModal = dynamic(
   () => import("@/components/ui/GlobalSearchModal").then((mod) => mod.GlobalSearchModal),
@@ -109,10 +108,9 @@ export function Navigation() {
             })}
           </ul>
 
-          {/* Search Trigger, Theme Switcher & Social Link on right */}
+          {/* Search Trigger & Social Link on right */}
           <div className="hidden sm:flex items-center gap-2">
             <GlobalSearchTrigger />
-            <ThemeSelector />
             <a
               href="https://www.instagram.com/velvt.in"
               target="_blank"
@@ -198,11 +196,6 @@ export function Navigation() {
                 </Link>
               );
             })}
-
-            {/* Theme Switcher in Mobile Drawer */}
-            <div className="pt-2 pb-1">
-              <ThemeSelectorCompact />
-            </div>
 
             {/* Socials & Quick Links inside Mobile Menu */}
             <div className="pt-3 border-t border-white/10 space-y-2.5">

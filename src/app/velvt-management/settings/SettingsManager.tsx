@@ -327,6 +327,16 @@ export function SettingsManager({
       bgColor: "#09090b",
       badge: "Signature Theme (Default)",
     },
+    {
+      id: "cinematic",
+      name: "Cinematic VELVT",
+      tagline: "Editorial & Atmospheric — Playfair serif, near-black depth & signal red accents",
+      description: "The new cinematic editorial experience: high-end serif typography, minimal atmosphere, progressive disclosure, restrained signal red accents, and immersive event storytelling.",
+      accentColor: "#a31526",
+      dotColor: "rgba(255, 255, 255, 0.02)",
+      bgColor: "#08080a",
+      badge: "Cinematic Redesign",
+    },
   ];
 
   async function handleThemeSwitch(themeId: string) {

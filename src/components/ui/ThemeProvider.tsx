@@ -58,14 +58,25 @@ function persistTheme(theme: ThemeId) {
   } catch {}
 }
 
-export function ThemeProvider({ children }: { children: ReactNode }) {
-  const [theme, setThemeState] = useState<ThemeId>("legacy");
+export function ThemeProvider({
+  children,
+  initialTheme = "legacy",
+}: {
+  children: ReactNode;
+  initialTheme?: ThemeId;
+}) {
+  const [theme, setThemeState] = useState<ThemeId>(initialTheme);
   const [mounted, setMounted] = useState(false);
 
   useEffect(() => {
-    setThemeState(getStoredTheme());
+    const stored = getStoredTheme();
+    if (stored && (stored === "cinematic" || stored === "legacy")) {
+      setThemeState(stored);
+    } else {
+      setThemeState(initialTheme);
+    }
     setMounted(true);
-  }, []);
+  }, [initialTheme]);
 
   const setTheme = useCallback((newTheme: ThemeId) => {
     setThemeState(newTheme);

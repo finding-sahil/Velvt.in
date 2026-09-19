@@ -117,7 +117,7 @@ export default async function RootLayout({
         />
       </head>
       <body className="min-h-screen flex flex-col bg-black text-white relative overflow-x-hidden">
-        <ThemeProvider>
+        <ThemeProvider initialTheme={siteTheme as any}>
           {/* Vercel Web Analytics */}
           <Analytics />
 
