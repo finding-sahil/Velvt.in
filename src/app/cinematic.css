@@ -1,0 +1,344 @@
+/* ═══════════════════════════════════════════════════════════════════════════════
+   VELVT — CINEMATIC THEME
+   A darker, sharper, more immersive VELVT experience.
+   
+   Palette: #08080a bg · #e8e4df text · #a31526 signal red · near-black surfaces
+   Fonts:   Playfair Display (display/cinematic) · Inter (body/UI)
+   Aesthetic: Editorial, minimal, atmospheric, cinematic depth
+   ═══════════════════════════════════════════════════════════════════════════════ */
+
+/* ─── CINEMATIC THEME TOKEN OVERRIDES ─────────────────────────────────────────── */
+
+html[data-theme="cinematic"] {
+  /* Core palette: near-black, charcoal, deep burgundy, warm off-white */
+  --theme-bg: #08080a;
+  --theme-surface: #101014;
+  --theme-primary: #a31526;
+  --theme-accent: #a31526;
+  --theme-glow: rgba(163, 21, 38, 0.15);
+  --theme-glow-soft: rgba(163, 21, 38, 0.04);
+  --theme-dot: rgba(255, 255, 255, 0.02);
+
+  /* Cinematic typography colors */
+  --cin-text: #e8e4df;
+  --cin-text-muted: #8a8680;
+  --cin-text-dim: #5c5955;
+
+  /* Restrained red — signal only */
+  --red: #a31526;
+  --red-dim: rgba(163, 21, 38, 0.08);
+  --red-glow: rgba(163, 21, 38, 0.12);
+
+  /* Subtle glass */
+  --glass-bg: rgba(255, 255, 255, 0.015);
+  --glass-bg-md: rgba(255, 255, 255, 0.025);
+  --glass-bg-hv: rgba(255, 255, 255, 0.04);
+  --glass-border: rgba(255, 255, 255, 0.05);
+
+  /* Sharp editorial corners */
+  --radius-card: 3px;
+  --radius-pill: 3px;
+}
+
+/* ─── THEME CONTENT VISIBILITY SWITCHER ──────────────────────────────────────── */
+html[data-theme="cinematic"] [data-theme-content="legacy"] {
+  display: none !important;
+}
+
+html:not([data-theme="cinematic"]) [data-theme-content="cinematic"] {
+  display: none !important;
+}
+
+
+/* ─── CINEMATIC TYPOGRAPHY ────────────────────────────────────────────────────── */
+
+/* Display titles: Playfair Display — cinematic, editorial, expensive */
+html[data-theme="cinematic"] .cin-display-title,
+html[data-theme="cinematic"] .hero-title,
+html[data-theme="cinematic"] .section-title {
+  font-family: var(--font-playfair, "Playfair Display"), "Georgia", serif;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  text-transform: none; /* Override legacy uppercase */
+  color: var(--cin-text, #e8e4df);
+}
+
+html[data-theme="cinematic"] .hero-title {
+  font-weight: 900;
+  font-size: clamp(3.5rem, 14vw, 11rem);
+  line-height: 0.88;
+  letter-spacing: -0.03em;
+}
+
+html[data-theme="cinematic"] .section-title {
+  font-size: clamp(2rem, 4.5vw, 3rem);
+  line-height: 1.1;
+}
+
+html[data-theme="cinematic"] .hero-tagline {
+  font-family: var(--font-playfair, "Playfair Display"), "Georgia", serif;
+  font-size: clamp(1.4rem, 4vw, 2.8rem);
+  font-weight: 700;
+  letter-spacing: -0.01em;
+  text-transform: none;
+  color: var(--cin-text, #e8e4df);
+}
+
+/* Body text: Inter — clean, legible, premium sans */
+html[data-theme="cinematic"] .cin-body,
+html[data-theme="cinematic"] .section-intro {
+  font-family: var(--font-inter, "Inter"), "Arial", sans-serif;
+  color: var(--cin-text-muted, #8a8680);
+  line-height: 1.75;
+}
+
+html[data-theme="cinematic"] .text-display {
+  font-family: var(--font-playfair, "Playfair Display"), "Georgia", serif;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  text-transform: none;
+}
+
+html[data-theme="cinematic"] .text-heading {
+  font-family: var(--font-playfair, "Playfair Display"), "Georgia", serif;
+  font-weight: 700;
+  letter-spacing: -0.01em;
+  text-transform: none;
+}
+
+
+/* ─── SUPPRESS LEGACY VISUAL CLUTTER ──────────────────────────────────────────── */
+
+/* Remove decorative red rules / horizontal lines */
+html[data-theme="cinematic"] .red-rule {
+  display: none !important;
+}
+
+/* Remove section separators — use negative space */
+html[data-theme="cinematic"] .section-separator {
+  display: none !important;
+}
+
+/* Remove floating red glow blobs from hero */
+html[data-theme="cinematic"] .hero-bubbles {
+  display: none !important;
+}
+
+/* Simplify body::before — remove dot matrix and aggressive halos */
+html[data-theme="cinematic"] body::before {
+  background-image: none !important;
+  background: transparent !important;
+}
+
+/* Remove blood drips, cobweb corners, editorial distress */
+html[data-theme="cinematic"] .text-blood-drips {
+  display: none !important;
+}
+
+html[data-theme="cinematic"] .editorial-corner-web {
+  display: none !important;
+}
+
+html[data-theme="cinematic"] .editorial-title-distress::after {
+  display: none !important;
+}
+
+/* Reduce film grain further for cinematic subtlety */
+html[data-theme="cinematic"] .film-grain {
+  opacity: 0.015;
+}
+
+/* Subtler scanlines */
+html[data-theme="cinematic"] .scanlines {
+  opacity: 0.3;
+}
+
+
+/* ─── CINEMATIC GLASS CARDS — MINIMAL ─────────────────────────────────────────── */
+
+html[data-theme="cinematic"] .glass-card {
+  background: rgba(255, 255, 255, 0.015);
+  border: 1px solid rgba(255, 255, 255, 0.05);
+  border-radius: 3px;
+  box-shadow: none;
+  backdrop-filter: none;
+  -webkit-backdrop-filter: none;
+}
+
+html[data-theme="cinematic"] .glass-card:hover {
+  background: rgba(255, 255, 255, 0.03);
+  border-color: rgba(255, 255, 255, 0.08);
+  box-shadow: none;
+  transform: none;
+}
+
+html[data-theme="cinematic"] .glass-pill {
+  border-radius: 3px;
+  backdrop-filter: none;
+  -webkit-backdrop-filter: none;
+}
+
+
+/* ─── CINEMATIC SECTION SPACING — GENEROUS NEGATIVE SPACE ─────────────────────── */
+
+html[data-theme="cinematic"] section {
+  padding-top: clamp(3.5rem, 8vh, 6rem);
+  padding-bottom: clamp(3.5rem, 8vh, 6rem);
+}
+
+
+/* ─── CINEMATIC BUTTONS — CLEAN, NO GLOW ──────────────────────────────────────── */
+
+html[data-theme="cinematic"] .cin-cta-primary,
+html[data-theme="cinematic"] a.cin-cta-primary {
+  border-radius: 2px;
+  box-shadow: none;
+  font-family: var(--font-inter, "Inter"), sans-serif;
+  font-weight: 500;
+  text-transform: none;
+  letter-spacing: 0.02em;
+}
+
+html[data-theme="cinematic"] .cin-cta-secondary,
+html[data-theme="cinematic"] a.cin-cta-secondary {
+  border-radius: 2px;
+  box-shadow: none;
+  font-family: var(--font-inter, "Inter"), sans-serif;
+  font-weight: 500;
+  text-transform: none;
+  letter-spacing: 0.02em;
+}
+
+
+/* ─── CINEMATIC ANIMATIONS — SLOW, CINEMATIC REVEALS ──────────────────────────── */
+
+@keyframes cinFadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(12px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+html[data-theme="cinematic"] .cin-fade-in {
+  animation: cinFadeIn 0.8s cubic-bezier(0.25, 0.46, 0.45, 0.94) both;
+}
+
+html[data-theme="cinematic"] .cin-delay-1 { animation-delay: 200ms; }
+html[data-theme="cinematic"] .cin-delay-2 { animation-delay: 400ms; }
+html[data-theme="cinematic"] .cin-delay-3 { animation-delay: 600ms; }
+html[data-theme="cinematic"] .cin-delay-4 { animation-delay: 1000ms; }
+
+
+/* ─── CINEMATIC HERO SECTION ──────────────────────────────────────────────────── */
+
+html[data-theme="cinematic"] .cin-hero {
+  padding: 0 !important;
+  min-height: 100vh;
+  min-height: 100dvh;
+}
+
+
+/* ─── CINEMATIC SECTION OVERRIDES ─────────────────────────────────────────────── */
+
+/* Cinematic Featured Event */
+html[data-theme="cinematic"] .cin-section {
+  padding-top: clamp(4rem, 8vh, 7rem) !important;
+  padding-bottom: clamp(4rem, 8vh, 7rem) !important;
+}
+
+
+/* ─── CINEMATIC NAVIGATION ────────────────────────────────────────────────────── */
+
+html[data-theme="cinematic"] nav {
+  border-color: rgba(255, 255, 255, 0.05) !important;
+  background: rgba(8, 8, 10, 0.85) !important;
+  border-radius: 2px;
+}
+
+
+/* ─── CINEMATIC FOOTER ────────────────────────────────────────────────────────── */
+
+html[data-theme="cinematic"] footer {
+  border-color: rgba(255, 255, 255, 0.04) !important;
+  background: rgba(8, 8, 10, 0.9) !important;
+}
+
+
+/* ─── CINEMATIC SCROLLBAR ─────────────────────────────────────────────────────── */
+
+html[data-theme="cinematic"] ::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.08);
+}
+
+html[data-theme="cinematic"] ::-webkit-scrollbar-thumb:hover {
+  background: rgba(255, 255, 255, 0.15);
+}
+
+html[data-theme="cinematic"] ::-webkit-scrollbar-track {
+  background: #08080a;
+}
+
+
+/* ─── CINEMATIC SELECTION ─────────────────────────────────────────────────────── */
+
+html[data-theme="cinematic"] ::selection {
+  background-color: rgba(163, 21, 38, 0.4);
+  color: #e8e4df;
+}
+
+
+/* ─── CINEMATIC FOCUS STATES ──────────────────────────────────────────────────── */
+
+html[data-theme="cinematic"] :focus-visible {
+  outline-color: var(--cin-text-dim, #5c5955);
+}
+
+
+/* ─── CINEMATIC CURSOR ────────────────────────────────────────────────────────── */
+
+html[data-theme="cinematic"] #cursor-dot {
+  background: var(--cin-text-muted, #8a8680);
+  box-shadow: 0 0 6px rgba(138, 134, 128, 0.3);
+}
+
+html[data-theme="cinematic"] #cursor-ring {
+  border-color: rgba(138, 134, 128, 0.2);
+  box-shadow: none;
+  background: transparent;
+}
+
+html[data-theme="cinematic"] body.cursor-hover #cursor-ring {
+  border-color: rgba(163, 21, 38, 0.4);
+  box-shadow: none;
+}
+
+
+/* ─── CINEMATIC TESTIMONIALS ──────────────────────────────────────────────────── */
+
+html[data-theme="cinematic"] .animate-float-marquee-left,
+html[data-theme="cinematic"] .animate-float-marquee-right {
+  animation-duration: 50s; /* Slower, more cinematic */
+}
+
+
+/* ─── RESPONSIVE OVERRIDES — MOBILE FIRST ─────────────────────────────────────── */
+
+@media (max-width: 640px) {
+  html[data-theme="cinematic"] .cin-hero {
+    min-height: 100svh;
+  }
+
+  html[data-theme="cinematic"] section {
+    padding-top: clamp(2.5rem, 6vh, 4rem);
+    padding-bottom: clamp(2.5rem, 6vh, 4rem);
+  }
+
+  html[data-theme="cinematic"] .cin-display-title,
+  html[data-theme="cinematic"] .hero-title {
+    word-break: break-word;
+  }
+}

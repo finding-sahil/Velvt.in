@@ -45,6 +45,23 @@ export default async function MediaLibraryPage() {
   ]);
 
   // 2. Build normalized usage dictionary
+  const isImageMediaUrl = (url: string | null | undefined): boolean => {
+    if (!url || typeof url !== "string") return false;
+    const clean = url.trim().split("?")[0].split("#")[0].toLowerCase();
+    const ext = path.extname(clean);
+    const validExtensions = [".jpg", ".jpeg", ".png", ".webp", ".gif", ".svg", ".avif", ".ico"];
+    if (validExtensions.includes(ext)) return true;
+    if (
+      clean.includes("/storage/v1/object/public/uploads/") ||
+      clean.includes("/storage/v1/object/uploads/") ||
+      clean.includes("/uploads/") ||
+      clean.includes("/gallery/")
+    ) {
+      return true;
+    }
+    return false;
+  };
+
   const usageMap = new Map<string, string[]>();
 
   const registerUsage = (rawUrl: string | null | undefined, label: string) => {
@@ -110,17 +127,17 @@ export default async function MediaLibraryPage() {
     registerUsage(pm.logo, `Press Logo: ${pm.publication}`);
   }
 
-  // Populate usage from site settings (e.g. hero, linktree avatar, etc.)
+  // Populate usage from site settings (only actual image URLs)
   for (const [key, val] of Object.entries(siteSettings)) {
-    if (val && (val.includes("/") || val.includes("."))) {
+    if (val && typeof val === "string") {
       if (key === "linktree_config") {
         try {
           const parsed = JSON.parse(val);
-          if (parsed.avatarUrl) registerUsage(parsed.avatarUrl, "Link Tree Avatar");
-          if (parsed.desktopBackgroundUrl) registerUsage(parsed.desktopBackgroundUrl, "Link Tree Desktop BG");
-          if (parsed.mobileBackgroundUrl) registerUsage(parsed.mobileBackgroundUrl, "Link Tree Mobile BG");
+          if (parsed.avatarUrl && isImageMediaUrl(parsed.avatarUrl)) registerUsage(parsed.avatarUrl, "Link Tree Avatar");
+          if (parsed.desktopBackgroundUrl && isImageMediaUrl(parsed.desktopBackgroundUrl)) registerUsage(parsed.desktopBackgroundUrl, "Link Tree Desktop BG");
+          if (parsed.mobileBackgroundUrl && isImageMediaUrl(parsed.mobileBackgroundUrl)) registerUsage(parsed.mobileBackgroundUrl, "Link Tree Mobile BG");
         } catch {}
-      } else if (val.startsWith("/") || val.startsWith("http")) {
+      } else if (isImageMediaUrl(val)) {
         registerUsage(val, `CMS Setting: ${key}`);
       }
     }
@@ -317,7 +334,7 @@ export default async function MediaLibraryPage() {
 
   // 5. Ingest any remaining database-referenced media URLs that aren't on disk or in list
   for (const [rawUrl, labels] of usageMap.entries()) {
-    if (!rawUrl || (!rawUrl.startsWith("/") && !rawUrl.startsWith("http"))) continue;
+    if (!rawUrl || !isImageMediaUrl(rawUrl)) continue;
     const clean = rawUrl.split("?")[0].split("#")[0];
     const filename = path.basename(clean);
     if (!filename || filename === "/" || itemsMap.has(filename)) continue;

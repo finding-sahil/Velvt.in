@@ -16,6 +16,9 @@ import { FloatingTestimonialsSection } from "./sections/FloatingTestimonialsSect
 import { FinalCTASection } from "./sections/FinalCTASection";
 import { NewsletterSection } from "@/components/ui/NewsletterSection";
 import { isSectionEnabled } from "@/lib/section-switchboard";
+import { CinematicHeroSection } from "./sections/CinematicHeroSection";
+import { CinematicFeaturedEvent } from "./sections/CinematicFeaturedEvent";
+import { CinematicHomePage } from "./sections/CinematicHomePage";
 
 export const revalidate = 60; // Instant cached serving with background ISR
 
@@ -87,8 +90,59 @@ export default async function HomePage() {
     }
   }
 
+  // Determine the server-side theme (used for initial render; client will hydrate)
+  const siteTheme = settings.site_theme || "legacy";
+
   return (
     <>
+      {/* ═══════════════════════════════════════════════════════════════════
+          CINEMATIC THEME — Minimal, atmospheric, progressive disclosure
+          Flow: HOOK → ATMOSPHERE → EVENT → PROOF → ACTION
+          ═══════════════════════════════════════════════════════════════════ */}
+      <CinematicHomePage
+        settings={settings}
+        featuredEvent={featuredEvent}
+        testimonials={testimonials}
+        siteTheme={siteTheme}
+      />
+
+      {/* ═══════════════════════════════════════════════════════════════════
+          LEGACY THEME — The original VELVT experience, fully preserved
+          ═══════════════════════════════════════════════════════════════════ */}
+      <LegacyHomePage
+        settings={settings}
+        featuredEvent={featuredEvent}
+        recentEvents={recentEvents}
+        teamMembers={teamMembers}
+        partners={partners}
+        testimonials={testimonials}
+        experienceHighlights={experienceHighlights}
+      />
+    </>
+  );
+}
+
+/* ─── LEGACY HOME PAGE (Exact original, untouched) ────────────────────────────── */
+
+function LegacyHomePage({
+  settings,
+  featuredEvent,
+  recentEvents,
+  teamMembers,
+  partners,
+  testimonials,
+  experienceHighlights,
+}: {
+  settings: Record<string, string>;
+  featuredEvent: any;
+  recentEvents: any[];
+  teamMembers: any[];
+  partners: any[];
+  testimonials: any[];
+  experienceHighlights: any;
+}) {
+  return (
+    <div className="legacy-home" data-theme-content="legacy">
       {isSectionEnabled(settings, "section_hero") && (
         <>
           <HeroSection
@@ -249,6 +303,7 @@ export default async function HomePage() {
           buttonText={settings.final_cta_button}
         />
       )}
-    </>
+    </div>
   );
 }
+

@@ -1,13 +1,14 @@
 import type { Metadata } from "next";
 import Script from "next/script";
 import { Analytics } from "@vercel/analytics/react";
-import { Barlow_Condensed, Inter } from "next/font/google";
+import { Barlow_Condensed, Inter, Playfair_Display } from "next/font/google";
 import { Navigation } from "@/components/layout/Navigation";
 import { Footer } from "@/components/layout/Footer";
 import { CustomCursor } from "@/components/ui/CustomCursor";
 import { HalloweenAtmosphere } from "@/components/ui/HalloweenAtmosphere";
 import { ScrollToTop } from "@/components/ui/ScrollToTop";
 import { AppShell } from "@/components/layout/AppShell";
+import { ThemeProvider } from "@/components/ui/ThemeProvider";
 import { getCachedSiteSettings } from "@/lib/settings-cache";
 import "./globals.css";
 
@@ -22,6 +23,13 @@ const inter = Inter({
   subsets: ["latin"],
   weight: ["400", "500", "600", "700"],
   variable: "--font-inter",
+  display: "swap",
+});
+
+const playfairDisplay = Playfair_Display({
+  subsets: ["latin"],
+  weight: ["400", "700", "900"],
+  variable: "--font-playfair",
   display: "swap",
 });
 
@@ -81,7 +89,7 @@ export default async function RootLayout({
       lang="en"
       data-theme={siteTheme}
       suppressHydrationWarning
-      className={`${barlowCondensed.variable} ${inter.variable}`}
+      className={`${barlowCondensed.variable} ${inter.variable} ${playfairDisplay.variable}`}
     >
       <head>
         {/* Theme Initializer */}
@@ -109,37 +117,39 @@ export default async function RootLayout({
         />
       </head>
       <body className="min-h-screen flex flex-col bg-black text-white relative overflow-x-hidden">
-        {/* Vercel Web Analytics */}
-        <Analytics />
+        <ThemeProvider>
+          {/* Vercel Web Analytics */}
+          <Analytics />
 
-        {/* UNTOLDSURI Texture Layers: Film Grain & Scanlines */}
-        {isEnabled("feature_film_grain", true) && (
-          <>
-            <div className="film-grain" aria-hidden="true" />
-            <div className="scanlines" aria-hidden="true" />
-          </>
-        )}
-
-        {/* Interactive Custom Cursor */}
-        {isEnabled("feature_custom_cursor", true) && <CustomCursor />}
-
-        {/* Ambient Floating Embers (Halloween Touch) */}
-        {isEnabled("feature_thematic_atmosphere", true) && <HalloweenAtmosphere />}
-
-        {/* Floating Pill Glass Navigation */}
-        <Navigation />
-
-        {/* Route-Aware App Shell: Zero Top-Padding & No Public Footer in Admin Panel */}
-        <AppShell
-          footer={
+          {/* UNTOLDSURI Texture Layers: Film Grain & Scanlines */}
+          {isEnabled("feature_film_grain", true) && (
             <>
-              {isEnabled("feature_scroll_to_top", true) && <ScrollToTop />}
-              <Footer />
+              <div className="film-grain" aria-hidden="true" />
+              <div className="scanlines" aria-hidden="true" />
             </>
-          }
-        >
-          {children}
-        </AppShell>
+          )}
+
+          {/* Interactive Custom Cursor */}
+          {isEnabled("feature_custom_cursor", true) && <CustomCursor />}
+
+          {/* Ambient Floating Embers (Halloween Touch) */}
+          {isEnabled("feature_thematic_atmosphere", true) && <HalloweenAtmosphere />}
+
+          {/* Floating Pill Glass Navigation */}
+          <Navigation />
+
+          {/* Route-Aware App Shell: Zero Top-Padding & No Public Footer in Admin Panel */}
+          <AppShell
+            footer={
+              <>
+                {isEnabled("feature_scroll_to_top", true) && <ScrollToTop />}
+                <Footer />
+              </>
+            }
+          >
+            {children}
+          </AppShell>
+        </ThemeProvider>
       </body>
     </html>
   );
