@@ -39,7 +39,7 @@ export function ThemeSelector() {
           <circle cx="12" cy="12" r="3" />
           <path d="M12 1v2M12 21v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M1 12h2M21 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42" />
         </svg>
-        <span className="hidden lg:inline">{theme === "cinematic" ? "Cinematic" : "Legacy"}</span>
+        <span className="hidden lg:inline">{theme === "velvt2" ? "VELVT 2.O" : "Legacy"}</span>
       </button>
 
       {open && (
@@ -91,7 +91,7 @@ export function ThemeSelectorCompact() {
   return (
     <button
       type="button"
-      onClick={() => setTheme(theme === "cinematic" ? "legacy" : "cinematic")}
+      onClick={() => setTheme(theme === "velvt2" ? "legacy" : "velvt2")}
       className="w-full flex items-center justify-between px-3 py-2.5 rounded-xl bg-white/[0.05] border border-white/10 text-xs transition-all hover:bg-white/[0.08]"
     >
       <div className="flex items-center gap-2">
@@ -100,7 +100,7 @@ export function ThemeSelectorCompact() {
           <path d="M12 1v2M12 21v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M1 12h2M21 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42" />
         </svg>
         <span className="font-mono uppercase tracking-wider text-white">
-          {theme === "cinematic" ? "Cinematic" : "Legacy"}
+          {theme === "velvt2" ? "VELVT 2.O" : "Legacy"}
         </span>
       </div>
       <span className="text-[10px] font-mono text-g5 uppercase tracking-wider">

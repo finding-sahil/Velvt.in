@@ -2,7 +2,7 @@
 
 import { createContext, useContext, useState, useEffect, useCallback, type ReactNode } from "react";
 
-export type ThemeId = "legacy" | "cinematic";
+export type ThemeId = "legacy" | "velvt2";
 
 export interface ThemeOption {
   id: ThemeId;
@@ -17,9 +17,9 @@ export const THEMES: ThemeOption[] = [
     description: "The original VELVT experience.",
   },
   {
-    id: "cinematic",
-    label: "Cinematic",
-    description: "A darker, sharper, more immersive VELVT experience.",
+    id: "velvt2",
+    label: "VELVT 2.0",
+    description: "Refined replica: compact copy, clean hierarchy, and zero clutter.",
   },
 ];
 
@@ -43,7 +43,7 @@ function getStoredTheme(): ThemeId {
   if (typeof window === "undefined") return "legacy";
   try {
     const stored = localStorage.getItem("velvt_theme");
-    if (stored === "cinematic") return "cinematic";
+    if (stored === "velvt2") return stored;
   } catch {}
   return "legacy";
 }
@@ -70,7 +70,7 @@ export function ThemeProvider({
 
   useEffect(() => {
     const stored = getStoredTheme();
-    if (stored && (stored === "cinematic" || stored === "legacy")) {
+    if (stored && (stored === "velvt2" || stored === "legacy")) {
       setThemeState(stored);
     } else {
       setThemeState(initialTheme);

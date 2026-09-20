@@ -135,16 +135,16 @@ export default async function PressPage() {
         </div>
 
         {/* Media Inquiries Card */}
-        <div className="border border-white/10 bg-white/[0.05] backdrop-blur-[14px] p-8 sm:p-10 rounded-[20px] grid sm:grid-cols-2 gap-8 items-center shadow-[0_0_30px_rgba(0,0,0,0.3)]">
-          <div className="space-y-2">
+        <div className="border border-white/10 bg-white/[0.05] backdrop-blur-[14px] p-8 sm:p-10 rounded-[20px] flex flex-col md:flex-row md:items-center justify-between gap-8 shadow-[0_0_30px_rgba(0,0,0,0.3)]">
+          <div className="space-y-2 max-w-xl text-left">
             <h4 className="font-display font-bold text-2xl text-white uppercase tracking-tight">
-              Editorial & Interview Requests
+              Editorial &amp; Interview Requests
             </h4>
             <p className="text-xs sm:text-sm text-muted leading-relaxed">
               For interview inquiries with the founders, backstage credential access, or exclusive nocturnal coverage permissions, connect with our press relations desk.
             </p>
           </div>
-          <div className="sm:text-right space-y-1">
+          <div className="space-y-1.5 flex-shrink-0 text-left">
             <p className="text-xs font-mono text-muted uppercase tracking-wider">
               Press Relations
             </p>

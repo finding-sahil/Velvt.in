@@ -91,20 +91,28 @@ export function ContactForm({
       {/* Ambient background glow */}
       <div className="absolute top-1/4 left-1/4 w-96 h-96 rounded-full bg-primary/15 blur-[140px] pointer-events-none" />
 
-      <div className="container-velvt">
-        <div className="grid lg:grid-cols-2 gap-12 lg:gap-20 items-start">
-          {/* Form */}
-          <div className="space-y-8">
-            <div className="space-y-4">
-              <h1 className="font-display font-black text-4xl sm:text-5xl lg:text-6xl text-white uppercase tracking-tight">
-                Get In Touch.
-              </h1>
-              <div className="w-16 h-0.5 bg-primary shadow-[0_0_14px_#c8102e]" />
-              <p className="text-sm sm:text-base text-muted leading-relaxed">
-                Whether for collaboration, sponsorship, press access, venue partnerships, or general questions — we would love to hear from you.
-              </p>
-            </div>
+      <div className="container-velvt space-y-12">
+        {/* Header Hero */}
+        <div className="max-w-3xl space-y-5">
+          <div className="inline-flex items-center gap-2 px-3.5 py-1 rounded-full bg-red-dim border border-red/30 text-[11px] font-mono uppercase tracking-widest text-red">
+            <span className="w-1.5 h-1.5 rounded-full bg-red animate-pulse" />
+            <span>Direct Production Concierge</span>
+          </div>
 
+          <h1 className="font-display font-black text-4xl sm:text-6xl lg:text-7xl uppercase text-white tracking-tight leading-[0.95]">
+            Get In Touch.
+          </h1>
+
+          <div className="w-16 h-0.5 bg-primary shadow-[0_0_14px_#c8102e]" />
+
+          <p className="text-sm sm:text-base md:text-lg text-g5 leading-relaxed">
+            Whether for collaboration, sponsorship, press access, venue partnerships, or general inquiries — our production team responds promptly.
+          </p>
+        </div>
+
+        <div className="grid lg:grid-cols-12 gap-8 lg:gap-12 items-start">
+          {/* Form */}
+          <div className="lg:col-span-7">
             <div className="rounded-[20px] bg-white/[0.05] border border-white/10 backdrop-blur-[14px] p-6 sm:p-10 shadow-[0_0_40px_rgba(0,0,0,0.4)]">
               <form onSubmit={handleSubmit} className="space-y-6">
                 {/* Anti-spam honeypot */}
@@ -213,7 +221,7 @@ export function ContactForm({
           </div>
 
           {/* Contact Details & Info */}
-          <div className="space-y-8 lg:pt-20">
+          <div className="lg:col-span-5 space-y-6">
             <div className="rounded-[20px] bg-white/[0.05] border border-white/10 backdrop-blur-[14px] p-8 sm:p-10 space-y-8 shadow-[0_0_30px_rgba(0,0,0,0.3)]">
               <div>
                 <span className="text-[10px] font-mono uppercase tracking-[0.2em] text-primary">

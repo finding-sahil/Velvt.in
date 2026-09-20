@@ -653,31 +653,34 @@ export default async function EventDetailPage({ params }: EventPageProps) {
 
       {/* ─── Volunteer CTA ──────────────────────────────────────────────────── */}
       {isSectionEnabled(settings, "event_section_volunteer_cta") && (
-        <section className="py-16 md:py-24 border-t border-white/[0.08] text-center">
-          <div className="container-narrow">
-            <div className="rounded-[20px] bg-white/[0.05] border border-white/10 backdrop-blur-[14px] p-8 md:p-12 shadow-[0_0_30px_rgba(200,16,46,0.12)]">
-              <div className="w-14 h-0.5 bg-primary shadow-[0_0_14px_#c8102e] mx-auto mb-6" />
-              {isCompleted ? (
-                <>
-                  <h2 className="font-display font-black text-3xl md:text-4xl text-white uppercase tracking-tight mb-4">
-                    Were You Part Of This Production?
-                  </h2>
-                  <p className="text-sm text-muted mb-8 max-w-md mx-auto leading-relaxed">
-                    Verify your volunteer credentials to confirm your official contribution to {event.name}.
-                  </p>
-                  <Button href="/verify" variant="primary" size="lg">Verify Your Volunteer ID →</Button>
-                </>
-              ) : (
-                <>
-                  <h2 className="font-display font-black text-3xl md:text-4xl text-white uppercase tracking-tight mb-4">
-                    Join The Production Crew
-                  </h2>
-                  <p className="text-sm text-muted mb-8 max-w-md mx-auto leading-relaxed">
-                    Be part of the dedicated crew bringing {event.name} to life in Silchar.
-                  </p>
-                  <Button href="/volunteers/register" variant="primary" size="lg">Apply To Volunteer →</Button>
-                </>
-              )}
+        <section className="py-16 md:py-20 border-t border-white/[0.08]">
+          <div className="container-velvt">
+            <div className="rounded-2xl border border-white/10 bg-white/[0.03] backdrop-blur-xl p-8 sm:p-10 flex flex-col md:flex-row items-start md:items-center justify-between gap-8 shadow-[0_0_30px_rgba(0,0,0,0.3)]">
+              <div className="space-y-2 max-w-xl text-left">
+                <div className="inline-flex items-center gap-2 px-3 py-0.5 rounded-full bg-red-dim border border-red/30 text-[10px] font-mono uppercase tracking-widest text-red">
+                  <span className="w-1.5 h-1.5 rounded-full bg-red animate-pulse" />
+                  <span>{isCompleted ? "Crew Accreditation" : "Production Recruitment"}</span>
+                </div>
+                <h2 className="font-display font-black text-2xl sm:text-3xl md:text-4xl text-white uppercase tracking-tight">
+                  {isCompleted ? "Were You Part Of This Production?" : "Join The Production Crew"}
+                </h2>
+                <p className="text-xs sm:text-sm text-g5 leading-relaxed">
+                  {isCompleted
+                    ? `Verify your official credentials to confirm your contribution to ${event.name}.`
+                    : `Be part of the dedicated backstage crew bringing ${event.name} to life in Silchar.`}
+                </p>
+              </div>
+              <div className="flex-shrink-0">
+                {isCompleted ? (
+                  <Button href="/verify" variant="primary" size="md" className="px-6">
+                    Verify Volunteer ID &rarr;
+                  </Button>
+                ) : (
+                  <Button href="/volunteers/register" variant="primary" size="md" className="px-6">
+                    Apply To Volunteer &rarr;
+                  </Button>
+                )}
+              </div>
             </div>
           </div>
         </section>

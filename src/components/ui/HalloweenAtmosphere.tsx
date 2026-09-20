@@ -57,7 +57,7 @@ export function HalloweenAtmosphere() {
     };
   }, []);
 
-  const isHalloweenActive = !isAdmin && currentTheme !== "legacy";
+  const isHalloweenActive = !isAdmin && currentTheme !== "legacy" && currentTheme !== "velvt2";
 
   useEffect(() => {
     if (!isHalloweenActive) return;

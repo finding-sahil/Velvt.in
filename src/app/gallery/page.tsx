@@ -56,18 +56,23 @@ export default async function GalleryPage() {
         )}
 
         {/* Photography Submissions / Inquiries CTA */}
-        <div className="border border-white/10 bg-white/[0.05] backdrop-blur-[14px] p-8 sm:p-12 rounded-[20px] text-center max-w-3xl mx-auto space-y-5 shadow-[0_0_30px_rgba(200,16,46,0.1)]">
-          <div className="w-12 h-0.5 bg-primary shadow-[0_0_12px_#c8102e] mx-auto" />
-          <h3 className="font-display font-black text-2xl sm:text-3xl text-white uppercase tracking-tight">
-            Were you behind the lens?
-          </h3>
-          <p className="text-sm text-muted max-w-lg mx-auto leading-relaxed">
-            We collaborate with visual artists, videographers, and editorial photographers. Submit your nocturnal coverage for inclusion in the official VELVT archive.
-          </p>
-          <div className="pt-2">
+        <div className="rounded-2xl border border-white/10 bg-white/[0.03] backdrop-blur-xl p-8 sm:p-10 flex flex-col md:flex-row items-start md:items-center justify-between gap-6 shadow-[0_0_30px_rgba(0,0,0,0.3)]">
+          <div className="space-y-2 max-w-xl text-left">
+            <div className="inline-flex items-center gap-2 px-3 py-0.5 rounded-full bg-red-dim border border-red/30 text-[10px] font-mono uppercase tracking-widest text-red">
+              <span className="w-1.5 h-1.5 rounded-full bg-red animate-pulse" />
+              <span>Media Inquiries</span>
+            </div>
+            <h3 className="font-display font-black text-2xl sm:text-3xl text-white uppercase tracking-tight">
+              Were you behind the lens?
+            </h3>
+            <p className="text-xs sm:text-sm text-g5 leading-relaxed">
+              We collaborate with visual artists, videographers, and editorial photographers. Submit your nocturnal coverage for inclusion in the official VELVT archive.
+            </p>
+          </div>
+          <div className="flex-shrink-0">
             <Link
               href="/contact?category=media"
-              className="inline-flex items-center gap-2 px-6 py-2.5 rounded-full bg-red-dim border border-red-glow text-xs font-mono uppercase tracking-widest text-white hover:bg-primary hover:border-primary transition-all duration-300 min-h-[44px]"
+              className="inline-flex items-center gap-2 px-6 py-3 rounded-full bg-red hover:bg-red-glow text-white font-mono text-xs uppercase tracking-wider font-bold shadow-[0_0_20px_var(--red-glow)] transition-all min-h-[44px]"
             >
               Submit Media Coverage &rarr;
             </Link>

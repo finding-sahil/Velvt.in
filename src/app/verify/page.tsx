@@ -18,54 +18,119 @@ export default function VerifySearchPage() {
   };
 
   return (
-    <div className="min-h-[80vh] flex items-center justify-center py-20 px-6 relative overflow-hidden">
-      <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-96 h-96 rounded-full bg-primary/15 blur-[120px] pointer-events-none" />
+    <div className="py-12 md:py-20 relative min-h-[80vh]">
+      <div className="absolute top-1/4 left-1/3 w-96 h-96 rounded-full bg-primary/15 blur-[140px] pointer-events-none" />
 
-      <div className="max-w-md w-full mx-auto text-center rounded-[20px] bg-white/[0.05] border border-white/10 backdrop-blur-[14px] p-8 sm:p-12 shadow-[0_0_40px_rgba(0,0,0,0.4)] relative z-10 space-y-6">
-        <h1 className="font-display font-black text-3xl sm:text-4xl text-white uppercase tracking-tight">
-          Verify Volunteer Credential
-        </h1>
+      <div className="container-velvt space-y-12 relative z-10">
+        {/* Header Hero */}
+        <div className="max-w-3xl space-y-5">
+          <div className="inline-flex items-center gap-2 px-3.5 py-1 rounded-full bg-red-dim border border-red/30 text-[11px] font-mono uppercase tracking-widest text-red">
+            <span className="w-1.5 h-1.5 rounded-full bg-red animate-pulse" />
+            <span>Accreditation Verification</span>
+          </div>
 
-        <div className="w-12 h-0.5 bg-primary shadow-[0_0_12px_#c8102e] mx-auto" />
+          <h1 className="font-display font-black text-4xl sm:text-6xl lg:text-7xl uppercase text-white tracking-tight leading-[0.95]">
+            Verify Credentials.
+          </h1>
 
-        <p className="text-sm text-muted leading-relaxed">
-          Enter a VELVT credential ID to instantly verify official registration and event contribution.
-        </p>
+          <div className="w-16 h-0.5 bg-primary shadow-[0_0_14px_#c8102e]" />
 
-        <form
-          onSubmit={handleSubmit}
-          className="flex flex-col gap-4 pt-2"
-        >
-          <label htmlFor="volunteerId" className="sr-only">
-            Volunteer Credential ID
-          </label>
-          <input
-            id="volunteerId"
-            name="volunteerId"
-            type="text"
-            value={id}
-            onChange={(e) => setId(e.target.value)}
-            placeholder="VEL-2026-00047"
-            className="w-full px-5 py-4 bg-black/60 border border-white/10 rounded-full text-white text-center font-mono tracking-widest text-lg placeholder:text-muted/30 focus:outline-none focus:border-primary focus:shadow-[0_0_15px_rgba(200,16,46,0.35)] transition-all"
-            aria-label="Volunteer ID"
-          />
-          <Button type="submit" variant="primary" size="lg" disabled={!id.trim()}>
-            Verify Credential
-          </Button>
-        </form>
+          <p className="text-sm sm:text-base md:text-lg text-g5 leading-relaxed">
+            Cryptographic validation of official VELVT crew accreditation, backstage directorships, and event contributions in Silchar.
+          </p>
+        </div>
 
-        <p className="text-[11px] text-muted/50 font-mono tracking-wider">
-          Standard Format: VEL-YYYY-NNNNN
-        </p>
+        <div className="grid lg:grid-cols-12 gap-8 lg:gap-12 items-start">
+          {/* Search Card */}
+          <div className="lg:col-span-7">
+            <div className="rounded-[20px] bg-white/[0.05] border border-white/10 backdrop-blur-[14px] p-6 sm:p-10 shadow-[0_0_40px_rgba(0,0,0,0.4)] space-y-6">
+              <div className="space-y-1">
+                <span className="text-[10px] font-mono uppercase tracking-[0.2em] text-primary">
+                  Instant Lookup
+                </span>
+                <h2 className="font-display font-bold text-2xl text-white uppercase tracking-tight">
+                  Enter Credential ID
+                </h2>
+                <p className="text-xs text-g5">
+                  Input the official tamper-proof ID issued to verified production staff.
+                </p>
+              </div>
 
-        {/* Quick Verification Hub Navigation */}
-        <div className="pt-4 border-t border-white/10 flex items-center justify-between text-xs font-mono text-muted/70">
-          <Link href="/volunteers" className="hover:text-primary transition-colors min-h-[36px] flex items-center">
-            Volunteer Hub →
-          </Link>
-          <Link href="/tickets" className="hover:text-primary transition-colors min-h-[36px] flex items-center">
-            Event Passes →
-          </Link>
+              <form onSubmit={handleSubmit} className="space-y-5">
+                <div>
+                  <label htmlFor="volunteerId" className="block text-xs font-mono font-medium uppercase tracking-[0.15em] text-muted mb-2">
+                    Volunteer ID <span className="text-primary">*</span>
+                  </label>
+                  <input
+                    id="volunteerId"
+                    name="volunteerId"
+                    type="text"
+                    value={id}
+                    onChange={(e) => setId(e.target.value)}
+                    placeholder="e.g. VEL-2026-00047"
+                    className="w-full px-5 py-4 bg-black/60 border border-white/10 rounded-xl text-white font-mono tracking-wider text-base placeholder:text-muted/30 focus:outline-none focus:border-primary focus:shadow-[0_0_15px_rgba(200,16,46,0.35)] transition-all uppercase"
+                    aria-label="Volunteer ID"
+                    autoComplete="off"
+                  />
+                  <p className="text-[11px] text-muted/60 font-mono mt-2">
+                    Format standard: <span className="text-white/80">VEL-YYYY-NNNNN</span>
+                  </p>
+                </div>
+
+                <Button
+                  type="submit"
+                  variant="primary"
+                  size="lg"
+                  className="w-full justify-center"
+                  disabled={!id.trim()}
+                >
+                  Verify Credential &rarr;
+                </Button>
+              </form>
+            </div>
+          </div>
+
+          {/* Info Card */}
+          <div className="lg:col-span-5 space-y-6">
+            <div className="rounded-[20px] bg-white/[0.05] border border-white/10 backdrop-blur-[14px] p-8 sm:p-10 space-y-6 shadow-[0_0_30px_rgba(0,0,0,0.3)]">
+              <div className="space-y-1">
+                <span className="text-[10px] font-mono uppercase tracking-[0.2em] text-primary">
+                  Tamper-Proof Protocol
+                </span>
+                <h3 className="font-display font-black text-2xl text-white uppercase tracking-tight">
+                  Security &amp; Integrity
+                </h3>
+              </div>
+
+              <div className="space-y-4 text-xs font-mono text-g5">
+                <div className="p-3.5 rounded-xl bg-black/40 border border-white/5 space-y-1">
+                  <span className="text-white font-bold block">1. Cryptographic Record</span>
+                  <span>Each issued ID maps directly to our immutable PostgreSQL database and official gate authorization registry.</span>
+                </div>
+
+                <div className="p-3.5 rounded-xl bg-black/40 border border-white/5 space-y-1">
+                  <span className="text-white font-bold block">2. Public Badge Verification</span>
+                  <span>Verification returns live status, assigned department specialization, event year, and verified photo ID.</span>
+                </div>
+
+                <div className="p-3.5 rounded-xl bg-black/40 border border-white/5 space-y-1">
+                  <span className="text-white font-bold block">3. Revocation Protection</span>
+                  <span>Suspended or archived credentials immediately flag as invalid at entry scanning stations.</span>
+                </div>
+              </div>
+
+              <div className="pt-4 border-t border-white/10 flex items-center justify-between text-xs font-mono text-muted/80">
+                <Link href="/volunteers" className="hover:text-primary transition-colors flex items-center gap-1">
+                  <span>←</span>
+                  <span>Volunteer Hub</span>
+                </Link>
+                <Link href="/tickets" className="hover:text-primary transition-colors flex items-center gap-1">
+                  <span>Passes</span>
+                  <span>→</span>
+                </Link>
+              </div>
+            </div>
+          </div>
         </div>
       </div>
     </div>

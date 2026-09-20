@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import Link from "next/link";
 import { submitVolunteerApplication } from "@/app/actions";
 import { Button } from "@/components/ui/Button";
 import type { Metadata } from "next";
@@ -101,22 +102,27 @@ export default function VolunteerRegisterPage() {
 
   if (success) {
     return (
-      <div className="min-h-[80vh] flex items-center justify-center py-20 px-6">
-        <div className="max-w-md w-full mx-auto text-center rounded-[20px] bg-white/[0.05] border border-white/10 backdrop-blur-[14px] p-8 sm:p-12 shadow-[0_0_40px_rgba(200,16,46,0.18)] space-y-6">
-          <div className="w-16 h-16 mx-auto rounded-full bg-red-dim border border-red-glow flex items-center justify-center shadow-[0_0_20px_rgba(200,16,46,0.35)]">
-            <span className="text-2xl text-white">✓</span>
-          </div>
-          <h1 className="font-display font-black text-3xl md:text-4xl text-white uppercase tracking-tight">
-            Application Submitted
-          </h1>
-          <div className="w-12 h-0.5 bg-primary shadow-[0_0_12px_#c8102e] mx-auto" />
-          <p className="text-sm text-muted leading-relaxed">
-            Thank you for your interest in volunteering with VELVT. Our crew directors will review your submission. You will receive an official verifiable Volunteer ID upon confirmation.
-          </p>
-          <div className="pt-4">
-            <Button href="/volunteers" variant="primary">
-              Back to Volunteers
-            </Button>
+      <div className="py-12 md:py-20 relative min-h-[80vh]">
+        <div className="container-velvt">
+          <div className="max-w-2xl rounded-[20px] bg-white/[0.05] border border-white/10 backdrop-blur-[14px] p-8 sm:p-12 shadow-[0_0_40px_rgba(200,16,46,0.18)] space-y-6">
+            <div className="w-14 h-14 rounded-full bg-red-dim border border-red-glow flex items-center justify-center shadow-[0_0_20px_rgba(200,16,46,0.35)]">
+              <span className="text-2xl text-white">✓</span>
+            </div>
+            <h1 className="font-display font-black text-3xl md:text-5xl text-white uppercase tracking-tight">
+              Application Submitted.
+            </h1>
+            <div className="w-14 h-0.5 bg-primary shadow-[0_0_12px_#c8102e]" />
+            <p className="text-base text-g5 leading-relaxed">
+              Thank you for your interest in volunteering with VELVT. Our crew directors will review your submission. You will receive an official verifiable Volunteer ID upon confirmation.
+            </p>
+            <div className="pt-2 flex flex-wrap gap-4">
+              <Button href="/volunteers" variant="primary">
+                Back to Volunteers
+              </Button>
+              <Button href="/verify" variant="outline">
+                Verification Hub
+              </Button>
+            </div>
           </div>
         </div>
       </div>
@@ -124,20 +130,47 @@ export default function VolunteerRegisterPage() {
   }
 
   return (
-    <div className="py-12 md:py-20">
-      <div className="container-narrow">
-        <div className="text-center max-w-xl mx-auto mb-12 space-y-4">
-          <h1 className="font-display font-black text-4xl sm:text-5xl md:text-6xl text-white uppercase tracking-tight">
-            Volunteer With VELVT
+    <div className="py-12 md:py-20 relative">
+      {/* Ambient background glow */}
+      <div className="absolute top-1/4 left-1/4 w-96 h-96 rounded-full bg-primary/15 blur-[140px] pointer-events-none" />
+
+      <div className="container-velvt space-y-12">
+        {/* Navigation Breadcrumb */}
+        <div className="flex items-center gap-2 text-xs font-mono tracking-widest uppercase text-g5">
+          <Link
+            href="/volunteers"
+            className="hover:text-red transition-colors flex items-center gap-1.5"
+          >
+            <span>←</span>
+            <span>Production Crew</span>
+          </Link>
+          <span>/</span>
+          <span className="text-white font-semibold">Application</span>
+        </div>
+
+        {/* Hero Header */}
+        <div className="max-w-3xl space-y-5">
+          <div className="inline-flex items-center gap-2 px-3.5 py-1 rounded-full bg-red-dim border border-red/30 text-[11px] font-mono uppercase tracking-widest text-red">
+            <span className="w-1.5 h-1.5 rounded-full bg-red animate-pulse" />
+            <span>Official Crew Accreditation</span>
+          </div>
+
+          <h1 className="font-display font-black text-4xl sm:text-6xl lg:text-7xl uppercase text-white tracking-tight leading-[0.95]">
+            Volunteer With VELVT.
           </h1>
-          <div className="w-14 h-0.5 bg-primary shadow-[0_0_14px_#c8102e] mx-auto" />
-          <p className="text-sm sm:text-base text-muted leading-relaxed">
-            Step behind the curtain and help engineer the atmosphere. Fill out the application below to join our verified roster.
+
+          <div className="w-16 h-0.5 bg-primary shadow-[0_0_14px_#c8102e]" />
+
+          <p className="text-sm sm:text-base md:text-lg text-g5 leading-relaxed">
+            Step behind the curtain and help engineer the atmosphere. Fill out the application below to join our verified production roster. Selected crew receive official credentials and hands-on event experience.
           </p>
         </div>
 
-        <div className="max-w-xl mx-auto rounded-[20px] bg-white/[0.05] border border-white/10 backdrop-blur-[14px] p-6 sm:p-10 shadow-[0_0_40px_rgba(0,0,0,0.4)]">
-          <form onSubmit={handleSubmit} className="space-y-6">
+        <div className="grid lg:grid-cols-12 gap-8 lg:gap-12 items-start">
+          {/* Form */}
+          <div className="lg:col-span-7">
+            <div className="rounded-[20px] bg-white/[0.05] border border-white/10 backdrop-blur-[14px] p-6 sm:p-10 shadow-[0_0_40px_rgba(0,0,0,0.4)]">
+              <form onSubmit={handleSubmit} className="space-y-6">
             {/* Anti-spam honeypot */}
             <input type="text" name="_gotcha" className="hidden" tabIndex={-1} autoComplete="off" aria-hidden="true" />
             <FormField
@@ -384,7 +417,52 @@ export default function VolunteerRegisterPage() {
           </form>
         </div>
       </div>
+
+      {/* Right Column: Guidelines, Roles & Verification Info */}
+      <div className="lg:col-span-5 space-y-6">
+        <div className="rounded-[20px] bg-white/[0.05] border border-white/10 backdrop-blur-[14px] p-8 sm:p-10 space-y-6 shadow-[0_0_30px_rgba(0,0,0,0.3)]">
+          <div className="space-y-1">
+            <span className="text-[10px] font-mono uppercase tracking-[0.2em] text-primary">
+              Crew Protocol
+            </span>
+            <h3 className="font-display font-black text-2xl text-white uppercase tracking-tight">
+              What To Expect
+            </h3>
+          </div>
+
+          <div className="space-y-4 text-xs font-mono text-g5">
+            <div className="p-3.5 rounded-xl bg-black/40 border border-white/5 space-y-1">
+              <span className="text-white font-bold block">1. Rolling Review</span>
+              <span>Applications are reviewed sequentially. Shortlisted crew receive radio, backstage &amp; run-of-show briefing invitations.</span>
+            </div>
+
+            <div className="p-3.5 rounded-xl bg-black/40 border border-white/5 space-y-1">
+              <span className="text-white font-bold block">2. Official Credential</span>
+              <span>Approved crew receive an official tamper-proof cryptographic pass verifiable at <span className="text-white">velvt.in/verify</span>.</span>
+            </div>
+
+            <div className="p-3.5 rounded-xl bg-black/40 border border-white/5 space-y-1">
+              <span className="text-white font-bold block">3. Real Backstage Mastery</span>
+              <span>Direct execution across stage geometry, DMX lighting rigs, crowd gates, artist concierge, or media.</span>
+            </div>
+          </div>
+
+          <div className="pt-4 border-t border-white/10 space-y-2">
+            <p className="text-[10px] font-mono uppercase tracking-[0.2em] text-muted">
+              Already Submitted?
+            </p>
+            <Link
+              href="/volunteers"
+              className="text-xs font-mono text-primary hover:text-white transition-colors block uppercase tracking-wider"
+            >
+              Check Application Status Tracker &rarr;
+            </Link>
+          </div>
+        </div>
+      </div>
     </div>
+  </div>
+</div>
   );
 }
 

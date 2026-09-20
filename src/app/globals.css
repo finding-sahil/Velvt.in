@@ -113,6 +113,37 @@ html[data-theme="legacy"] {
   --red-glow: rgba(200, 16, 46, 0.35);
 }
 
+/* 1.1 VELVT 2.0 (Refined Replica: #000000 bg · #c8102e signal accent · background restored · zero line clutter) */
+html[data-theme="velvt2"] {
+  --theme-primary: #c8102e;
+  --theme-accent: #c8102e;
+  --theme-glow: rgba(200, 16, 46, 0.35);
+  --theme-glow-soft: rgba(200, 16, 46, 0.12);
+  --theme-bg: #000000;
+  --theme-dot: rgba(255, 255, 255, 0.10);
+  --red: #c8102e;
+  --red-dim: rgba(200, 16, 46, 0.15);
+  --red-glow: rgba(200, 16, 46, 0.35);
+}
+
+html[data-theme="velvt2"] .red-rule,
+html[data-theme="velvt2"] .section-separator,
+html[data-theme="velvt2"] .text-blood-drips {
+  display: none !important;
+}
+
+html[data-theme="velvt2"] .glass-card {
+  background: rgba(18, 18, 18, 0.7) !important;
+  border-color: rgba(255, 255, 255, 0.08) !important;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.6) !important;
+}
+
+html[data-theme="velvt2"] .glass-card:hover {
+  background: rgba(26, 26, 26, 0.85) !important;
+  border-color: rgba(255, 255, 255, 0.2) !important;
+  box-shadow: 0 8px 30px rgba(0, 0, 0, 0.8) !important;
+}
+
 /* 2. BLOOD MOON / VAMPIRE CURSE (Visceral Arterial Crimson: #050406 bg · #dc2626) */
 html[data-theme="blood_moon"],
 html[data-theme="curse"],

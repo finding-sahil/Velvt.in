@@ -2,18 +2,27 @@ import { Skeleton } from "@/components/ui/Skeleton";
 
 export default function VolunteerRegisterLoading() {
   return (
-    <div className="py-12 md:py-20 animate-fade-in">
-      <div className="container-narrow space-y-12">
-        {/* Header Skeleton */}
-        <div className="text-center max-w-xl mx-auto space-y-4">
-          <Skeleton className="h-12 sm:h-14 w-3/4 mx-auto" />
-          <div className="w-14 h-0.5 bg-primary/40 rounded-full mx-auto" />
-          <Skeleton className="h-4 sm:h-5 w-full mx-auto" />
-          <Skeleton className="h-4 w-4/5 mx-auto" />
+    <div className="py-12 md:py-20 animate-fade-in relative">
+      <div className="container-velvt space-y-12">
+        {/* Navigation Breadcrumb Skeleton */}
+        <div className="flex items-center gap-2">
+          <Skeleton className="h-4 w-28" />
+          <Skeleton className="h-4 w-4" />
+          <Skeleton className="h-4 w-24" />
         </div>
 
-        {/* Form Glassmorphic Card Skeleton */}
-        <div className="max-w-xl mx-auto rounded-[20px] bg-white/[0.05] border border-white/10 backdrop-blur-[14px] p-6 sm:p-10 shadow-[0_0_40px_rgba(0,0,0,0.4)] space-y-6">
+        {/* Header Skeleton */}
+        <div className="max-w-3xl space-y-5">
+          <Skeleton className="h-6 w-44 rounded-full" />
+          <Skeleton className="h-12 sm:h-16 w-3/4" />
+          <div className="w-16 h-0.5 bg-primary/40 rounded-full" />
+          <Skeleton className="h-4 sm:h-5 w-full" />
+          <Skeleton className="h-4 w-4/5" />
+        </div>
+
+        <div className="grid lg:grid-cols-12 gap-8 lg:gap-12 items-start">
+          {/* Form Glassmorphic Card Skeleton */}
+          <div className="lg:col-span-7 rounded-[20px] bg-white/[0.05] border border-white/10 backdrop-blur-[14px] p-6 sm:p-10 shadow-[0_0_40px_rgba(0,0,0,0.4)] space-y-6">
           {/* Full Name */}
           <div className="space-y-2">
             <Skeleton className="h-3.5 w-24" />
@@ -76,7 +85,21 @@ export default function VolunteerRegisterLoading() {
           {/* Submit Button */}
           <Skeleton className="h-12 w-full rounded-full bg-primary/30 border border-primary/50" />
         </div>
+
+        {/* Right Column Skeleton */}
+        <div className="lg:col-span-5 rounded-[20px] bg-white/[0.05] border border-white/10 backdrop-blur-[14px] p-8 sm:p-10 space-y-6">
+          <div className="space-y-2">
+            <Skeleton className="h-3 w-24" />
+            <Skeleton className="h-8 w-48" />
+          </div>
+          <div className="space-y-4">
+            <Skeleton className="h-16 w-full rounded-xl" />
+            <Skeleton className="h-16 w-full rounded-xl" />
+            <Skeleton className="h-16 w-full rounded-xl" />
+          </div>
+        </div>
       </div>
     </div>
-  );
+  </div>
+);
 }

@@ -122,22 +122,26 @@ export default async function TicketsPage() {
                 })}
               </div>
             ) : (
-              <div className="max-w-2xl mx-auto border border-white/10 bg-white/[0.04] backdrop-blur-[20px] rounded-[24px] p-10 sm:p-14 space-y-8 text-center shadow-[0_0_60px_rgba(200,16,46,0.15)]">
-                <div className="w-16 h-16 rounded-full bg-red-dim border border-red-glow flex items-center justify-center mx-auto">
-                  <span className="text-2xl">🎫</span>
+              <div className="max-w-3xl rounded-[20px] border border-white/10 bg-white/[0.04] backdrop-blur-[20px] p-8 sm:p-10 space-y-5 shadow-[0_0_40px_rgba(200,16,46,0.12)] text-left">
+                <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-amber-500/10 border border-amber-500/30 text-[11px] font-mono uppercase tracking-widest text-amber-300">
+                  <span className="w-1.5 h-1.5 rounded-full bg-amber-400 animate-pulse" />
+                  <span>Pass Release Notice</span>
                 </div>
-                <h2 className="font-display font-black text-3xl sm:text-4xl text-white uppercase tracking-tight">
-                  No Active Passes Right Now
+                <h2 className="font-display font-black text-2xl sm:text-4xl text-white uppercase tracking-tight">
+                  No Active Passes Available Right Now
                 </h2>
-                <p className="text-sm text-muted max-w-md mx-auto">
-                  Ticket tiers are not active for immediate booking. Check back or follow Instagram for announcements.
+                <div className="w-16 h-0.5 bg-primary shadow-[0_0_14px_#c8102e]" />
+                <p className="text-sm sm:text-base text-g5 leading-relaxed max-w-xl">
+                  Ticket tiers are currently closed for immediate online booking. Pass drops and door allocations are released sequentially. Check upcoming event listings for scheduled sale dates.
                 </p>
-                <Link
-                  href="/events"
-                  className="inline-flex items-center gap-2 px-6 py-2.5 rounded-full bg-red-dim border border-red-glow text-xs font-mono uppercase tracking-widest text-white hover:bg-primary transition-all"
-                >
-                  View Events →
-                </Link>
+                <div className="pt-2">
+                  <Link
+                    href="/events"
+                    className="inline-flex items-center gap-2 px-6 py-3 rounded-full bg-red hover:bg-red-glow text-white font-mono text-xs uppercase tracking-wider font-bold shadow-[0_0_20px_var(--red-glow)] transition-all min-h-[44px]"
+                  >
+                    Explore Production Schedule &rarr;
+                  </Link>
+                </div>
               </div>
             )
           )}

@@ -3670,6 +3670,7 @@ export async function updateSiteTheme(theme: string) {
     "legacy",
     "cinematic",
     "halloween",
+    "velvt2",
   ];
   if (!validThemes.includes(theme)) {
     return { success: false, error: "Invalid theme identifier." };

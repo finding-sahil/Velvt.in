@@ -121,8 +121,8 @@ export function VolunteerApplicationTracker() {
               )}
             </div>
           ) : (
-            <div className="p-4 rounded-xl border border-white/10 bg-white/[0.02] text-xs font-mono text-g5 text-center">
-              No registration record found for &quot;{query}&quot;. Please check the spelling or submit a new volunteer application.
+            <div className="p-4 rounded-xl border border-white/10 bg-white/[0.02] text-xs font-mono text-g5 text-left">
+              No registration record found for &quot;{query}&quot;. Please verify the spelling or submit a new volunteer application.
             </div>
           )}
         </div>

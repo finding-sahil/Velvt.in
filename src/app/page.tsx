@@ -16,9 +16,7 @@ import { FloatingTestimonialsSection } from "./sections/FloatingTestimonialsSect
 import { FinalCTASection } from "./sections/FinalCTASection";
 import { NewsletterSection } from "@/components/ui/NewsletterSection";
 import { isSectionEnabled } from "@/lib/section-switchboard";
-import { CinematicHeroSection } from "./sections/CinematicHeroSection";
-import { CinematicFeaturedEvent } from "./sections/CinematicFeaturedEvent";
-import { CinematicHomePage } from "./sections/CinematicHomePage";
+import { Velvt2HomePage } from "./sections/v2/Velvt2HomePage";
 
 export const revalidate = 60; // Instant cached serving with background ISR
 
@@ -96,13 +94,17 @@ export default async function HomePage() {
   return (
     <>
       {/* ═══════════════════════════════════════════════════════════════════
-          CINEMATIC THEME — Minimal, atmospheric, progressive disclosure
-          Flow: HOOK → ATMOSPHERE → EVENT → PROOF → ACTION
+          VELVT 2.O THEME — Refined Editorial, Compact Copy, Zero Clutter
+          Flow: HOOK → EVENT → EXPERIENCE → SCALE → ETHOS → CREW → ACTION
           ═══════════════════════════════════════════════════════════════════ */}
-      <CinematicHomePage
+      <Velvt2HomePage
         settings={settings}
         featuredEvent={featuredEvent}
+        recentEvents={recentEvents}
+        teamMembers={teamMembers}
+        partners={partners}
         testimonials={testimonials}
+        experienceHighlights={experienceHighlights}
         siteTheme={siteTheme}
       />
 

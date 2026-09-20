@@ -5,6 +5,7 @@ interface FloatingTestimonialsSectionProps {
   testimonials?: Testimonial[];
   title?: string;
   subtitle?: string;
+  compact?: boolean;
 }
 
 const DEFAULT_TESTIMONIALS = [
@@ -70,15 +71,36 @@ const DEFAULT_TESTIMONIALS = [
   },
 ];
 
+const COMPACT_QUOTES: Record<string, string> = {
+  "def-1": "Redefined nocturnal culture in Assam. Unmatched acoustic depth.",
+  "def-2": "Flawless gate execution and premier brand prestige.",
+  "def-3": "Lighting and stage production discipline is top tier.",
+  "def-4": "Dark elegance and crowd control — pure theater.",
+  "def-5": "Unmatched aesthetic subtlety in brand integration.",
+  "def-6": "Real-time production logistics at professional standards.",
+};
+
 export function FloatingTestimonialsSection({
   testimonials,
   title = "Voices of the Underground.",
   subtitle = "What partners, production crew, and attendees whisper after the crimson lights fade.",
+  compact = false,
 }: FloatingTestimonialsSectionProps) {
-  const allItems =
+  const baseItems =
     testimonials && testimonials.length > 0
       ? testimonials
       : DEFAULT_TESTIMONIALS;
+
+  const allItems = compact
+    ? baseItems.map((item) => ({
+        ...item,
+        quote: COMPACT_QUOTES[item.id] || item.quote,
+      }))
+    : baseItems;
+
+  const displaySubtitle = compact
+    ? "Real reflections from partners, production crew, and attendees."
+    : subtitle;
 
   // Split into two alternating streams for multi-directional floating effect
   const row1 = allItems.slice(0, Math.ceil(allItems.length / 2));
@@ -102,7 +124,7 @@ export function FloatingTestimonialsSection({
             {title}
           </h2>
           <p className="text-sm sm:text-base text-g5 leading-relaxed">
-            {subtitle}
+            {displaySubtitle}
           </p>
         </div>
       </div>
@@ -111,7 +133,7 @@ export function FloatingTestimonialsSection({
       <div className="relative w-full overflow-hidden mask-fade-edges py-2">
         <div className="animate-float-marquee-left gap-5 px-4">
           {duplicatedRow1.map((item, idx) => (
-            <TestimonialCard key={`row1-${item.id}-${idx}`} item={item} />
+            <TestimonialCard key={`row1-${item.id}-${idx}`} item={item} compact={compact} />
           ))}
         </div>
       </div>
@@ -120,7 +142,7 @@ export function FloatingTestimonialsSection({
       <div className="relative w-full overflow-hidden mask-fade-edges py-3">
         <div className="animate-float-marquee-right gap-5 px-4">
           {duplicatedRow2.map((item, idx) => (
-            <TestimonialCard key={`row2-${item.id}-${idx}`} item={item} />
+            <TestimonialCard key={`row2-${item.id}-${idx}`} item={item} compact={compact} />
           ))}
         </div>
       </div>
@@ -128,7 +150,7 @@ export function FloatingTestimonialsSection({
   );
 }
 
-function TestimonialCard({ item }: { item: any }) {
+function TestimonialCard({ item, compact }: { item: any; compact?: boolean }) {
   const badgeColor =
     item.category === "sponsor"
       ? "bg-amber-500/10 text-amber-400 border-amber-500/30"
@@ -143,8 +165,12 @@ function TestimonialCard({ item }: { item: any }) {
       ? "PRODUCTION CREW"
       : "VERIFIED ATTENDEE";
 
+  const cardWidth = compact
+    ? "w-[280px] sm:w-[320px] p-5"
+    : "w-[320px] sm:w-[380px] p-6";
+
   return (
-    <div className="flex-shrink-0 w-[320px] sm:w-[380px] rounded-2xl bg-black/40 border border-white/10 hover:border-red/40 hover:bg-black/60 transition-all duration-300 p-6 flex flex-col justify-between shadow-[0_4px_24px_rgba(0,0,0,0.5)] backdrop-blur-xl group">
+    <div className={`flex-shrink-0 ${cardWidth} rounded-2xl bg-black/40 border border-white/10 hover:border-red/40 hover:bg-black/60 transition-all duration-300 flex flex-col justify-between shadow-[0_4px_24px_rgba(0,0,0,0.5)] backdrop-blur-xl group`}>
       <div className="space-y-4">
         <div className="flex items-center justify-between gap-2">
           <div className="flex text-amber-400 text-xs tracking-widest">

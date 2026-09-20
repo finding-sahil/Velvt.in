@@ -62,15 +62,15 @@ export default function PressLoading() {
         </div>
 
         {/* Editorial & Interview Requests Card Skeleton */}
-        <div className="border border-white/10 bg-white/[0.05] backdrop-blur-[14px] p-8 sm:p-10 rounded-[20px] grid sm:grid-cols-2 gap-8 items-center shadow-[0_0_30px_rgba(0,0,0,0.3)]">
-          <div className="space-y-2">
+        <div className="border border-white/10 bg-white/[0.05] backdrop-blur-[14px] p-8 sm:p-10 rounded-[20px] flex flex-col md:flex-row md:items-center justify-between gap-8 shadow-[0_0_30px_rgba(0,0,0,0.3)]">
+          <div className="space-y-2 max-w-xl">
             <Skeleton className="h-7 w-64" />
             <Skeleton className="h-3.5 w-full" />
             <Skeleton className="h-3.5 w-4/5" />
           </div>
-          <div className="sm:text-right space-y-2">
-            <Skeleton className="h-3 w-28 sm:ml-auto" />
-            <Skeleton className="h-6 w-40 sm:ml-auto" />
+          <div className="space-y-2 flex-shrink-0">
+            <Skeleton className="h-3 w-28" />
+            <Skeleton className="h-6 w-40" />
           </div>
         </div>
       </div>
