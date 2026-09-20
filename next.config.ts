@@ -37,6 +37,18 @@ const nextConfig: NextConfig = {
       },
     ];
   },
+  async rewrites() {
+    const edgeApiUrl = process.env.NEXT_PUBLIC_CLOUDFLARE_API_URL;
+    if (edgeApiUrl && edgeApiUrl.startsWith("http")) {
+      return [
+        {
+          source: "/api/edge/:path*",
+          destination: `${edgeApiUrl.replace(/\/$/, "")}/api/:path*`,
+        },
+      ];
+    }
+    return [];
+  },
   async headers() {
     return [
       {
