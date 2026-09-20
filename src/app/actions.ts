@@ -21,6 +21,7 @@ import { getAdminPrefix } from "@/lib/admin-path";
 import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
 import { revalidateSiteSettings, getCachedSiteSettings } from "@/lib/settings-cache";
+import { revalidateDashboardMetrics } from "@/lib/dashboard-cache";
 import { headers } from "next/headers";
 import { unlink } from "fs/promises";
 import { existsSync } from "fs";

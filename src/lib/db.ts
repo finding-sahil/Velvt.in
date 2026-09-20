@@ -24,7 +24,11 @@ const globalForPrisma = globalThis as unknown as {
 };
 
 let tunedDbUrl = resolvedDbUrl;
-if (tunedDbUrl && tunedDbUrl.includes("pgbouncer=true") && !tunedDbUrl.includes("connection_limit")) {
+if (
+  tunedDbUrl &&
+  (tunedDbUrl.includes("pgbouncer=true") || tunedDbUrl.includes(":6543") || tunedDbUrl.includes("pooler.supabase.com")) &&
+  !tunedDbUrl.includes("connection_limit")
+) {
   tunedDbUrl += tunedDbUrl.includes("?") ? "&connection_limit=5&pool_timeout=15" : "?connection_limit=5&pool_timeout=15";
 }
 

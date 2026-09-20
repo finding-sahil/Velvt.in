@@ -4,7 +4,31 @@ import { getSupabase, Env } from "./supabase";
 
 const app = new Hono<{ Bindings: Env }>();
 
-// ─── CORS Middleware ────────────────────────────────────────────────────────
+// ─── Edge In-Memory Rate Limiter ─────────────────────────────────────────────
+interface RateLimitBucket {
+  count: number;
+  resetAt: number;
+}
+const rateLimitMap = new Map<string, RateLimitBucket>();
+
+function isRateLimited(key: string, limit: number, windowMs: number): boolean {
+  const now = Date.now();
+  const entry = rateLimitMap.get(key);
+
+  if (!entry || now > entry.resetAt) {
+    rateLimitMap.set(key, { count: 1, resetAt: now + windowMs });
+    return false;
+  }
+
+  if (entry.count >= limit) {
+    return true;
+  }
+
+  entry.count += 1;
+  return false;
+}
+
+// ─── Security Headers & CORS Middleware ───────────────────────────────────────
 app.use("*", async (c, next) => {
   const allowed = [
     "https://velvt.in",
@@ -14,8 +38,13 @@ app.use("*", async (c, next) => {
   ];
 
   const origin = c.req.header("origin");
-  const isVercel = origin && origin.endsWith(".vercel.app");
+  const isVercel = origin && (origin.endsWith(".vercel.app") || origin.endsWith("velvt.in"));
   const isAllowed = origin && (allowed.includes(origin) || isVercel);
+
+  // Security Headers
+  c.header("X-Content-Type-Options", "nosniff");
+  c.header("X-Frame-Options", "DENY");
+  c.header("Referrer-Policy", "strict-origin-when-cross-origin");
 
   const corsMiddleware = cors({
     origin: isAllowed ? origin : "https://velvt.in",
@@ -29,9 +58,9 @@ app.use("*", async (c, next) => {
 
 // ─── Health & Edge Diagnostics ───────────────────────────────────────────────
 app.get("/", (c) => {
-  const colo = (c.req.raw as any)?.cf?.colo || "local";
+  const colo = (c.req.raw as any)?.cf?.colo || "edge";
   return c.json({
-    service: "VELVT Edge API",
+    service: "VELVT Edge Infrastructure",
     status: "online",
     edgeDatacenter: colo,
     timestamp: new Date().toISOString(),
@@ -39,7 +68,12 @@ app.get("/", (c) => {
 });
 
 app.get("/health", (c) => {
-  return c.json({ status: "healthy", timestamp: new Date().toISOString() });
+  const colo = (c.req.raw as any)?.cf?.colo || "edge";
+  return c.json({
+    status: "healthy",
+    datacenter: colo,
+    timestamp: new Date().toISOString(),
+  });
 });
 
 // ─── Public Events (Edge Cached) ────────────────────────────────────────────
@@ -53,13 +87,13 @@ app.get("/api/events", async (c) => {
       .order("date", { ascending: true });
 
     if (error) {
-      return c.json({ error: error.message }, 500);
+      return c.json({ error: "Failed to fetch events" }, 500);
     }
 
     c.header("Cache-Control", "public, max-age=60, s-maxage=300, stale-while-revalidate=600");
     return c.json({ events: data ?? [] });
-  } catch (err: any) {
-    return c.json({ error: err?.message || "Internal error" }, 500);
+  } catch {
+    return c.json({ error: "Service temporarily unavailable" }, 500);
   }
 });
 
@@ -85,14 +119,21 @@ app.get("/api/events/:slug", async (c) => {
 
     c.header("Cache-Control", "public, max-age=60, s-maxage=180");
     return c.json({ event: data });
-  } catch (err: any) {
-    return c.json({ error: err?.message || "Internal error" }, 500);
+  } catch {
+    return c.json({ error: "Service temporarily unavailable" }, 500);
   }
 });
 
 // ─── High-Speed Gate Ticket Check-in / Scanner ──────────────────────────────
 // Validates and atomically marks a pass as checked in under 15ms
 app.post("/api/tickets/verify", async (c) => {
+  const clientIp = c.req.header("cf-connecting-ip") || "unknown";
+  
+  // Rate limit: 60 scans per minute per IP (prevents automated credential-stuffing)
+  if (isRateLimited(`scan:${clientIp}`, 60, 60000)) {
+    return c.json({ valid: false, error: "Scan rate limit exceeded. Please wait a moment." }, 429);
+  }
+
   try {
     const body = await c.req.json<{ ticketIdentifier: string; checkedInBy?: string }>();
     const identifier = body.ticketIdentifier?.trim();
@@ -101,7 +142,7 @@ app.post("/api/tickets/verify", async (c) => {
       return c.json({ valid: false, error: "Missing ticket identifier" }, 400);
     }
 
-    const supabase = getSupabase(c.env, true); // use service role key for atomic ticket update
+    const supabase = getSupabase(c.env, true); // Service role key for atomic CAS
 
     // 1. Fetch ticket by ticketNumber OR securityToken
     const { data: ticket, error } = await supabase
@@ -142,7 +183,7 @@ app.post("/api/tickets/verify", async (c) => {
       return c.json({
         valid: false,
         alreadyUsed: true,
-        error: "DOUBLE ADMITTANCE DETECTED: Ticket has already been scanned and used!",
+        error: "DOUBLE ADMITTANCE: Pass has already been checked in!",
         checkedInAt: ticket.checkedInAt,
         checkedInBy: ticket.checkedInBy,
         ticket,
@@ -180,13 +221,20 @@ app.post("/api/tickets/verify", async (c) => {
         event: ticket.event,
       },
     });
-  } catch (err: any) {
-    return c.json({ valid: false, error: err?.message || "Scanner verification failed" }, 500);
+  } catch {
+    return c.json({ valid: false, error: "Scanner verification failed" }, 500);
   }
 });
 
 // ─── Public Contact Inquiry Submissions ───────────────────────────────────────
 app.post("/api/inquiries", async (c) => {
+  const clientIp = c.req.header("cf-connecting-ip") || "unknown";
+
+  // Rate limit: 5 inquiries per 10 minutes per IP
+  if (isRateLimited(`inquiry:${clientIp}`, 5, 600000)) {
+    return c.json({ error: "Too many inquiries submitted. Please try again later." }, 429);
+  }
+
   try {
     const body = await c.req.json<{
       name: string;
@@ -211,17 +259,24 @@ app.post("/api/inquiries", async (c) => {
     });
 
     if (error) {
-      return c.json({ error: error.message }, 500);
+      return c.json({ error: "Failed to submit inquiry" }, 500);
     }
 
     return c.json({ success: true, message: "Inquiry received" });
-  } catch (err: any) {
-    return c.json({ error: err?.message || "Submission failed" }, 500);
+  } catch {
+    return c.json({ error: "Submission failed" }, 500);
   }
 });
 
 // ─── Volunteer Registration ──────────────────────────────────────────────────
 app.post("/api/volunteers", async (c) => {
+  const clientIp = c.req.header("cf-connecting-ip") || "unknown";
+
+  // Rate limit: 3 applications per hour per IP
+  if (isRateLimited(`volunteer:${clientIp}`, 3, 3600000)) {
+    return c.json({ error: "Application limit reached. Please try again later." }, 429);
+  }
+
   try {
     const body = await c.req.json<{
       fullName: string;
@@ -265,7 +320,7 @@ app.post("/api/volunteers", async (c) => {
       .single();
 
     if (error) {
-      return c.json({ error: error.message }, 500);
+      return c.json({ error: "Failed to submit application" }, 500);
     }
 
     return c.json({
@@ -273,8 +328,8 @@ app.post("/api/volunteers", async (c) => {
       message: "Application submitted successfully",
       volunteer: data,
     });
-  } catch (err: any) {
-    return c.json({ error: err?.message || "Registration failed" }, 500);
+  } catch {
+    return c.json({ error: "Registration failed" }, 500);
   }
 });
 
@@ -289,13 +344,13 @@ app.get("/api/gallery", async (c) => {
       .order("displayOrder", { ascending: true });
 
     if (error) {
-      return c.json({ error: error.message }, 500);
+      return c.json({ error: "Failed to fetch gallery" }, 500);
     }
 
     c.header("Cache-Control", "public, max-age=300, s-maxage=3600");
     return c.json({ items: data ?? [] });
-  } catch (err: any) {
-    return c.json({ error: err?.message || "Failed to fetch gallery" }, 500);
+  } catch {
+    return c.json({ error: "Failed to fetch gallery" }, 500);
   }
 });
 
@@ -310,13 +365,13 @@ app.get("/api/team", async (c) => {
       .order("displayOrder", { ascending: true });
 
     if (error) {
-      return c.json({ error: error.message }, 500);
+      return c.json({ error: "Failed to fetch team" }, 500);
     }
 
     c.header("Cache-Control", "public, max-age=300, s-maxage=3600");
     return c.json({ team: data ?? [] });
-  } catch (err: any) {
-    return c.json({ error: err?.message || "Failed to fetch team" }, 500);
+  } catch {
+    return c.json({ error: "Failed to fetch team" }, 500);
   }
 });
 

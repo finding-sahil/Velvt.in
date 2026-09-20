@@ -12,6 +12,8 @@ export default function robots(): MetadataRoute.Robots {
         disallow: [
           adminPrefix,
           `${adminPrefix}/*`,
+          "/admin",
+          "/admin/*",
           "/api/*",
         ],
       },

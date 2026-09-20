@@ -3,6 +3,7 @@ import Link from "next/link";
 import { getSession } from "@/lib/auth";
 import { prisma } from "@/lib/db";
 import { getCachedSiteSettings } from "@/lib/settings-cache";
+import { getCachedDashboardMetrics } from "@/lib/dashboard-cache";
 import { StatusBadge } from "@/components/ui/StatusBadge";
 import { formatDateShort } from "@/lib/utils";
 import { adminPath, adminLoginPath } from "@/lib/admin-path";
@@ -19,8 +20,13 @@ export default async function AdminDashboardPage() {
     redirect(adminPath("/gate"));
   }
 
-  // Fetch real aggregate metrics
-  const [
+  // Fetch cached aggregate metrics (sub-10ms response) and site settings
+  const [metrics, siteSettings] = await Promise.all([
+    getCachedDashboardMetrics(),
+    getCachedSiteSettings(),
+  ]);
+
+  const {
     eventCount,
     pendingVolunteersCount,
     verifiedVolunteersCount,
@@ -30,26 +36,7 @@ export default async function AdminDashboardPage() {
     subscribersCount,
     recentVolunteers,
     recentInquiries,
-    siteSettings,
-  ] = await Promise.all([
-    prisma.event.count(),
-    prisma.volunteer.count({ where: { status: "pending" } }),
-    prisma.volunteer.count({ where: { status: { in: ["approved", "verified"] } } }),
-    prisma.contactInquiry.count({ where: { status: "new" } }),
-    prisma.issuedTicket.count(),
-    prisma.issuedTicket.count({ where: { isCheckedIn: true } }),
-    prisma.newsletterSubscriber.count(),
-    prisma.volunteer.findMany({
-      take: 5,
-      orderBy: { appliedAt: "desc" },
-      include: { event: { select: { name: true } } },
-    }),
-    prisma.contactInquiry.findMany({
-      take: 5,
-      orderBy: { createdAt: "desc" },
-    }),
-    getCachedSiteSettings(),
-  ]);
+  } = metrics;
 
   const activeTheme = siteSettings.site_theme || "legacy";
 

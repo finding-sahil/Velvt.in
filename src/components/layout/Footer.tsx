@@ -174,12 +174,24 @@ export async function Footer() {
               <span className="text-white group-hover:text-red transition-colors underline decoration-white/20 underline-offset-4 font-semibold">Sahil</span>
             </a>
           </div>
-          <div className="flex items-center gap-6">
+          <div className="flex flex-wrap items-center justify-center sm:justify-end gap-x-6 gap-y-2">
+            <Link
+              href="/privacy"
+              className="text-[11px] font-mono text-g5 hover:text-white transition-colors uppercase tracking-wider py-1 inline-block"
+            >
+              Privacy Policy
+            </Link>
+            <Link
+              href="/terms"
+              className="text-[11px] font-mono text-g5 hover:text-white transition-colors uppercase tracking-wider py-1 inline-block"
+            >
+              Terms & Conditions
+            </Link>
             <a
               href={instagram}
               target="_blank"
               rel="noopener noreferrer"
-              className="text-[11px] font-mono text-g5 hover:text-red transition-colors uppercase tracking-wider py-2 px-1 inline-block"
+              className="text-[11px] font-mono text-g5 hover:text-red transition-colors uppercase tracking-wider py-1 inline-block"
             >
               Instagram
             </a>
@@ -187,7 +199,7 @@ export async function Footer() {
               href={whatsapp}
               target="_blank"
               rel="noopener noreferrer"
-              className="text-[11px] font-mono text-g5 hover:text-emerald-400 transition-colors uppercase tracking-wider py-2 px-1 inline-block"
+              className="text-[11px] font-mono text-g5 hover:text-emerald-400 transition-colors uppercase tracking-wider py-1 inline-block"
             >
               WhatsApp
             </a>

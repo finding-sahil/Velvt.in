@@ -9,6 +9,7 @@ import { HalloweenAtmosphere } from "@/components/ui/HalloweenAtmosphere";
 import { ScrollToTop } from "@/components/ui/ScrollToTop";
 import { AppShell } from "@/components/layout/AppShell";
 import { ThemeProvider } from "@/components/ui/ThemeProvider";
+import { CookieConsent } from "@/components/ui/CookieConsent";
 import { getCachedSiteSettings } from "@/lib/settings-cache";
 import "./globals.css";
 
@@ -144,6 +145,7 @@ export default async function RootLayout({
               <>
                 {isEnabled("feature_scroll_to_top", true) && <ScrollToTop />}
                 <Footer />
+                <CookieConsent />
               </>
             }
           >
