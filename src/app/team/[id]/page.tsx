@@ -23,9 +23,13 @@ export async function generateStaticParams() {
 }
 
 const getCachedTeamMember = cache(async (id: string) => {
-  return await prisma.teamMember.findUnique({
-    where: { id },
-  });
+  try {
+    return await prisma.teamMember.findUnique({
+      where: { id },
+    });
+  } catch {
+    return null;
+  }
 });
 
 export async function generateMetadata({ params }: PageProps): Promise<Metadata> {
@@ -61,7 +65,7 @@ export default async function TeamMemberPortfolioPage({ params }: PageProps) {
     },
     take: 3,
     orderBy: { displayOrder: "asc" },
-  });
+  }).catch(() => []);
 
   // Safe parse helper
   const parseJsonSafe = (raw: string | null | undefined, fallback: any) => {

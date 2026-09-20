@@ -35,31 +35,35 @@ export async function generateStaticParams() {
 }
 
 const getCachedEvent = cache(async (slug: string) => {
-  return await prisma.event.findUnique({
-    where: { slug },
-    include: {
-      venue: true,
-      ticketTypes: {
-        where: { isActive: true },
-        orderBy: { displayOrder: "asc" },
+  try {
+    return await prisma.event.findUnique({
+      where: { slug },
+      include: {
+        venue: true,
+        ticketTypes: {
+          where: { isActive: true },
+          orderBy: { displayOrder: "asc" },
+        },
+        scheduleItems: { orderBy: { displayOrder: "asc" } },
+        announcements: {
+          where: { isPublished: true },
+          orderBy: { publishedAt: "desc" },
+        },
+        faqs: { orderBy: { displayOrder: "asc" } },
+        galleryItems: {
+          where: { isPublished: true },
+          orderBy: { displayOrder: "asc" },
+          take: 36,
+        },
+        partners: {
+          where: { isActive: true },
+          orderBy: { displayOrder: "asc" },
+        },
       },
-      scheduleItems: { orderBy: { displayOrder: "asc" } },
-      announcements: {
-        where: { isPublished: true },
-        orderBy: { publishedAt: "desc" },
-      },
-      faqs: { orderBy: { displayOrder: "asc" } },
-      galleryItems: {
-        where: { isPublished: true },
-        orderBy: { displayOrder: "asc" },
-        take: 36,
-      },
-      partners: {
-        where: { isActive: true },
-        orderBy: { displayOrder: "asc" },
-      },
-    },
-  });
+    });
+  } catch {
+    return null;
+  }
 });
 
 export async function generateMetadata({
